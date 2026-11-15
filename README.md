@@ -15,6 +15,7 @@ Founded on 2026-11-16, and the founding was accepted by Jon the same day; [`docs
 | `CLAUDE.md` | Agent instructions; `AGENTS.md` is a symlink to it |
 | `docs/principles/` | The constitution this repository adopts, and its five adopted modules, copied byte for byte |
 | `docs/foundation/` | What maquette is for, the first armature, Jon's direction, the rules for evidence and references, and the rules for code and design tools |
+| `.claude/skills/` | The engineering and productivity skills from `mattpocock/skills` (MIT), copied unchanged at its commit `5863806`; `.agents/skills/` holds a symlink to each |
 | `.mcp.json` | Registers the VectorCraft and FigCraft MCP servers for Claude Code |
 | `design/` | Designs made by hand in those two tools; the only folder their servers may write to |
 | `docs/agents/` | How agents use the issue tracker and the triage labels |
