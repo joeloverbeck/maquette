@@ -6,7 +6,7 @@ In an animation studio a maquette is the sculpted reference model that keeps a c
 
 ## Status
 
-Founded on 2026-11-16. There is no code yet, and nothing to build or run. The founding awaits Jon's acceptance, recorded in [`docs/foundation/README.md`](docs/foundation/README.md). The first ticket follows it.
+Founded on 2026-11-16, and the founding was accepted by Jon the same day; [`docs/foundation/README.md`](docs/foundation/README.md) records it. There is no code yet, and nothing to build or run. Work starts from the issue tracker.
 
 ## Where things are
 

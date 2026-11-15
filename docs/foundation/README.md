@@ -34,7 +34,7 @@ And in conversation on 2026-11-15 and 2026-11-16: armatures only, with no painti
 
 And by his rulings after the interview, on 2026-11-16: all code is Rust except the thin layer of TypeScript the web interface needs; the interface is a web app; every design made by hand is made in VectorCraft or FigCraft, whose MCP servers are registered in this repository (`05-code-and-design-tools.md`).
 
-**Proposed by the agent, awaiting Jon's acceptance.** Each can be rejected by itself (`AUTH-2`).
+**Proposed by the agent and accepted by Jon.** He accepted the founding whole on 2026-11-16, at commit `6460d14`. These are the parts that were the agent's proposals and not his own decisions.
 
 1. The module set above.
 2. The wording of the primary outcome and the non-goals (`01-mission.md`).
@@ -45,8 +45,6 @@ And by his rulings after the interview, on 2026-11-16: all code is Rust except t
 7. What counts as a design made by hand, and that the two servers write only under `design/` (`05-code-and-design-tools.md`).
 8. The MIT licence, as in Jon's other public repositories.
 9. Who merges (`CLAUDE.md`).
-
-Until Jon accepts the founding, nothing is pushed and no ticket is filed.
 
 ## The GOV-1 count
 
