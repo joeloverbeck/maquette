@@ -77,3 +77,7 @@ GitHub Issues and PRs in `joeloverbeck/maquette`, via `gh`. Before ticket, speci
 ### Triage labels
 
 The five canonical triage labels. Before triage or readiness changes, read `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` and `docs/adr/` at the root, both created lazily, under the decisions in `docs/foundation/`. Before exploring, read `docs/agents/domain.md`.
