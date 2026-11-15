@@ -48,6 +48,8 @@ A number that gates or ranks settings falls under `EVAL-1` and `SEARCH-5`.
 
 **Jon.** Claude researches valid references, and Jon lends his eyes where they are needed. The rules are in `04-evidence-and-references.md`.
 
+**Ruled on 2026-11-16.** No automatic landmark detector. Jon does not trust the ones the research found, and they exist only in Python. References are a wide breadth of competent anime and manga pictures, measured by an agent and checked by Jon's eyes.
+
 ## 6. Also said
 
 - **Bodies**, for characters of all ages, under the mannequin rule (`01-mission.md`). Mudsong's playable cast runs from 17 to 58, so a child or an elder waits for a real one.
@@ -57,5 +59,4 @@ A number that gates or ranks settings falls under `EVAL-1` and `SEARCH-5`.
 
 - Which characters come second and third. `EVID-6` asks for three materially different real characters and a held-out fourth before maquette claims to serve characters in general. Mudsong's cast offers real contrasts: a man, a goblin of about 4 ft, an oni of about 7.5 ft, a woman of 58.
 - Whether a saved character must survive changes to the generator.
-- How references are measured at scale, if that is ever wanted. The landmark detectors the research found exist only in Python, which Jon's ruling on code excludes, so measuring is by hand unless he changes it.
 - Whether the patent on 2.5D cartoon models (`04-evidence-and-references.md`) touches the method chosen for views.
