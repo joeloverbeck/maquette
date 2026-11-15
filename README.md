@@ -14,7 +14,9 @@ Founded on 2026-11-16. There is no code yet, and nothing to build or run. The fo
 |---|---|
 | `CLAUDE.md` | Agent instructions; `AGENTS.md` is a symlink to it |
 | `docs/principles/` | The constitution this repository adopts, and its five adopted modules, copied byte for byte |
-| `docs/foundation/` | What maquette is for, the first armature, Jon's direction, and the rules for evidence and references |
+| `docs/foundation/` | What maquette is for, the first armature, Jon's direction, the rules for evidence and references, and the rules for code and design tools |
+| `.mcp.json` | Registers the VectorCraft and FigCraft MCP servers for Claude Code |
+| `design/` | Designs made by hand in those two tools; the only folder their servers may write to |
 | `docs/agents/` | How agents use the issue tracker and the triage labels |
 | `docs/research/` | The research behind the founding. Evidence only |
 

@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "vectorcraft": {
+      "command": "vectorcraft-cli",
+      "args": [
+        "mcp",
+        "--automation-read-root",
+        ".",
+        "--automation-write-root",
+        "design"
+      ]
+    },
+    "figcraft": {
+      "command": "figcraft-cli",
+      "args": [
+        "mcp",
+        "--automation-read-root",
+        ".",
+        "--automation-write-root",
+        "design"
+      ]
+    }
+  }
+}

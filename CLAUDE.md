@@ -53,6 +53,7 @@ If required text cannot be located or read, substantive work is unauthorized. Pr
 - **The current increment, what it is checked against and how it reaches mudsong:** `docs/foundation/02-first-armature.md`.
 - **Anything Jon wants later (controls, part types, non-human characters, more views, bodies, an interface):** `docs/foundation/03-direction.md`. It records direction and authorizes nothing.
 - **Using a research finding, a reference drawing or a measurement, or committing data:** `docs/foundation/04-evidence-and-references.md`.
+- **Writing code or tooling, or drawing, laying out or mocking up anything with VectorCraft or FigCraft:** `docs/foundation/05-code-and-design-tools.md`.
 - **The research behind the founding:** `docs/research/2026-11-15-feasibility/`. Evidence only.
 
 ## House rules
@@ -62,7 +63,8 @@ If required text cannot be located or read, substantive work is unauthorized. Pr
 - Jon's eyes decide whether an armature looks right and whether a reference drawing counts. An agent's own look at a render is a diagnostic, never acceptance.
 - A reference drawing's view and head tilt are checked before its numbers are used.
 - No reference image, crop or tracing is committed, and nothing is named after a character, series, studio or artist. Only tables averaged over several works are published.
-- All code is Rust, tooling included. No Python. A shell script only for a job Rust cannot do by itself.
+- All code is Rust, tooling included, except the thin layer of TypeScript the web interface needs. No Python. A shell script only for a job Rust cannot do by itself.
+- Every design made by hand is drawn in VectorCraft (single vector elements) or composed in FigCraft (mock-ups, layouts, review sheets), through the MCP servers in `.mcp.json`, and kept in `design/`.
 - The repository is public and mudsong is private. Restate the facts a ticket needs from mudsong; do not paste its text or images.
 - GitHub Issues and pull requests own active work. The agent merges a pull request once its checks pass and Jon has accepted every armature and every table in it.
 

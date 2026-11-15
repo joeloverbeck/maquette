@@ -51,11 +51,11 @@ A number that gates or ranks settings falls under `EVAL-1` and `SEARCH-5`.
 ## 6. Also said
 
 - **Bodies**, for characters of all ages, under the mannequin rule (`01-mission.md`). Mudsong's playable cast runs from 17 to 58, so a child or an elder waits for a real one.
-- **An interface** with controls Jon can move himself. Its form is undecided, and the first armature needs none.
+- **An interface** with controls Jon can move himself. Jon ruled on 2026-11-16 that it is a web app (`05-code-and-design-tools.md`). The first armature needs none.
 
 ## Questions nobody has answered
 
 - Which characters come second and third. `EVID-6` asks for three materially different real characters and a held-out fourth before maquette claims to serve characters in general. Mudsong's cast offers real contrasts: a man, a goblin of about 4 ft, an oni of about 7.5 ft, a woman of 58.
 - Whether a saved character must survive changes to the generator.
-- Whether Python may be used if detectors are ever wanted for measuring. They exist only there.
+- How references are measured at scale, if that is ever wanted. The landmark detectors the research found exist only in Python, which Jon's ruling on code excludes, so measuring is by hand unless he changes it.
 - Whether the patent on 2.5D cartoon models (`04-evidence-and-references.md`) touches the method chosen for views.

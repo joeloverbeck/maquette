@@ -8,6 +8,7 @@ Repository-specific foundations for `maquette`, written at founding on 2026-11-1
 | `02-first-armature.md` | The bottleneck; the incumbent; the first increment and what it is checked against; the unproven claim about painting; the handoff to mudsong | Writing or working the first tickets; exporting anything to mudsong; judging what an accepted armature shows |
 | `03-direction.md` | What Jon wants later, what is known about each part and what would earn it. It authorizes nothing | Proposing controls, part types, non-human parts, more views, bodies or an interface |
 | `04-evidence-and-references.md` | What the research lets maquette say; the rules for reference drawings; what is never committed; how to ask for Jon's eyes | Using a research finding, a reference drawing or a measurement; committing any data |
+| `05-code-and-design-tools.md` | Rust, with TypeScript only for the web interface's thin layer; no Python; what VectorCraft and FigCraft each make; their MCP servers; where designs live | Writing code or tooling; adding a dependency; drawing, laying out or mocking up anything |
 
 ## Founding record
 
@@ -31,6 +32,8 @@ Repository-specific foundations for `maquette`, written at founding on 2026-11-1
 
 And in conversation on 2026-11-15 and 2026-11-16: armatures only, with no painting, clothes or animation; front, three-quarter and side views; characters of all ages; and the direction recorded in `03-direction.md`.
 
+And by his rulings after the interview, on 2026-11-16: all code is Rust except the thin layer of TypeScript the web interface needs; the interface is a web app; every design made by hand is made in VectorCraft or FigCraft, whose MCP servers are registered in this repository (`05-code-and-design-tools.md`).
+
 **Proposed by the agent, awaiting Jon's acceptance.** Each can be rejected by itself (`AUTH-2`).
 
 1. The module set above.
@@ -39,7 +42,7 @@ And in conversation on 2026-11-15 and 2026-11-16: armatures only, with no painti
 4. The mannequin rule (`01-mission.md`).
 5. The rules for reference drawings, and what is never committed (`04-evidence-and-references.md`).
 6. Measuring references by hand is a step here; a corpus-scale measuring system would be a second pipeline (`01-mission.md`).
-7. Rust only, with no Python (`CLAUDE.md`).
+7. What counts as a design made by hand, and that the two servers write only under `design/` (`05-code-and-design-tools.md`).
 8. The MIT licence, as in Jon's other public repositories.
 9. Who merges (`CLAUDE.md`).
 
@@ -47,4 +50,4 @@ Until Jon accepts the founding, nothing is pushed and no ticket is filed.
 
 ## The GOV-1 count
 
-Four foundations and this index, about 3,600 words at founding, inside the limit at which `GOV-1` asks for a recheck. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.
+Five foundations and this index, about 4,100 words at founding, inside the limit at which `GOV-1` asks for a recheck. The fifth was added the same day for Jon's rulings on code and design tools; its consumer is the first ticket that writes code or makes a review sheet. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.
