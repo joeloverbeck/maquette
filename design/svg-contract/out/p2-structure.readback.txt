@@ -1,0 +1,57 @@
+# Read-back of design/svg-contract/in/p2-structure.svg
+# Hand-written input imported with open_file.
+# VectorCraft 0.24.1, MCP server (headless), run on 2026-11-16. Numbers are as the server printed them.
+# open_file reply: {"format":"svg","restored":false,"warnings":[]}
+#
+# 1. inspect_document: id, kind, name (a name in angle brackets is VectorCraft's label for an unnamed object), visibility, bounds [x,y WxH], paint
+# units Pixels; artboard 0.0,0.0 1000.0x1000.0; objects 24
+1 Layer name="Layer 1" visible bounds=[100.0,50.0 800.0x900.0]
+  2 Path name="loose-before" visible bounds=[100.0,50.0 100.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  14 Group name="armature" visible bounds=[310.0,110.0 380.0x530.0]
+    11 Group name="head" visible bounds=[310.0,110.0 380.0x380.0]
+      3 Path name="skull" visible bounds=[310.0,110.0 380.0x380.0] fill=None stroke=#2a2f3d width=2.0
+      10 Group name="eyes" visible bounds=[384.0,360.0 232.0x10.0]
+        6 Group name="eye-left" visible bounds=[540.0,360.0 76.0x10.0]
+          4 Path name="eye-opening-left" visible bounds=[540.0,370.0 76.0x0.0] fill=None stroke=#2a2f3d width=2.0
+          5 Path name="lid-line-left" visible bounds=[540.0,360.0 76.0x0.0] fill=None stroke=#2a2f3d width=2.0
+        9 Group name="eye-right" visible bounds=[384.0,360.0 76.0x10.0]
+          7 Path name="eye-opening-right" visible bounds=[384.0,370.0 76.0x0.0] fill=None stroke=#2a2f3d width=2.0
+          8 Path name="lid-line-right" visible bounds=[384.0,360.0 76.0x0.0] fill=None stroke=#2a2f3d width=2.0
+    13 Group name="neck" visible bounds=[590.0,508.0 0.0x132.0]
+      12 Path name="neck-left" visible bounds=[590.0,508.0 0.0x132.0] fill=None stroke=#2a2f3d width=2.0
+  18 Layer name="guides layer label" visible bounds=[350.0,100.0 300.0x500.0]
+    15 Path name="centre-line" visible bounds=[500.0,100.0 0.0x500.0] fill=None stroke=#2a2f3d width=2.0
+    17 Layer name="sublayer label" visible bounds=[350.0,366.0 300.0x0.0]
+      16 Path name="eye-line" visible bounds=[350.0,366.0 300.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  20 Group name="Layer 2" visible bounds=[474.0,500.0 52.0x0.0]
+    19 Path name="mouth-line" visible bounds=[474.0,500.0 52.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  23 Group name="<Group>" visible bounds=[100.0,950.0 300.0x0.0]
+    21 Path name="in-anonymous-group" visible bounds=[100.0,950.0 100.0x0.0] fill=None stroke=#2a2f3d width=2.0
+    22 Path name="also-in-anonymous-group" visible bounds=[300.0,950.0 100.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  24 Path name="loose-after" visible bounds=[800.0,50.0 100.0x0.0] fill=None stroke=#2a2f3d width=2.0
+#
+# 2. run_command document.node on each layer: path of names [type], then each subpath's anchors (in= and out= are Bezier handles)
+/Layer 1 [layer]
+/Layer 1/loose-before [path] open 100.0,50.0 | 200.0,50.0
+/Layer 1/armature [group]
+/Layer 1/armature/head [group]
+/Layer 1/armature/head/skull [path] closed 690.0,300.0 in=690.0,195.06589753214922 out=690.0,404.9341024678508 | 500.0,490.0 in=604.9341024678508,490.0 out=395.0658975321492,490.0 | 310.0,300.0 in=310.0,404.9341024678508 out=310.0,195.06589753214922 | 500.0,110.0 in=395.0658975321492,110.0 out=604.9341024678508,110.0
+/Layer 1/armature/head/eyes [group]
+/Layer 1/armature/head/eyes/eye-left [group]
+/Layer 1/armature/head/eyes/eye-left/eye-opening-left [path] open 540.0,370.0 | 616.0,370.0
+/Layer 1/armature/head/eyes/eye-left/lid-line-left [path] open 540.0,360.0 | 616.0,360.0
+/Layer 1/armature/head/eyes/eye-right [group]
+/Layer 1/armature/head/eyes/eye-right/eye-opening-right [path] open 384.0,370.0 | 460.0,370.0
+/Layer 1/armature/head/eyes/eye-right/lid-line-right [path] open 384.0,360.0 | 460.0,360.0
+/Layer 1/armature/neck [group]
+/Layer 1/armature/neck/neck-left [path] open 590.0,508.0 | 590.0,640.0
+/Layer 1/guides layer label [layer]
+/Layer 1/guides layer label/centre-line [path] open 500.0,100.0 | 500.0,600.0
+/Layer 1/guides layer label/sublayer label [layer]
+/Layer 1/guides layer label/sublayer label/eye-line [path] open 350.0,366.0 | 650.0,366.0
+/Layer 1/Layer 2 [group]
+/Layer 1/Layer 2/mouth-line [path] open 474.0,500.0 | 526.0,500.0
+/Layer 1/(unnamed) [group]
+/Layer 1/(unnamed)/in-anonymous-group [path] open 100.0,950.0 | 200.0,950.0
+/Layer 1/(unnamed)/also-in-anonymous-group [path] open 300.0,950.0 | 400.0,950.0
+/Layer 1/loose-after [path] open 800.0,50.0 | 900.0,50.0

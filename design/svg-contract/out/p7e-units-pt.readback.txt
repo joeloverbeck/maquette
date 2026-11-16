@@ -1,0 +1,13 @@
+# Read-back of design/svg-contract/in/p7e-units-pt.svg
+# Hand-written input imported with open_file.
+# VectorCraft 0.24.1, MCP server (headless), run on 2026-11-16. Numbers are as the server printed them.
+# open_file reply: {"format":"svg","restored":false,"warnings":[]}
+#
+# 1. inspect_document: id, kind, name (a name in angle brackets is VectorCraft's label for an unnamed object), visibility, bounds [x,y WxH], paint
+# units Points; artboard 0.0,0.0 199.99999237060547x99.99999618530273; objects 2
+1 Layer name="Layer 1" visible bounds=[9.999999403953552,19.999998807907104 99.99999403953552x0.0]
+  2 Path name="unit-line" visible bounds=[9.999999403953552,19.999998807907104 99.99999403953552x0.0] fill=None stroke=#2a2f3d width=0.9999999403953552
+#
+# 2. run_command document.node on each layer: path of names [type], then each subpath's anchors (in= and out= are Bezier handles)
+/Layer 1 [layer]
+/Layer 1/unit-line [path] open 9.999999403953552,19.999998807907104 | 109.99999344348907,19.999998807907104

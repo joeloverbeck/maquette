@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <title>p3-transforms.svg</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <line id="t-none" x1="100" y1="100" x2="200" y2="100" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <line id="t-translate" x1="200" y1="300" x2="300" y2="300" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <line id="t-rotate" x1="600" y1="500" x2="700" y2="500" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <line id="t-scale" x1="200" y1="100" x2="300" y2="100" fill="none" stroke="#2a2f3d" stroke-width="4"/>
+    <line id="t-matrix" x1="790" y1="110" x2="770" y2="120" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <line id="t-mirror" x1="900" y1="700" x2="750" y2="720" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <path id="t-curve-mirror" d="M615 323 C593 315 563 319 540 334" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <circle id="t-circle-translate" cx="700" cy="700" r="20" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <path id="t-ellipse-rotate" d="M351.962 830 C346.439 839.566 318.698 833.889 290 817.32 C261.302 800.752 242.516 779.566 248.038 770 C253.561 760.434 281.302 766.111 310 782.679 C338.698 799.248 357.484 820.434 351.962 830 Z" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <path id="t-ellipse-skew" d="M640 850 C644.02 861.046 629.371 870 607.279 870 C585.188 870 564.02 861.046 560 850 C555.98 838.954 570.629 830 592.721 830 C614.812 830 635.98 838.954 640 850 Z" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <g id="g-translate">
+      <line id="in-g-translate" x1="100" y1="100" x2="150" y2="100" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+      <g id="g-nested-scale">
+        <line id="in-g-nested" x1="130" y1="150" x2="170" y2="150" fill="none" stroke="#2a2f3d" stroke-width="4"/>
+      </g>
+    </g>
+    <g id="g-mirror-right">
+      <path id="ear-right" d="M330 420 C310 430 310 470 330 480" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    </g>
+    <g id="use-of-t-none">
+      <line x1="100" y1="150" x2="200" y2="150" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    </g>
+  </g>
+</svg>

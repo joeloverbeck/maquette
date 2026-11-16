@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Probe 1, hand-written: which naming attributes VectorCraft honours on import. -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="1000" height="1000" viewBox="0 0 1000 1000" fill="none" stroke="#2a2f3d" stroke-width="2">
+  <line id="centre-line" x1="500" y1="100" x2="500" y2="600"/>
+  <line id="eye_line" x1="350" y1="366" x2="650" y2="366"/>
+  <line id="nose.mark" x1="492" y1="450" x2="508" y2="450"/>
+  <line id="MouthLine" x1="474" y1="500" x2="526" y2="500"/>
+  <line id="1-digit-first" x1="100" y1="900" x2="200" y2="900"/>
+  <line id="ear_x5F_left" x1="300" y1="900" x2="400" y2="900"/>
+  <line id="neck left" x1="500" y1="900" x2="600" y2="900"/>
+  <path id="eye-opening-left" d="M540 370 L616 370"/>
+  <path id="eye-opening-right" d="M384 370 L460 370"/>
+  <path id="brow-line-left" data-name="brow line left" d="M540 334 L615 323"/>
+  <path id="brow-line-right" inkscape:label="brow line right" d="M385 323 L460 334"/>
+  <circle id="skull" cx="500" cy="300" r="190"><title>skull title</title></circle>
+  <ellipse id="hair-volume" aria-label="hair volume label" cx="500" cy="310" rx="215" ry="230"/>
+  <polyline id="shoulder-line" name="shoulder name attribute" points="105,740 500,730 895,740"/>
+  <path data-name="ear right" d="M330 420 L330 480"/>
+  <path d="M670 420 L670 480"/>
+  <path id="face-outline" class="guide" d="M362 330 L500 567 L638 330"/>
+  <path id="face-outline-2" d="M100 100 L120 100"/>
+  <path id="é-accent" d="M100 120 L120 120"/>
+  <path id="with-data" data-landmark="chin" data-view="front" d="M100 140 L120 140"/>
+  <path id="with-desc" d="M100 160 L120 160"><desc>a description</desc></path>
+  <path id="duplicate" d="M100 180 L120 180"/>
+  <path id="duplicate" d="M100 200 L120 200"/>
+  <path id="title-and-data-name" data-name="data name wins?" d="M100 220 L120 220"><title>title wins?</title></path>
+</svg>

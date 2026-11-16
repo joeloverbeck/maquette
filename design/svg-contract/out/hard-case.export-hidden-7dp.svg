@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <title>hard-case.svg</title>
+  <g id="armature">
+    <path id="hair-volume" d="M275.1199951 545.4000244 L275.1199951 300.3330078 C275.1199951 180.7100067 371.3399963 84.0599976 490.25 84.0599976 C608.6900024 84.0599976 705.4000244 180.7100067 705.4000244 300.3330078 L705.4000244 545.4000244" fill="none" stroke="#8d93a6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 7"/>
+    <ellipse id="skull" cx="500.3699951" cy="301.5199966" rx="191.4799805" ry="191.4800034" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="face-outline" d="M681.2999878 337.1000061 C677.25 350.6000061 672.4000244 358.2000122 672.4000244 368.8999939 C672.4000244 384.1499939 675.7000122 402.2999878 674.0999756 420.4500122 C673.5999756 446.2000122 667.7999878 470.8999939 657.0499878 490.2999878 C645.5 514.7000122 631.2000122 536.7999878 613.9000244 552.1500244 C603.2999878 562.4000244 593.5999756 567.3699951 581.7999878 567.3699951 C571.2000122 567.3699951 563.4000244 565.0999756 555.9000244 561.5999756 C517.2999878 550.2000122 477.6000061 532.9000244 445.1000061 508.3999939 C425.7000122 494.6000061 409.2000122 474.2999878 399.7999878 450.7000122 C390.3999939 425.8999939 382.6000061 380.2000122 381.8999939 330.6000061" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="centre-line" d="M495.5 110.1999969 C545.0999756 116.6999969 575.9000244 180.3000031 583.4000244 250.6000061 C589.2000122 300.1000061 587.7000122 340.7999878 589.2999878 372.3999939 C593.5999756 410.8999939 599.0999756 432.2000122 597.7999878 448.6000061 C595.2000122 470.3999939 593.9000244 484.7000122 593.2999878 500.25 C589.5999756 524.0999756 585.4000244 546.2999878 581.7999878 567.3699951" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <line id="eye-line" x1="381.8999939" y1="366.6669922" x2="681.2999878" y2="366.6669922" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <g id="eye-right">
+      <path id="eye-opening-right" d="M458.2000122 369.3999939 C467.6000061 356.1000061 485.2999878 350.2000122 503.7000122 350.2000122 C519.4000244 351.6000061 529.7999878 358.2999878 535.5999756 374.8999939 C527.0999756 385.7000122 513.5 390.7999878 497.2999878 390.7999878 C481.8999939 390.7999878 467.2000122 383.6000061 458.2000122 369.3999939 Z" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path id="lid-line-right" d="M458.2000122 369.3999939 C467.6000061 356.1000061 485.2999878 350.2000122 503.7000122 350.2000122 C519.4000244 351.6000061 529.7999878 358.2999878 535.5999756 374.8999939" fill="none" stroke="#2a2f3d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <ellipse id="iris-right" cx="493.4500122" cy="370.5" rx="21.2999878" ry="20.2999878" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="eye-left">
+      <path id="eye-opening-left" d="M607.4000244 374.8999939 C611.7999878 360.2999878 621.2000122 351.7000122 635.9000244 350.2000122 C647.2999878 350.2000122 656.5999756 356.7999878 660.0999756 366.3999939 C657.5 379.2000122 647.9000244 388.6000061 635.9000244 390.7999878 C623.2000122 391.3999939 613.7000122 385.5 607.4000244 374.8999939 Z" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" display="none"/>
+      <path id="lid-line-left" d="M607.4000244 374.8999939 C611.7999878 360.2999878 621.2000122 351.7000122 635.9000244 350.2000122 C647.2999878 350.2000122 656.5999756 356.7999878 660.0999756 366.3999939" fill="none" stroke="#2a2f3d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <ellipse id="iris-left" cx="629.5499878" cy="370.5" rx="15.5999756" ry="20.2999878" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <path id="brow-line-right" d="M459.2999878 323.7999878 C481.6000061 316.3999939 509.2000122 319.7000122 534.9000244 333.1000061" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="brow-line-left" d="M607.7000122 335.2000122 C623.4000244 325.6000061 643.0999756 319.2999878 661.7999878 319.2999878" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline id="nose-mark" points="588.4000244,447.6000061 597.2000122,456.2999878 604.9000244,448.1000061" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="mouth-line" d="M561.7000122 500.25 C573.2000122 503.3999939 585.5999756 499.1000061 595.2999878 500.25 C601.7999878 499.6000061 605.4000244 500.7000122 609.9000244 498.2999878" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="ear-right" d="M341.6000061 176.3000031 C327.2000122 136.8000031 337.8999939 88.4000015 371.5 68.6999969 C399.2999878 54.2000008 433.7999878 70.5999985 441.1000061 104.9000015 C445.7000122 126.1999969 443.3999939 148.5 435.2000122 168.8000031" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="ear-left" d="M581.2999878 150.6000061 C577.7999878 114.1999969 587.4000244 78.9000015 607.5999756 66.3000031 C625.0999756 62.7000008 637.5 82.4000015 637.5 110.8000031 C637.5 128.3000031 633.9000244 146.1000061 627.2000122 160.3999939" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <g id="neck">
+      <line id="neck-right" x1="393.6000061" y1="462.7999878" x2="393.6000061" y2="640.125" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <line id="neck-left" x1="569.2999878" y1="567.3699951" x2="569.2999878" y2="640.125" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <line id="shoulder-line" x1="133.6999969" y1="740.5999756" x2="817.9000244" y2="740.5999756" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

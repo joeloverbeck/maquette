@@ -1,0 +1,33 @@
+# Read-back of design/svg-contract/in/p5-hidden.svg
+# Hand-written input imported with open_file.
+# VectorCraft 0.24.1, MCP server (headless), run on 2026-11-16. Numbers are as the server printed them.
+# open_file reply: {"format":"svg","restored":false,"warnings":[]}
+#
+# 1. inspect_document: id, kind, name (a name in angle brackets is VectorCraft's label for an unnamed object), visibility, bounds [x,y WxH], paint
+# units Pixels; artboard 0.0,0.0 1000.0x1000.0; objects 12
+1 Layer name="Layer 1" visible bounds=[100.0,100.0 600.0x400.0]
+  2 Path name="shown" visible bounds=[100.0,100.0 200.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  3 Path name="display-none-attr" HIDDEN bounds=[100.0,150.0 200.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  4 Path name="display-none-style" HIDDEN bounds=[100.0,200.0 200.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  5 Path name="opacity-zero" visible bounds=[100.0,350.0 200.0x0.0] fill=None stroke=#2a2f3d width=2.0 opacity=0.0
+  7 Group name="hidden-group" HIDDEN bounds=[500.0,100.0 200.0x0.0]
+    6 Path name="in-hidden-group" visible bounds=[500.0,100.0 200.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  9 Group name="visibility-hidden-group" visible bounds=[500.0,200.0 200.0x0.0]
+    8 Path name="visible-in-visibility-hidden-group" visible bounds=[500.0,200.0 200.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  11 Layer name="hidden layer" HIDDEN bounds=[500.0,250.0 200.0x0.0]
+    10 Path name="in-hidden-layer" visible bounds=[500.0,250.0 200.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  12 Path name="stroke-opacity-zero" visible bounds=[100.0,500.0 200.0x0.0] fill=None stroke=#2a2f3d width=2.0
+#
+# 2. run_command document.node on each layer: path of names [type], then each subpath's anchors (in= and out= are Bezier handles)
+/Layer 1 [layer]
+/Layer 1/shown [path] open 100.0,100.0 | 300.0,100.0
+/Layer 1/display-none-attr [path hidden] open 100.0,150.0 | 300.0,150.0
+/Layer 1/display-none-style [path hidden] open 100.0,200.0 | 300.0,200.0
+/Layer 1/opacity-zero [path opacity=0.0] open 100.0,350.0 | 300.0,350.0
+/Layer 1/hidden-group [group hidden]
+/Layer 1/hidden-group/in-hidden-group [path] open 500.0,100.0 | 700.0,100.0
+/Layer 1/visibility-hidden-group [group]
+/Layer 1/visibility-hidden-group/visible-in-visibility-hidden-group [path] open 500.0,200.0 | 700.0,200.0
+/Layer 1/hidden layer [layer hidden]
+/Layer 1/hidden layer/in-hidden-layer [path] open 500.0,250.0 | 700.0,250.0
+/Layer 1/stroke-opacity-zero [path] open 100.0,500.0 | 300.0,500.0

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <title>authored</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <circle id="skull" cx="500" cy="300" r="190" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <path id="ear_left" data-name="ear left" d="M670 420 C690 430 690 470 670 480" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <path id="ear_right" data-name="ear right" d="M330 420 C310 430 310 470 330 480" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="eye_line" x1="350" y1="366" x2="650" y2="366" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="Brow_Line_Left" data-name="Brow Line Left" x1="385.123" y1="323.5" x2="460.4" y2="334.25" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="_1_digit_first" data-name="1 digit first" x1="100" y1="900" x2="200" y2="900" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="nose.mark" x1="492" y1="450" x2="508" y2="450" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="é_accent" data-name="é accent" x1="100" y1="120" x2="120" y2="120" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="duplicate" x1="100" y1="180" x2="120" y2="180" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="duplicate-2" data-name="duplicate" x1="100" y1="200" x2="120" y2="200" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line x1="100" y1="220" x2="120" y2="220" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="a_b__c_" data-name="a&lt;b&amp;&quot;c&apos;" x1="100" y1="240" x2="120" y2="240" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="locked_guide" data-name="locked guide" x1="100" y1="280" x2="120" y2="280" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="with_data" data-name="with data" data-landmark="chin" x1="100" y1="300" x2="120" y2="300" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <polygon id="rotated_rect" data-name="rotated rect" points="695.359,822.679 764.641,782.679 784.641,817.321 715.359,857.321" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="dashed" x1="500" y1="250" x2="700" y2="250" fill="none" stroke="#8d93a6" stroke-width="2.5" stroke-linecap="round" stroke-miterlimit="10" stroke-dasharray="10 7"/>
+    <line id="outside_artboard" data-name="outside artboard" x1="-50" y1="500" x2="-10" y2="500" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <g id="eye_left" data-name="eye left">
+      <line id="eye_opening_left" data-name="eye opening left" x1="540" y1="370" x2="616" y2="370" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+      <line id="lid_line_left" data-name="lid line left" x1="540" y1="360" x2="616" y2="360" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    </g>
+    <line id="eye_opening_right" data-name="eye opening right" x1="384" y1="370" x2="460" y2="370" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="mouth_line" data-name="mouth line" x1="474" y1="500" x2="526" y2="500" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="mouth-line" x1="474" y1="510" x2="526" y2="510" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <line id="mouth_line-2" data-name="mouth_line" x1="474" y1="520" x2="526" y2="520" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <path id="shoulder_line" data-name="shoulder line" d="M105 728 L105 752 M105 740 L895 740 M895 728 L895 752" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <polyline id="default_paint" data-name="default paint" points="100,320 120,320 120,340" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <path id="rounded_rect" data-name="rounded rect" d="M808 800 L872 800 C876.418 800 880 803.582 880 808 L880 832 C880 836.418 876.418 840 872 840 L808 840 C803.582 840 800 836.418 800 832 L800 808 C800 803.582 803.582 800 808 800 Z" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+    <ellipse id="iris_left" data-name="iris left" cx="423" cy="370" rx="20" ry="14" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+  </g>
+  <g id="second_layer" data-name="second layer">
+    <line id="centre_line" data-name="centre line" x1="500" y1="100" x2="500" y2="600" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-miterlimit="10"/>
+  </g>
+</svg>

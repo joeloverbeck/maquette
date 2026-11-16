@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Probe 3, hand-written: transforms on elements and on groups. Expected page positions are worked out by hand in ../README.md. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000" fill="none" stroke="#2a2f3d" stroke-width="2">
+  <line id="t-none" x1="100" y1="100" x2="200" y2="100"/>
+  <line id="t-translate" x1="0" y1="0" x2="100" y2="0" transform="translate(200,300)"/>
+  <line id="t-rotate" x1="500" y1="400" x2="500" y2="300" transform="rotate(90 500 500)"/>
+  <line id="t-scale" x1="100" y1="50" x2="150" y2="50" transform="scale(2)"/>
+  <line id="t-matrix" x1="10" y1="10" x2="20" y2="30" transform="matrix(0 1 -1 0 800 100)"/>
+  <line id="t-mirror" x1="100" y1="700" x2="250" y2="720" transform="translate(1000,0) scale(-1,1)"/>
+  <path id="t-curve-mirror" d="M385 323 C407 315 437 319 460 334" transform="matrix(-1 0 0 1 1000 0)"/>
+  <circle id="t-circle-translate" cx="0" cy="0" r="20" transform="translate(700,700)"/>
+  <ellipse id="t-ellipse-rotate" cx="300" cy="800" rx="60" ry="20" transform="rotate(30 300 800)"/>
+  <ellipse id="t-ellipse-skew" cx="0" cy="0" rx="40" ry="20" transform="translate(600,850) skewX(20)"/>
+  <g id="g-translate" transform="translate(100,100)">
+    <line id="in-g-translate" x1="0" y1="0" x2="50" y2="0"/>
+    <g id="g-nested-scale" transform="scale(2)">
+      <line id="in-g-nested" x1="10" y1="20" x2="30" y2="20" transform="translate(5,5)"/>
+    </g>
+  </g>
+  <g id="g-mirror-right" transform="matrix(-1 0 0 1 1000 0)">
+    <path id="ear-right" d="M670 420 C690 430 690 470 670 480"/>
+  </g>
+  <use id="use-of-t-none" href="#t-none" transform="translate(0,50)"/>
+</svg>
