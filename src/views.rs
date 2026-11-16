@@ -112,7 +112,9 @@ pub struct Placed {
     pub name: String,
     pub x: f64,
     pub y: f64,
-    /// How far the point stands in front of the turn axis. It is the same in every view.
+    /// How far the point stands in front of the eyes, in SVG units: depth zero is the midpoint
+    /// between the two eye openings' centres, as the list of proportions defines it. It is the
+    /// same in every view.
     pub depth: f64,
 }
 
@@ -126,6 +128,9 @@ pub struct Seen {
     pub unit: f64,
     pub eye_line_y: f64,
     pub turn_axis_x: f64,
+    /// The depth the upright axis the head turns about stands at, in SVG units: the skull's
+    /// centre, behind the eyes.
+    pub turn_axis_depth: f64,
     /// Hair top to chin, in SVG units.
     pub head_height: f64,
     pub landmarks: Vec<Placed>,
@@ -192,12 +197,13 @@ pub fn show(head: &Head, view: View, placement: &Placement) -> Seen {
         .landmarks
         .iter()
         .map(|landmark| {
-            let depth = landmark.depth - axis_depth;
+            let in_front_of_axis = landmark.depth - axis_depth;
             Placed {
                 name: landmark.name.clone(),
-                x: turn_axis_x + round3((landmark.offset * cos + depth * sin) * placement.unit),
+                x: turn_axis_x
+                    + round3((landmark.offset * cos + in_front_of_axis * sin) * placement.unit),
                 y: placement.eye_line_y + round3(landmark.drop * placement.unit),
-                depth: round3(depth * placement.unit),
+                depth: round3(landmark.depth * placement.unit),
             }
         })
         .collect();
@@ -209,6 +215,7 @@ pub fn show(head: &Head, view: View, placement: &Placement) -> Seen {
         unit: placement.unit,
         eye_line_y: placement.eye_line_y,
         turn_axis_x,
+        turn_axis_depth: round3(axis_depth * placement.unit),
         head_height: round3(head.head_height * placement.unit),
         landmarks,
         cos,

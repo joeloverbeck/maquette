@@ -205,11 +205,16 @@ fn landmark_file(seen: &Seen, built: &Guides, svg_name: &str) -> String {
         "turn_axis_x = {}  # the upright axis the head turns about, through the skull's centre\n",
         position(seen.turn_axis_x)
     ));
+    out.push_str(&format!(
+        "turn_axis_depth = {}  # the depth that axis stands at: the skull's centre, behind the eyes\n",
+        position(seen.turn_axis_depth)
+    ));
 
     out.push_str("\n# Landmarks: points in space. Every view shows the same landmarks, each at the same height.\n");
-    out.push_str("# `depth` is how far the point stands in front of the turn axis, the same in every view:\n");
+    out.push_str("# `depth` is how far the point stands in front of the eyes, the same in every view. Depth zero is\n");
+    out.push_str("# the midpoint between the two eye openings' centres, as the list of proportions defines it.\n");
     out.push_str("# x is turn_axis_x plus the front view's offset from its axis times the cosine of the turn,\n");
-    out.push_str("# plus depth times the sine of the turn.\n");
+    out.push_str("# plus (depth minus turn_axis_depth) times the sine of the turn.\n");
     out.push_str("[landmarks]\n");
     for landmark in &seen.landmarks {
         out.push_str(&format!(

@@ -223,14 +223,38 @@ fn a_landmarks_sideways_position_when_turned_is_the_one_its_front_position_and_d
     let (front_axis, turned_axis) = (front.frame("turn_axis_x"), turned.frame("turn_axis_x"));
     assert_eq!(front_axis, 481.25);
     assert_eq!(turned_axis, 507.5);
+    // Depth is measured from the list's zero, the eyes; the turn axis stands at its own depth,
+    // the same in both views.
+    let axis_depth = turned.frame("turn_axis_depth");
+    assert_eq!(front.frame("turn_axis_depth"), axis_depth);
     for (name, point) in &front.landmarks {
         let depth = point.depth.unwrap_or_else(|| panic!("{name} has no depth"));
         let shown = turned.landmarks[name];
         assert_eq!(shown.depth, Some(depth), "{name} has two depths");
         // A level head turned about an upright axis, drawn flat: offset times the cosine of
-        // the turn plus depth times the sine. Each of the three numbers is rounded to 0.001.
-        let expected = turned_axis + (point.x - front_axis) * cos + depth * sin;
+        // the turn plus the depth in front of the axis times the sine. Each of the four
+        // numbers is rounded to 0.001.
+        let expected = turned_axis + (point.x - front_axis) * cos + (depth - axis_depth) * sin;
         assert_close(shown.x, expected, 0.0015, name);
+    }
+}
+
+#[test]
+fn depth_zero_is_the_midpoint_of_the_eye_openings_and_the_turn_axis_stands_at_the_skull_centre() {
+    // Worked by hand from the made-up set at the default unit of 200: the eye openings'
+    // centres are at depth zero, as `proportions/list.toml` defines it, and the skull's
+    // centre, which the head turns about, at skull_centre_depth = -0.6375, so -127.5.
+    let folder = draw("depth-zero", MADE_UP, &[]);
+    for view in VIEWS {
+        let file = landmark_file(&folder, view);
+        for side in ["left", "right"] {
+            let name = format!("eye-{side}-opening-centre");
+            assert_eq!(file.point(&name).depth, Some(0.0), "{view}: {name}");
+        }
+        assert_eq!(file.frame("turn_axis_depth"), -127.5, "{view}");
+        assert_eq!(file.point("skull-centre").depth, Some(-127.5), "{view}");
+        // The chin is at chin_depth = 0.1875 in front of the eyes.
+        assert_eq!(file.point("chin").depth, Some(37.5), "{view}");
     }
 }
 

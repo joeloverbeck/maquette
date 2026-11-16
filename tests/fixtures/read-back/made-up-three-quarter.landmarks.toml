@@ -25,75 +25,77 @@ unit = 200.0  # eye line to chin: what every proportion is divided by
 head_height = 462.54  # hair top to chin: differences are stated as shares of it
 eye_line_y = 400.0
 turn_axis_x = 500.0  # the upright axis the head turns about, through the skull's centre
+turn_axis_depth = -127.5  # the depth that axis stands at: the skull's centre, behind the eyes
 
 # Landmarks: points in space. Every view shows the same landmarks, each at the same height.
-# `depth` is how far the point stands in front of the turn axis, the same in every view:
+# `depth` is how far the point stands in front of the eyes, the same in every view. Depth zero is
+# the midpoint between the two eye openings' centres, as the list of proportions defines it.
 # x is turn_axis_x plus the front view's offset from its axis times the cosine of the turn,
-# plus depth times the sine of the turn.
+# plus (depth minus turn_axis_depth) times the sine of the turn.
 [landmarks]
-chin = { x = 579.994, y = 600.0, depth = 165.0 }
-hair-top = { x = 492.844, y = 137.46, depth = -14.76 }
-skull-centre = { x = 500.0, y = 327.54, depth = 0.0 }
-skull-front = { x = 590.941, y = 327.54, depth = 187.58 }
-centre-line-at-eye-level = { x = 583.882, y = 400.0, depth = 173.02 }
-nose-mark-bottom = { x = 594.557, y = 492.58, depth = 195.04 }
-mouth-line-centre = { x = 589.67, y = 537.42, depth = 184.96 }
-face-outline-right-top = { x = 435.516, y = 357.38, depth = 115.12 }
-face-outline-left-top = { x = 676.106, y = 357.38, depth = 115.12 }
-face-outline-right-at-eye-level = { x = 426.287, y = 400.0, depth = 104.96 }
-face-outline-left-at-eye-level = { x = 675.484, y = 400.0, depth = 104.96 }
-face-outline-right-at-nose-level = { x = 442.239, y = 485.02, depth = 120.04 }
-face-outline-left-at-nose-level = { x = 674.154, y = 485.02, depth = 120.04 }
-face-outline-right-at-mouth-level = { x = 466.611, y = 537.42, depth = 124.92 }
-face-outline-left-at-mouth-level = { x = 654.514, y = 537.42, depth = 124.92 }
-face-outline-right-jaw = { x = 540.464, y = 582.54, depth = 159.92 }
-face-outline-left-jaw = { x = 614.597, y = 582.54, depth = 159.92 }
-jaw-line-right-top = { x = 386.958, y = 357.38, depth = 14.96 }
-jaw-line-left-top = { x = 627.548, y = 357.38, depth = 14.96 }
-jaw-line-right-at-eye-level = { x = 382.654, y = 400.0, depth = 14.96 }
-jaw-line-left-at-eye-level = { x = 631.851, y = 400.0, depth = 14.96 }
-jaw-line-right-at-nose-level = { x = 391.296, y = 485.02, depth = 14.96 }
-jaw-line-left-at-nose-level = { x = 623.21, y = 485.02, depth = 14.96 }
-jaw-line-right-at-mouth-level = { x = 430.231, y = 537.42, depth = 49.88 }
-jaw-line-left-at-mouth-level = { x = 618.134, y = 537.42, depth = 49.88 }
-eye-right-outer-corner = { x = 448.006, y = 397.58, depth = 113.75 }
-eye-left-outer-corner = { x = 662.288, y = 397.58, depth = 113.75 }
-eye-right-inner-corner = { x = 526.935, y = 407.58, depth = 141.25 }
-eye-left-inner-corner = { x = 610.024, y = 407.58, depth = 141.25 }
-eye-right-opening-top = { x = 490.059, y = 376.27, depth = 128.402 }
-eye-left-opening-top = { x = 634.442, y = 376.27, depth = 128.402 }
-eye-right-opening-bottom = { x = 484.924, y = 423.73, depth = 126.613 }
-eye-left-opening-bottom = { x = 637.842, y = 423.73, depth = 126.613 }
-eye-right-opening-centre = { x = 487.471, y = 400.0, depth = 127.5 }
-eye-left-opening-centre = { x = 636.156, y = 400.0, depth = 127.5 }
-iris-right-centre = { x = 485.932, y = 402.46, depth = 119.96 }
-iris-left-centre = { x = 630.384, y = 402.46, depth = 119.96 }
-lid-line-right-inner-end = { x = 532.239, y = 407.42, depth = 143.098 }
-lid-line-left-inner-end = { x = 606.512, y = 407.42, depth = 143.098 }
-lid-line-right-crest = { x = 489.933, y = 367.46, depth = 128.358 }
-lid-line-left-crest = { x = 634.525, y = 367.46, depth = 128.358 }
-lid-line-right-outer-end = { x = 437.567, y = 392.46, depth = 110.113 }
-lid-line-left-outer-end = { x = 669.201, y = 392.46, depth = 110.113 }
-brow-line-right-inner-end = { x = 526.809, y = 357.42, depth = 141.206 }
-brow-line-left-inner-end = { x = 610.107, y = 357.42, depth = 141.206 }
-brow-line-right-outer-end = { x = 442.786, y = 342.46, depth = 111.931 }
-brow-line-left-outer-end = { x = 665.744, y = 342.46, depth = 111.931 }
-nose-mark-right-corner = { x = 581.107, y = 477.46, depth = 189.92 }
-nose-mark-left-corner = { x = 603.043, y = 477.46, depth = 189.92 }
-mouth-line-right-end = { x = 554.066, y = 532.54, depth = 170.08 }
-mouth-line-left-end = { x = 610.847, y = 532.54, depth = 170.08 }
-ear-right-base-outer = { x = 345.758, y = 212.54, depth = -24.92 }
-ear-left-base-outer = { x = 630.079, y = 212.54, depth = -24.92 }
-ear-right-base-inner = { x = 428.23, y = 202.58, depth = 9.96 }
-ear-left-base-inner = { x = 581.428, y = 202.58, depth = 9.96 }
-ear-right-top = { x = 389.854, y = 107.46, depth = -6.27 }
-ear-left-top = { x = 604.066, y = 107.46, depth = -6.27 }
-ear-right-outer-extent = { x = 340.389, y = 162.42, depth = -27.191 }
-ear-left-outer-extent = { x = 633.247, y = 162.42, depth = -27.191 }
-ear-right-inner-extent = { x = 439.276, y = 157.46, depth = 14.632 }
-ear-left-inner-extent = { x = 574.912, y = 157.46, depth = 14.632 }
-shoulder-right-point = { x = 164.958, y = 767.46, depth = -55.08 }
-shoulder-left-point = { x = 781.635, y = 767.46, depth = -55.08 }
+chin = { x = 579.994, y = 600.0, depth = 37.5 }
+hair-top = { x = 492.844, y = 137.46, depth = -142.26 }
+skull-centre = { x = 500.0, y = 327.54, depth = -127.5 }
+skull-front = { x = 590.941, y = 327.54, depth = 60.08 }
+centre-line-at-eye-level = { x = 583.882, y = 400.0, depth = 45.52 }
+nose-mark-bottom = { x = 594.557, y = 492.58, depth = 67.54 }
+mouth-line-centre = { x = 589.67, y = 537.42, depth = 57.46 }
+face-outline-right-top = { x = 435.516, y = 357.38, depth = -12.38 }
+face-outline-left-top = { x = 676.106, y = 357.38, depth = -12.38 }
+face-outline-right-at-eye-level = { x = 426.287, y = 400.0, depth = -22.54 }
+face-outline-left-at-eye-level = { x = 675.484, y = 400.0, depth = -22.54 }
+face-outline-right-at-nose-level = { x = 442.239, y = 485.02, depth = -7.46 }
+face-outline-left-at-nose-level = { x = 674.154, y = 485.02, depth = -7.46 }
+face-outline-right-at-mouth-level = { x = 466.611, y = 537.42, depth = -2.58 }
+face-outline-left-at-mouth-level = { x = 654.514, y = 537.42, depth = -2.58 }
+face-outline-right-jaw = { x = 540.464, y = 582.54, depth = 32.42 }
+face-outline-left-jaw = { x = 614.597, y = 582.54, depth = 32.42 }
+jaw-line-right-top = { x = 386.958, y = 357.38, depth = -112.54 }
+jaw-line-left-top = { x = 627.548, y = 357.38, depth = -112.54 }
+jaw-line-right-at-eye-level = { x = 382.654, y = 400.0, depth = -112.54 }
+jaw-line-left-at-eye-level = { x = 631.851, y = 400.0, depth = -112.54 }
+jaw-line-right-at-nose-level = { x = 391.296, y = 485.02, depth = -112.54 }
+jaw-line-left-at-nose-level = { x = 623.21, y = 485.02, depth = -112.54 }
+jaw-line-right-at-mouth-level = { x = 430.231, y = 537.42, depth = -77.62 }
+jaw-line-left-at-mouth-level = { x = 618.134, y = 537.42, depth = -77.62 }
+eye-right-outer-corner = { x = 448.006, y = 397.58, depth = -13.75 }
+eye-left-outer-corner = { x = 662.288, y = 397.58, depth = -13.75 }
+eye-right-inner-corner = { x = 526.935, y = 407.58, depth = 13.75 }
+eye-left-inner-corner = { x = 610.024, y = 407.58, depth = 13.75 }
+eye-right-opening-top = { x = 490.059, y = 376.27, depth = 0.902 }
+eye-left-opening-top = { x = 634.442, y = 376.27, depth = 0.902 }
+eye-right-opening-bottom = { x = 484.924, y = 423.73, depth = -0.887 }
+eye-left-opening-bottom = { x = 637.842, y = 423.73, depth = -0.887 }
+eye-right-opening-centre = { x = 487.471, y = 400.0, depth = 0.0 }
+eye-left-opening-centre = { x = 636.156, y = 400.0, depth = 0.0 }
+iris-right-centre = { x = 485.932, y = 402.46, depth = -7.54 }
+iris-left-centre = { x = 630.384, y = 402.46, depth = -7.54 }
+lid-line-right-inner-end = { x = 532.239, y = 407.42, depth = 15.598 }
+lid-line-left-inner-end = { x = 606.512, y = 407.42, depth = 15.598 }
+lid-line-right-crest = { x = 489.933, y = 367.46, depth = 0.858 }
+lid-line-left-crest = { x = 634.525, y = 367.46, depth = 0.858 }
+lid-line-right-outer-end = { x = 437.567, y = 392.46, depth = -17.387 }
+lid-line-left-outer-end = { x = 669.201, y = 392.46, depth = -17.387 }
+brow-line-right-inner-end = { x = 526.809, y = 357.42, depth = 13.706 }
+brow-line-left-inner-end = { x = 610.107, y = 357.42, depth = 13.706 }
+brow-line-right-outer-end = { x = 442.786, y = 342.46, depth = -15.569 }
+brow-line-left-outer-end = { x = 665.744, y = 342.46, depth = -15.569 }
+nose-mark-right-corner = { x = 581.107, y = 477.46, depth = 62.42 }
+nose-mark-left-corner = { x = 603.043, y = 477.46, depth = 62.42 }
+mouth-line-right-end = { x = 554.066, y = 532.54, depth = 42.58 }
+mouth-line-left-end = { x = 610.847, y = 532.54, depth = 42.58 }
+ear-right-base-outer = { x = 345.758, y = 212.54, depth = -152.42 }
+ear-left-base-outer = { x = 630.079, y = 212.54, depth = -152.42 }
+ear-right-base-inner = { x = 428.23, y = 202.58, depth = -117.54 }
+ear-left-base-inner = { x = 581.428, y = 202.58, depth = -117.54 }
+ear-right-top = { x = 389.854, y = 107.46, depth = -133.77 }
+ear-left-top = { x = 604.066, y = 107.46, depth = -133.77 }
+ear-right-outer-extent = { x = 340.389, y = 162.42, depth = -154.691 }
+ear-left-outer-extent = { x = 633.247, y = 162.42, depth = -154.691 }
+ear-right-inner-extent = { x = 439.276, y = 157.46, depth = -112.868 }
+ear-left-inner-extent = { x = 574.912, y = 157.46, depth = -112.868 }
+shoulder-right-point = { x = 164.958, y = 767.46, depth = -182.58 }
+shoulder-left-point = { x = 781.635, y = 767.46, depth = -182.58 }
 
 # View points: points of this view only, such as the side of a round form or where two guides cross.
 # Under the same name another view shows a different point of the head.
