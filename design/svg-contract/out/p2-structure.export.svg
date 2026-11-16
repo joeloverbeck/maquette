@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <title>p2-structure.svg</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <line id="loose-before" x1="100" y1="50" x2="200" y2="50" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <g id="armature">
+      <g id="head">
+        <circle id="skull" cx="500" cy="300" r="190" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+        <g id="eyes">
+          <g id="eye-left">
+            <line id="eye-opening-left" x1="540" y1="370" x2="616" y2="370" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+            <line id="lid-line-left" x1="540" y1="360" x2="616" y2="360" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+          </g>
+          <g id="eye-right">
+            <line id="eye-opening-right" x1="384" y1="370" x2="460" y2="370" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+            <line id="lid-line-right" x1="384" y1="360" x2="460" y2="360" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+          </g>
+        </g>
+      </g>
+      <g id="neck">
+        <line id="neck-left" x1="590" y1="508" x2="590" y2="640" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+      </g>
+    </g>
+    <g id="guides_layer_label" data-name="guides layer label" data-vc-layer="sublayer">
+      <line id="centre-line" x1="500" y1="100" x2="500" y2="600" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+      <g id="sublayer_label" data-name="sublayer label" data-vc-layer="sublayer">
+        <line id="eye-line" x1="350" y1="366" x2="650" y2="366" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+      </g>
+    </g>
+    <g id="Layer_2" data-name="Layer 2">
+      <line id="mouth-line" x1="474" y1="500" x2="526" y2="500" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    </g>
+    <g>
+      <line id="in-anonymous-group" x1="100" y1="950" x2="200" y2="950" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+      <line id="also-in-anonymous-group" x1="300" y1="950" x2="400" y2="950" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    </g>
+    <line id="loose-after" x1="800" y1="50" x2="900" y2="50" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+  </g>
+</svg>

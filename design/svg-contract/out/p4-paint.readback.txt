@@ -1,0 +1,39 @@
+# Read-back of design/svg-contract/in/p4-paint.svg
+# Hand-written input imported with open_file.
+# VectorCraft 0.24.1, MCP server (headless), run on 2026-11-16. Numbers are as the server printed them.
+# open_file reply: {"format":"svg","restored":false,"warnings":[]}
+#
+# 1. inspect_document: id, kind, name (a name in angle brackets is VectorCraft's label for an unnamed object), visibility, bounds [x,y WxH], paint
+# units Pixels; artboard 0.0,0.0 1000.0x1000.0; objects 15
+1 Layer name="Layer 1" visible bounds=[100.0,100.0 600.0x700.0]
+  2 Path name="attr-stroke-no-fill" visible bounds=[100.0,100.0 200.0x100.0] fill=None stroke=#2a2f3d width=2.5
+  3 Path name="style-stroke-no-fill" visible bounds=[100.0,250.0 200.0x100.0] fill=None stroke=#2a2f3d width=2.5
+  4 Path name="class-stroke-no-fill" visible bounds=[100.0,400.0 200.0x100.0] fill=None stroke=#2f6fdd width=1.5
+  5 Path name="default-paint" visible bounds=[100.0,550.0 200.0x100.0] fill=#000000 stroke=None width=0.0
+  6 Path name="stroke-only-no-fill-attr" visible bounds=[100.0,700.0 200.0x100.0] fill=#000000 stroke=#2a2f3d width=1.0
+  8 Group name="inherit-group" visible bounds=[500.0,100.0 200.0x100.0]
+    7 Path name="inherits-from-group" visible bounds=[500.0,100.0 200.0x100.0] fill=None stroke=#8d93a6 width=3.0
+  9 Path name="dashed" visible bounds=[500.0,250.0 200.0x0.0] fill=None stroke=#8d93a6 width=2.5 dash=[10.0,7.0] cap=round join=round
+  10 Path name="half-opacity" visible bounds=[500.0,300.0 200.0x0.0] fill=None stroke=#2a2f3d width=2.0 opacity=0.5
+  11 Path name="stroke-opacity" visible bounds=[500.0,350.0 200.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  12 Path name="named-colour" visible bounds=[500.0,400.0 200.0x0.0] fill=None stroke=#ff0000 width=2.0
+  13 Path name="scaled-stroke" visible bounds=[500.0,450.0 200.0x0.0] fill=None stroke=#2a2f3d width=4.0
+  14 Path name="non-scaling-stroke" visible bounds=[500.0,500.0 200.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  15 Path name="closed-no-fill" visible bounds=[520.0,620.0 160.0x160.0] fill=None stroke=#2a2f3d width=2.5
+#
+# 2. run_command document.node on each layer: path of names [type], then each subpath's anchors (in= and out= are Bezier handles)
+/Layer 1 [layer]
+/Layer 1/attr-stroke-no-fill [path] open 100.0,100.0 | 300.0,100.0 | 300.0,200.0
+/Layer 1/style-stroke-no-fill [path] open 100.0,250.0 | 300.0,250.0 | 300.0,350.0
+/Layer 1/class-stroke-no-fill [path] open 100.0,400.0 | 300.0,400.0 | 300.0,500.0
+/Layer 1/default-paint [path] open 100.0,550.0 | 300.0,550.0 | 300.0,650.0
+/Layer 1/stroke-only-no-fill-attr [path] open 100.0,700.0 | 300.0,700.0 | 300.0,800.0
+/Layer 1/inherit-group [group]
+/Layer 1/inherit-group/inherits-from-group [path] open 500.0,100.0 | 700.0,100.0 | 700.0,200.0
+/Layer 1/dashed [path] open 500.0,250.0 | 700.0,250.0
+/Layer 1/half-opacity [path opacity=0.5] open 500.0,300.0 | 700.0,300.0
+/Layer 1/stroke-opacity [path] open 500.0,350.0 | 700.0,350.0
+/Layer 1/named-colour [path] open 500.0,400.0 | 700.0,400.0
+/Layer 1/scaled-stroke [path] open 500.0,450.0 | 700.0,450.0
+/Layer 1/non-scaling-stroke [path] open 500.0,500.0 | 700.0,500.0
+/Layer 1/closed-no-fill [path] closed 680.0,700.0 in=680.0,655.8172200135365 out=680.0,744.1827799864635 | 600.0,780.0 in=644.1827799864635,780.0 out=555.8172200135365,780.0 | 520.0,700.0 in=520.0,744.1827799864635 out=520.0,655.8172200135365 | 600.0,620.0 in=555.8172200135365,620.0 out=644.1827799864635,620.0

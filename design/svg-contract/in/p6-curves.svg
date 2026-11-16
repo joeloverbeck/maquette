@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Probe 6, hand-written: path commands, basic shapes and number precision. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000" fill="none" stroke="#2a2f3d" stroke-width="2">
+  <path id="cubic" d="M385 323 C407 315 437 319 460 334"/>
+  <path id="cubic-smooth" d="M474 500 C486 503 494 499 500 500 S514 503 526 500"/>
+  <path id="quadratic" d="M100 600 Q150 550 200 600 T300 600"/>
+  <path id="arc" d="M310 300 A190 190 0 0 1 690 300"/>
+  <path id="relative" d="m100 700 l50 0 c10 0 20 10 20 20 v30 h-70 z"/>
+  <path id="closed" d="M384 369 C393 356 411 350 429 350 C445 351 455 358 461 374 C453 385 439 390 423 390 C407 390 393 383 384 369 Z"/>
+  <path id="two-subpaths" d="M105 728 L105 752 M105 740 L895 740 M895 728 L895 752"/>
+  <path id="precision" d="M123.456789 801.000001 L223.4 801.25 L323.123456789 801.987654321"/>
+  <path id="exponent" d="M1e2 850 L2.5e2 8.6e2"/>
+  <circle id="circle" cx="500" cy="300" r="190"/>
+  <ellipse id="ellipse" cx="423" cy="370" rx="20" ry="14"/>
+  <line id="line" x1="350" y1="366" x2="650" y2="366"/>
+  <polyline id="polyline" points="492,447 500,456 508,447"/>
+  <polygon id="polygon" points="700,700 760,700 730,760"/>
+  <rect id="rect" x="700" y="800" width="80" height="40"/>
+  <rect id="rect-rounded" x="800" y="800" width="80" height="40" rx="8"/>
+  <line id="line-decimal" x1="223.4" y1="880.1" x2="323.123456789" y2="880.1"/>
+  <circle id="circle-decimal" cx="223.4" cy="920.1" r="10.1"/>
+  <line id="outside-artboard" x1="-50" y1="500" x2="-10" y2="500"/>
+  <line id="crossing-artboard-edge" x1="950" y1="950" x2="1050" y2="950"/>
+  <line id="zero-length-line" x1="40" y1="40" x2="40" y2="40"/>
+  <path id="move-only" d="M60 40"/>
+  <circle id="zero-radius" cx="80" cy="40" r="0"/>
+</svg>

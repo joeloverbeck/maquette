@@ -1,0 +1,59 @@
+# Read-back of design/svg-contract/in/p1-names.svg
+# Hand-written input imported with open_file.
+# VectorCraft 0.24.1, MCP server (headless), run on 2026-11-16. Numbers are as the server printed them.
+# open_file reply: {"format":"svg","restored":false,"warnings":[]}
+#
+# 1. inspect_document: id, kind, name (a name in angle brackets is VectorCraft's label for an unnamed object), visibility, bounds [x,y WxH], paint
+# units Pixels; artboard 0.0,0.0 1000.0x1000.0; objects 25
+1 Layer name="Layer 1" visible bounds=[100.0,80.0 795.0x820.0]
+  2 Path name="centre-line" visible bounds=[500.0,100.0 0.0x500.0] fill=None stroke=#2a2f3d width=2.0
+  3 Path name="eye_line" visible bounds=[350.0,366.0 300.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  4 Path name="nose.mark" visible bounds=[492.0,450.0 16.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  5 Path name="MouthLine" visible bounds=[474.0,500.0 52.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  6 Path name="1-digit-first" visible bounds=[100.0,900.0 100.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  7 Path name="ear_x5F_left" visible bounds=[300.0,900.0 100.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  8 Path name="neck left" visible bounds=[500.0,900.0 100.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  9 Path name="eye-opening-left" visible bounds=[540.0,370.0 76.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  10 Path name="eye-opening-right" visible bounds=[384.0,370.0 76.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  11 Path name="brow line left" visible bounds=[540.0,323.0 75.0x11.0] fill=None stroke=#2a2f3d width=2.0
+  12 Path name="brow line right" visible bounds=[385.0,323.0 75.0x11.0] fill=None stroke=#2a2f3d width=2.0
+  13 Path name="skull" visible bounds=[310.0,110.0 380.0x380.0] fill=None stroke=#2a2f3d width=2.0
+  14 Path name="hair volume label" visible bounds=[285.0,80.0 430.0x460.0] fill=None stroke=#2a2f3d width=2.0
+  15 Path name="shoulder-line" visible bounds=[105.0,730.0 790.0x10.0] fill=None stroke=#2a2f3d width=2.0
+  16 Path name="<Path>" visible bounds=[330.0,420.0 0.0x60.0] fill=None stroke=#2a2f3d width=2.0
+  17 Path name="<Path>" visible bounds=[670.0,420.0 0.0x60.0] fill=None stroke=#2a2f3d width=2.0
+  18 Path name="face-outline" visible bounds=[362.0,330.0 276.0x237.0] fill=None stroke=#2a2f3d width=2.0
+  19 Path name="face-outline-2" visible bounds=[100.0,100.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  20 Path name="é-accent" visible bounds=[100.0,120.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  21 Path name="with-data" visible bounds=[100.0,140.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  22 Path name="with-desc" visible bounds=[100.0,160.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  23 Path name="duplicate" visible bounds=[100.0,180.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  24 Path name="duplicate" visible bounds=[100.0,200.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  25 Path name="data name wins?" visible bounds=[100.0,220.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+#
+# 2. run_command document.node on each layer: path of names [type], then each subpath's anchors (in= and out= are Bezier handles)
+/Layer 1 [layer]
+/Layer 1/centre-line [path] open 500.0,100.0 | 500.0,600.0
+/Layer 1/eye_line [path] open 350.0,366.0 | 650.0,366.0
+/Layer 1/nose.mark [path] open 492.0,450.0 | 508.0,450.0
+/Layer 1/MouthLine [path] open 474.0,500.0 | 526.0,500.0
+/Layer 1/1-digit-first [path] open 100.0,900.0 | 200.0,900.0
+/Layer 1/ear_x5F_left [path] open 300.0,900.0 | 400.0,900.0
+/Layer 1/neck left [path] open 500.0,900.0 | 600.0,900.0
+/Layer 1/eye-opening-left [path] open 540.0,370.0 | 616.0,370.0
+/Layer 1/eye-opening-right [path] open 384.0,370.0 | 460.0,370.0
+/Layer 1/brow line left [path] open 540.0,334.0 | 615.0,323.0
+/Layer 1/brow line right [path] open 385.0,323.0 | 460.0,334.0
+/Layer 1/skull [path] closed 690.0,300.0 in=690.0,195.06589753214922 out=690.0,404.9341024678508 | 500.0,490.0 in=604.9341024678508,490.0 out=395.0658975321492,490.0 | 310.0,300.0 in=310.0,404.9341024678508 out=310.0,195.06589753214922 | 500.0,110.0 in=395.0658975321492,110.0 out=604.9341024678508,110.0
+/Layer 1/hair volume label [path] closed 715.0,310.0 in=715.0,182.97450753891746 out=715.0,437.02549246108254 | 500.0,540.0 in=618.7412212136206,540.0 out=381.25877878637937,540.0 | 285.0,310.0 in=285.0,437.02549246108254 out=285.0,182.97450753891746 | 500.0,80.0 in=381.25877878637937,80.0 out=618.7412212136206,80.0
+/Layer 1/shoulder-line [path] open 105.0,740.0 | 500.0,730.0 | 895.0,740.0
+/Layer 1/(unnamed) [path] open 330.0,420.0 | 330.0,480.0
+/Layer 1/(unnamed) [path] open 670.0,420.0 | 670.0,480.0
+/Layer 1/face-outline [path] open 362.0,330.0 | 500.0,567.0 | 638.0,330.0
+/Layer 1/face-outline-2 [path] open 100.0,100.0 | 120.0,100.0
+/Layer 1/é-accent [path] open 100.0,120.0 | 120.0,120.0
+/Layer 1/with-data [path data=[["landmark","chin"],["view","front"]]] open 100.0,140.0 | 120.0,140.0
+/Layer 1/with-desc [path] open 100.0,160.0 | 120.0,160.0
+/Layer 1/duplicate [path] open 100.0,180.0 | 120.0,180.0
+/Layer 1/duplicate [path] open 100.0,200.0 | 120.0,200.0
+/Layer 1/data name wins? [path] open 100.0,220.0 | 120.0,220.0

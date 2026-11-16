@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Probe 5, hand-written: each plausible way of hiding an element. -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="1000" height="1000" viewBox="0 0 1000 1000" fill="none" stroke="#2a2f3d" stroke-width="2">
+  <line id="shown" x1="100" y1="100" x2="300" y2="100"/>
+  <line id="display-none-attr" x1="100" y1="150" x2="300" y2="150" display="none"/>
+  <line id="display-none-style" x1="100" y1="200" x2="300" y2="200" style="display:none"/>
+  <line id="visibility-hidden-attr" x1="100" y1="250" x2="300" y2="250" visibility="hidden"/>
+  <line id="visibility-hidden-style" x1="100" y1="300" x2="300" y2="300" style="visibility:hidden"/>
+  <line id="opacity-zero" x1="100" y1="350" x2="300" y2="350" opacity="0"/>
+  <line id="stroke-none" x1="100" y1="400" x2="300" y2="400" stroke="none"/>
+  <g id="hidden-group" display="none">
+    <line id="in-hidden-group" x1="500" y1="100" x2="700" y2="100"/>
+  </g>
+  <g id="visibility-hidden-group" visibility="hidden">
+    <line id="in-visibility-hidden-group" x1="500" y1="150" x2="700" y2="150"/>
+    <line id="visible-in-visibility-hidden-group" x1="500" y1="200" x2="700" y2="200" visibility="visible"/>
+  </g>
+  <g id="hidden-layer" inkscape:groupmode="layer" inkscape:label="hidden layer" style="display:none">
+    <line id="in-hidden-layer" x1="500" y1="250" x2="700" y2="250"/>
+  </g>
+  <line id="stroke-width-zero" x1="100" y1="450" x2="300" y2="450" stroke-width="0"/>
+  <line id="stroke-opacity-zero" x1="100" y1="500" x2="300" y2="500" stroke-opacity="0"/>
+  <defs>
+    <line id="in-defs" x1="100" y1="550" x2="300" y2="550"/>
+  </defs>
+</svg>

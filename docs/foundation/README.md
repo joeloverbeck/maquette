@@ -5,7 +5,7 @@ Repository-specific foundations for `maquette`, written at founding on 2026-11-1
 | Document | What it settles | Read it before |
 |---|---|---|
 | `01-mission.md` | What maquette is; purpose class, benefit, displacement and appetite; the primary outcome and non-goals; the mannequin rule; the consumer and the two real inputs; what mudsong's record supports; the two pipelines; authority; limits | Accepting, activating or scoping any work; continuing near a limit; a terminal decision; a merge |
-| `02-first-table.md` | The bottleneck; the incumbent; the first increment and what it is checked against; the unproven claim about painting; the handoff to mudsong | Writing or working the first tickets; measuring a reference; exporting anything to mudsong; judging what an accepted armature or table shows |
+| `02-first-table.md` | The bottleneck; the incumbent; the first increment and what it is checked against; the unproven claim about painting; the handoff to mudsong; the SVG contract | Writing or working the first tickets; measuring a reference; writing or reading an armature's SVG; exporting anything to mudsong; judging what an accepted armature or table shows |
 | `03-direction.md` | What Jon wants later, what is known about each part and what would earn it. It authorizes nothing | Proposing controls, part types, non-human parts, more views, bodies, a wider batch of references or an interface |
 | `04-evidence-and-references.md` | What the research lets maquette say; the rules for reference drawings and tables; what is never committed; how to ask for Jon's eyes | Using a research finding, a reference drawing or a measurement; committing any data |
 | `05-code-and-design-tools.md` | Rust, with TypeScript only for the web interface's thin layer; no Python; what VectorCraft and FigCraft each make; their MCP servers; where designs live | Writing code or tooling; adding a dependency; drawing, laying out or mocking up anything |
@@ -65,6 +65,15 @@ The revision read the complete core and the five adopted modules, and mudsong #6
 3. Rules 5 to 7 for references, and the five-work floor for a view (`04-evidence-and-references.md`).
 4. That a Rust tool renders reference check sheets from a layout designed in FigCraft (`05-code-and-design-tools.md`).
 
+## SVG contract record, 2026-11-16
+
+The revision read the complete core and the five adopted modules. No module's trigger changed.
+
+**Proposed by the agent and awaiting Jon's acceptance** in the pull request for issue #4:
+
+1. The SVG contract (`02-first-table.md`): the version it is pinned to, the order of its sources, what the armature uses, the oracle and its tolerance, what happens when a guide does not survive, and the hard case.
+2. The removal of the sentence about AniCraft's importer. It was read and never run, and the contract covers VectorCraft only.
+
 ## The GOV-1 count
 
-Five foundations and this index. The count was about 4,100 words at founding and is about 5,500 after the reorientation, over the 5,000 at which `GOV-1` asks for a recheck. The recheck: every addition records a ruling Jon made on 2026-11-16 or a fact the first increment needs, and none describes work beyond that increment except in `03-direction.md`, which authorizes nothing. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.
+Five foundations and this index. The count was about 4,100 words at founding, about 5,500 after the reorientation and is about 6,400 with the SVG contract, over the 5,000 at which `GOV-1` asks for a recheck. The recheck: every addition records a ruling Jon made on 2026-11-16 or a fact the first increment needs, and none describes work beyond that increment except in `03-direction.md`, which authorizes nothing. The contract's consumer is issue #5, which builds the generator's output on it, and its detail stays in `design/svg-contract/`. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.

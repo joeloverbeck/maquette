@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <title>p6-curves.svg</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <path id="cubic" d="M385 323 C407 315 437 319 460 334" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <path id="cubic-smooth" d="M474 500 C486 503 494 499 500 500 C506 501 514 503 526 500" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <path id="quadratic" d="M100 600 C133.3333333 566.6666667 166.6666667 566.6666667 200 600 C233.3333333 633.3333333 266.6666667 633.3333333 300 600" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <path id="arc" d="M310 300 C310 195.0659027 395.0658875 110 500 110 C604.934082 110 690 195.0659027 690 300" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <path id="relative" d="M100 700 L150 700 C160 700 170 710 170 720 L170 750 L100 750 Z" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <path id="closed" d="M384 369 C393 356 411 350 429 350 C445 351 455 358 461 374 C453 385 439 390 423 390 C407 390 393 383 384 369 Z" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <path id="two-subpaths" d="M105 728 L105 752 M105 740 L895 740 M895 728 L895 752" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <polyline id="precision" points="123.4567871,801 223.3999939,801.25 323.1234436,801.9876709" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <line id="exponent" x1="100" y1="850" x2="250" y2="860" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <circle id="circle" cx="500" cy="300" r="190" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <ellipse id="ellipse" cx="423" cy="370" rx="20" ry="14" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <line id="line" x1="350" y1="366" x2="650" y2="366" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <polyline id="polyline" points="492,447 500,456 508,447" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <polygon id="polygon" points="700,700 760,700 730,760" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <rect id="rect" x="700" y="800" width="80" height="40" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <path id="rect-rounded" d="M808 800 L872 800 C876.4182739 800 880 803.5817261 880 808 L880 832 C880 836.4182739 876.4182739 840 872 840 L808 840 C803.5817261 840 800 836.4182739 800 832 L800 808 C800 803.5817261 803.5817261 800 808 800 Z" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <line id="line-decimal" x1="223.3999939" y1="880.0999756" x2="323.1234436" y2="880.0999756" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <ellipse id="circle-decimal" cx="223.3999939" cy="920.0999756" rx="10.1000061" ry="10.0999756" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <line id="outside-artboard" x1="-50" y1="500" x2="-10" y2="500" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <line id="crossing-artboard-edge" x1="950" y1="950" x2="1050" y2="950" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+    <path id="zero-length-line" d="M40 40 L40 40" fill="none" stroke="#2a2f3d" stroke-width="2"/>
+  </g>
+</svg>

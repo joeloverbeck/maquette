@@ -1,0 +1,77 @@
+# Read-back of design/svg-contract/out/authored.vectorcraft
+# The document authored inside VectorCraft, reopened from its native file.
+# VectorCraft 0.24.1, MCP server (headless), run on 2026-11-16. Numbers are as the server printed them.
+# open_file reply: {"format":"vectorcraft","restored":false,"warnings":[]}
+#
+# 1. inspect_document: id, kind, name (a name in angle brackets is VectorCraft's label for an unnamed object), visibility, bounds [x,y WxH], paint
+# units Pixels; artboard 0.0,0.0 1000.0x1000.0; objects 34
+1 Layer name="Layer 1" visible bounds=[-50.0,110.0 945.0x790.0]
+  2 Ellipse name="skull" visible bounds=[310.0,110.0 380.0x380.0] fill=None stroke=#2a2f3d width=2.0
+  3 Path name="ear left" visible bounds=[670.0,420.0 15.0x60.0] fill=None stroke=#2a2f3d width=2.0
+  4 Path name="ear right" visible bounds=[315.0,420.0 15.0x60.0] fill=None stroke=#2a2f3d width=2.0
+  5 Line name="eye_line" visible bounds=[350.0,366.0 300.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  6 Path name="Brow Line Left" visible bounds=[385.123456789,323.5 75.27654321099999x10.75] fill=None stroke=#2a2f3d width=2.0
+  7 Path name="1 digit first" visible bounds=[100.0,900.0 100.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  8 Path name="nose.mark" visible bounds=[492.0,450.0 16.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  9 Path name="é accent" visible bounds=[100.0,120.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  10 Path name="duplicate" visible bounds=[100.0,180.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  11 Path name="duplicate" visible bounds=[100.0,200.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  12 Path name="<Path>" visible bounds=[100.0,220.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  13 Path name="a<b&\"c'" visible bounds=[100.0,240.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  14 Path name="hidden guide" HIDDEN bounds=[100.0,260.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  15 Path name="locked guide" visible locked bounds=[100.0,280.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  16 Path name="with data" visible bounds=[100.0,300.0 20.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  17 Rectangle name="rotated rect" visible bounds=[695.3589838486223,782.6794919243113 89.28203230275517x74.64101615137747] fill=None stroke=#2a2f3d width=2.0
+  18 Line name="dashed" visible bounds=[500.0,250.0 200.0x0.0] fill=None stroke=#8d93a6 width=2.5 dash=[10.0,7.0] cap=round
+  19 Path name="outside artboard" visible bounds=[-50.0,500.0 40.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  22 Group name="eye left" visible bounds=[540.0,360.0 76.0x10.0]
+    20 Path name="eye opening left" visible bounds=[540.0,370.0 76.0x0.0] fill=None stroke=#2a2f3d width=2.0
+    21 Path name="lid line left" visible bounds=[540.0,360.0 76.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  23 Path name="eye opening right" visible bounds=[384.0,370.0 76.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  24 Path name="mouth line" visible bounds=[474.0,500.0 52.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  25 Path name="mouth-line" visible bounds=[474.0,510.0 52.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  26 Path name="mouth_line" visible bounds=[474.0,520.0 52.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  27 Path name="shoulder line" visible bounds=[105.0,728.0 790.0x24.0] fill=None stroke=#2a2f3d width=2.0
+  28 Path name="default paint" visible bounds=[100.0,320.0 20.0x20.0] fill=None stroke=#2a2f3d width=2.0
+  29 Rounded Rectangle name="rounded rect" visible bounds=[800.0,800.0 80.0x40.0] fill=None stroke=#2a2f3d width=2.0
+  30 Ellipse name="iris left" visible bounds=[403.0,356.0 40.0x28.0] fill=None stroke=#2a2f3d width=2.0
+31 Layer name="second layer" visible bounds=[500.0,100.0 0.0x500.0]
+  32 Path name="centre line" visible bounds=[500.0,100.0 0.0x500.0] fill=None stroke=#2a2f3d width=2.0
+33 Layer name="hidden layer" HIDDEN bounds=[350.0,450.0 300.0x0.0]
+  34 Path name="in hidden layer" visible bounds=[350.0,450.0 300.0x0.0] fill=None stroke=#2a2f3d width=2.0
+#
+# 2. run_command document.node on each layer: path of names [type], then each subpath's anchors (in= and out= are Bezier handles)
+/Layer 1 [layer]
+/Layer 1/skull [path] closed 310.0,300.0 in=310.0,404.9341024678508 out=310.0,195.06589753214922 | 500.0,110.0 in=395.0658975321492,110.0 out=604.9341024678508,110.0 | 690.0,300.0 in=690.0,195.06589753214922 out=690.0,404.9341024678508 | 500.0,490.0 in=604.9341024678508,490.0 out=395.0658975321492,490.0
+/Layer 1/ear left [path] open 670.0,420.0 out=690.0,430.0 | 670.0,480.0 in=690.0,470.0
+/Layer 1/ear right [path] open 330.0,420.0 out=310.0,430.0 | 330.0,480.0 in=310.0,470.0
+/Layer 1/eye_line [path] open 350.0,366.0 | 650.0,366.0
+/Layer 1/Brow Line Left [path] open 385.123456789,323.5 | 460.4,334.25
+/Layer 1/1 digit first [path] open 100.0,900.0 | 200.0,900.0
+/Layer 1/nose.mark [path] open 492.0,450.0 | 508.0,450.0
+/Layer 1/é accent [path] open 100.0,120.0 | 120.0,120.0
+/Layer 1/duplicate [path] open 100.0,180.0 | 120.0,180.0
+/Layer 1/duplicate [path] open 100.0,200.0 | 120.0,200.0
+/Layer 1/(unnamed) [path] open 100.0,220.0 | 120.0,220.0
+/Layer 1/a<b&"c' [path] open 100.0,240.0 | 120.0,240.0
+/Layer 1/hidden guide [path hidden] open 100.0,260.0 | 120.0,260.0
+/Layer 1/locked guide [path] open 100.0,280.0 | 120.0,280.0
+/Layer 1/with data [path data=[["landmark","chin"]]] open 100.0,300.0 | 120.0,300.0
+/Layer 1/rotated rect [path] closed 695.3589838486223,822.6794919243113 | 764.6410161513775,782.6794919243113 | 784.6410161513775,817.3205080756887 | 715.3589838486223,857.3205080756887
+/Layer 1/dashed [path] open 500.0,250.0 | 700.0,250.0
+/Layer 1/outside artboard [path] open -50.0,500.0 | -10.0,500.0
+/Layer 1/eye left [group]
+/Layer 1/eye left/eye opening left [path] open 540.0,370.0 | 616.0,370.0
+/Layer 1/eye left/lid line left [path] open 540.0,360.0 | 616.0,360.0
+/Layer 1/eye opening right [path] open 384.0,370.0 | 460.0,370.0
+/Layer 1/mouth line [path] open 474.0,500.0 | 526.0,500.0
+/Layer 1/mouth-line [path] open 474.0,510.0 | 526.0,510.0
+/Layer 1/mouth_line [path] open 474.0,520.0 | 526.0,520.0
+/Layer 1/shoulder line [path] open 105.0,728.0 | 105.0,752.0 ;; open 105.0,740.0 | 895.0,740.0 ;; open 895.0,728.0 | 895.0,752.0
+/Layer 1/default paint [path] open 100.0,320.0 | 120.0,320.0 | 120.0,340.0
+/Layer 1/rounded rect [path] closed 808.0,800.0 in=803.5817220013537,800.0 | 872.0,800.0 out=876.4182779986463,800.0 | 880.0,808.0 in=880.0,803.5817220013537 | 880.0,832.0 out=880.0,836.4182779986463 | 872.0,840.0 in=876.4182779986463,840.0 | 808.0,840.0 out=803.5817220013537,840.0 | 800.0,832.0 in=800.0,836.4182779986463 | 800.0,808.0 out=800.0,803.5817220013537
+/Layer 1/iris left [path] closed 403.0,370.0 in=403.0,377.7319864976311 out=403.0,362.2680135023689 | 423.0,356.0 in=411.95430500338415,356.0 out=434.04569499661585,356.0 | 443.0,370.0 in=443.0,362.2680135023689 out=443.0,377.7319864976311 | 423.0,384.0 in=434.04569499661585,384.0 out=411.95430500338415,384.0
+/second layer [layer]
+/second layer/centre line [path] open 500.0,100.0 | 500.0,600.0
+/hidden layer [layer hidden]
+/hidden layer/in hidden layer [path] open 350.0,450.0 | 650.0,450.0
