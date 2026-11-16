@@ -1,12 +1,12 @@
 # maquette
 
-Maquette generates armatures for anime-style characters: the construction guide for a head and body, as SVG with named landmarks, for an agent to draw and paint over. It does not draw the finished character.
+Maquette generates armatures for anime-style characters from proportions measured on published drawings: the construction guide for a head and body, as SVG with named landmarks, for an agent to draw and paint over. It does not draw the finished character.
 
 In an animation studio a maquette is the sculpted reference model that keeps a character on model from every angle.
 
 ## Status
 
-Founded on 2026-11-16, and the founding was accepted by Jon the same day; [`docs/foundation/README.md`](docs/foundation/README.md) records it. There is no code yet, and nothing to build or run. Work starts from the issue tracker.
+Founded on 2026-11-16, and reoriented by Jon the same day toward measured proportions; [`docs/foundation/README.md`](docs/foundation/README.md) records both. There is no code yet, and nothing to build or run. Work starts from the issue tracker.
 
 ## Where things are
 
@@ -14,12 +14,13 @@ Founded on 2026-11-16, and the founding was accepted by Jon the same day; [`docs
 |---|---|
 | `CLAUDE.md` | Agent instructions; `AGENTS.md` is a symlink to it |
 | `docs/principles/` | The constitution this repository adopts, and its five adopted modules, copied byte for byte |
-| `docs/foundation/` | What maquette is for, the first armature, Jon's direction, the rules for evidence and references, and the rules for code and design tools |
+| `docs/foundation/` | What maquette is for, the first increment, Jon's direction, the rules for evidence and references, and the rules for code and design tools |
 | `.claude/skills/` | The engineering and productivity skills from `mattpocock/skills` (MIT), copied unchanged at its commit `5863806`; `.agents/skills/` holds a symlink to each |
 | `.mcp.json` | Registers the VectorCraft and FigCraft MCP servers for Claude Code |
 | `design/` | Designs made by hand in those two tools; the only folder their servers may write to |
 | `docs/agents/` | How agents use the issue tracker and the triage labels |
-| `docs/research/` | The research behind the founding. Evidence only |
+| `GLOSSARY.md` | The words maquette uses for armatures, views and proportions |
+| `docs/research/` | The research behind the founding and the reorientation. Evidence only |
 
 ## Working here
 
