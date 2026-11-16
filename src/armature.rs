@@ -334,3 +334,53 @@ pub fn read_landmark_file(text: &str) -> Result<Reading> {
     }
     Ok(reading)
 }
+
+fn parsed(text: &str) -> Result<toml::Table> {
+    text.parse()
+        .map_err(|error| Error::new(format!("the landmark file is not valid TOML: {error}")))
+}
+
+/// Where a landmark file says its view stands on the page.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Placed {
+    /// The view's name: `front` or `three-quarter`.
+    pub view: String,
+    /// The length of one unit, eye line to chin.
+    pub unit: f64,
+    pub eye_line_y: f64,
+    /// Where the upright axis the head turns about stands.
+    pub turn_axis_x: f64,
+}
+
+/// Reads which view a landmark file is of and where its `[frame]` puts the head.
+pub fn read_placement(text: &str) -> Result<Placed> {
+    let table = parsed(text)?;
+    let view = table
+        .get("view")
+        .and_then(toml::Value::as_str)
+        .ok_or_else(|| Error::new("the landmark file does not name its `view`"))?
+        .to_string();
+    let frame = table
+        .get("frame")
+        .and_then(toml::Value::as_table)
+        .ok_or_else(|| Error::new("the landmark file has no [frame] table"))?;
+    let number = |key: &str| -> Result<f64> {
+        match frame.get(key) {
+            Some(toml::Value::Float(number)) => Ok(*number),
+            Some(toml::Value::Integer(number)) => Ok(*number as f64),
+            _ => Err(Error::new(format!(
+                "the landmark file's [frame] has no number `{key}`"
+            ))),
+        }
+    };
+    let placed = Placed {
+        view,
+        unit: number("unit")?,
+        eye_line_y: number("eye_line_y")?,
+        turn_axis_x: number("turn_axis_x")?,
+    };
+    if placed.unit <= 0.0 {
+        return Err(Error::new("the landmark file's unit is not above zero"));
+    }
+    Ok(placed)
+}

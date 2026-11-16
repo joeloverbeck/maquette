@@ -36,6 +36,54 @@ pub struct HandMade {
     pub what: String,
     pub front_sha256: String,
     pub three_quarter_sha256: String,
+    /// Where the front view's landmarks stand in the record.
+    pub front_record: Provenance,
+    /// Where the three-quarter view's landmarks stand in the record.
+    pub three_quarter_record: Provenance,
+}
+
+/// How one view's landmarks stand in the record, under the record's own names.
+#[derive(Debug, Clone, Default)]
+pub struct Provenance {
+    /// For each landmark, seen or covered, the record's names behind it: one, or the two it
+    /// is midway between.
+    pub read_from: BTreeMap<String, Vec<String>>,
+    /// Every name the record gives the view.
+    pub recorded: Vec<String>,
+    /// The landmarks the reading leaves out because the head covers them in the drawing, and
+    /// where the record puts each. No proportion is taken from them; they can still be laid
+    /// beside a generated position.
+    pub covered_by_head: BTreeMap<String, [f64; 2]>,
+}
+
+/// What a hand-made position says about the head, and so what it can be compared in.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Marks {
+    /// A place on the head: both its sideways position and its height.
+    Position,
+    /// How high or how low a round form or an envelope reaches: its height only.
+    Height,
+    /// How far to a side a round form or an envelope reaches: its sideways position only.
+    Sideways,
+}
+
+/// The rule behind [`marks`], in words.
+pub const MARKS_RULE: &str = "The top, the bottom and the side extents of the skull, of an iris and of the hair say how far a round form or an envelope reaches, not where a feature is. The record takes each where the drawn outline is level or upright, and along the outline that place marks nothing: the hair's is a hairstyle's, and an iris is cut by the lid. So a top or a bottom of those three is compared in height only, and a side extent sideways only. Every other landmark is compared as a position, by the straight distance.";
+
+/// What the hand-made position of a landmark marks.
+pub fn marks(landmark: &str) -> Marks {
+    let round_form = ["skull-", "iris-", "hair-"]
+        .iter()
+        .any(|form| landmark.starts_with(form));
+    if !round_form {
+        Marks::Position
+    } else if landmark.ends_with("-top") || landmark.ends_with("-bottom") {
+        Marks::Height
+    } else if landmark.ends_with("-extent") {
+        Marks::Sideways
+    } else {
+        Marks::Position
+    }
 }
 
 struct Recorded {
@@ -91,7 +139,14 @@ fn hyphens(name: &str) -> String {
     name.replace('_', "-")
 }
 
-fn read_view(record: &toml::Table, view: &str, turned: bool) -> Result<(Reading, String)> {
+/// One view of the record, read.
+struct ViewRead {
+    reading: Reading,
+    sha256: String,
+    provenance: Provenance,
+}
+
+fn read_view(record: &toml::Table, view: &str, turned: bool) -> Result<ViewRead> {
     let section = record
         .get("views")
         .and_then(|views| views.get(view))
@@ -135,17 +190,14 @@ fn read_view(record: &toml::Table, view: &str, turned: bool) -> Result<(Reading,
         );
     }
 
+    let recorded_at = |name: &str| recorded.get(name).map(|point| point.position);
     // A position the head covers in the turned drawing cannot be seen there. The skull's own
     // points are never under the skull, so they are kept.
-    let seen = |name: &str| -> Option<[f64; 2]> {
-        recorded
-            .get(name)
-            .filter(|point| !(turned && point.covered_by_head))
-            .map(|point| point.position)
-    };
-    let midway = |first: &str, second: &str| -> Option<[f64; 2]> {
-        let (first, second) = (seen(first)?, seen(second)?);
-        Some([(first[0] + second[0]) / 2.0, (first[1] + second[1]) / 2.0])
+    let covered = |name: &str| {
+        turned
+            && recorded
+                .get(name)
+                .is_some_and(|point| point.covered_by_head)
     };
 
     let mut reading = Reading {
@@ -156,51 +208,71 @@ fn read_view(record: &toml::Table, view: &str, turned: bool) -> Result<(Reading,
         },
         ..Reading::default()
     };
-    let mut put = |name: String, position: Option<[f64; 2]>| {
+    let mut read_from: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut covered_landmarks: BTreeMap<String, [f64; 2]> = BTreeMap::new();
+    // A landmark stands where the record puts it, or midway between two of the record's
+    // positions. It is read as seen only when every position behind it can be seen.
+    let mut put = |name: String, from: &[&str]| {
+        let position = match from {
+            [only] => recorded_at(only),
+            [first, second] => match (recorded_at(first), recorded_at(second)) {
+                (Some(first), Some(second)) => {
+                    Some([(first[0] + second[0]) / 2.0, (first[1] + second[1]) / 2.0])
+                }
+                _ => None,
+            },
+            _ => None,
+        };
         if let Some(position) = position {
-            reading.points.insert(name, position);
+            let sources = from.iter().map(|from| from.to_string()).collect();
+            read_from.insert(name.clone(), sources);
+            if from.iter().any(|from| covered(from)) {
+                covered_landmarks.insert(name, position);
+            } else {
+                reading.points.insert(name, position);
+            }
         }
     };
 
     for name in ON_CENTRE_LINE {
-        put(hyphens(name), seen(name));
+        put(hyphens(name), &[name]);
     }
     for side in SIDES {
         for (stem, point) in PAIRED {
             let name = format!("{stem}_{side}_{point}");
-            put(hyphens(&name), seen(&name));
+            put(hyphens(&name), &[&name]);
         }
         for point in EAR {
             let name = format!("ear_{side}_{point}");
-            put(hyphens(&name), seen(&name));
+            put(hyphens(&name), &[&name]);
         }
 
         let lid = |point: &str| format!("lid_line_{side}_{point}");
         put(
             format!("lid-line-{side}-inner-end"),
-            midway(&lid("inner_lower"), &lid("inner_upper")),
+            &[&lid("inner_lower"), &lid("inner_upper")],
         );
         put(
             format!("lid-line-{side}-crest"),
-            midway(&lid("lower_mid"), &lid("upper_mid")),
+            &[&lid("lower_mid"), &lid("upper_mid")],
         );
         put(
             format!("lid-line-{side}-outer-end"),
-            midway(&lid("outer_lower"), &lid("outer_tip")),
+            &[&lid("outer_lower"), &lid("outer_tip")],
         );
         for end in ["inner", "outer"] {
             put(
                 format!("brow-line-{side}-{end}-end"),
-                midway(
+                &[
                     &format!("brow_{side}_{end}_top"),
                     &format!("brow_{side}_{end}_bottom"),
-                ),
+                ],
             );
         }
 
         // The face outline: both the cheek point and the jaw-line point in the front view;
         // the cheek point on the far side and the jaw-line point on the near side when turned.
-        let outline = |point: &str| seen(&format!("face_outline_{side}_{point}"));
+        let outline = |point: &str| format!("face_outline_{side}_{point}");
         let cheek = !turned || side == FAR;
         let jaw_line = !turned || side != FAR;
         let mut levels = vec![("top".to_string(), outline("node_1"))];
@@ -210,17 +282,17 @@ fn read_view(record: &toml::Table, view: &str, turned: bool) -> Result<(Reading,
                 outline(&format!("at_{level}_level")),
             ));
         }
-        for (level, position) in levels {
+        for (level, from) in levels {
             // The near side's first node in the turned view is where its drawn outline
             // starts, at the nose level: it is no top end.
             if turned && side != FAR && level == "top" {
                 continue;
             }
             if cheek {
-                put(format!("face-outline-{side}-{level}"), position);
+                put(format!("face-outline-{side}-{level}"), &[&from]);
             }
             if jaw_line {
-                put(format!("jaw-line-{side}-{level}"), position);
+                put(format!("jaw-line-{side}-{level}"), &[&from]);
             }
         }
         let jaw_node = if turned && side == FAR {
@@ -228,10 +300,19 @@ fn read_view(record: &toml::Table, view: &str, turned: bool) -> Result<(Reading,
         } else {
             "node_3"
         };
-        put(format!("face-outline-{side}-jaw"), outline(jaw_node));
+        put(format!("face-outline-{side}-jaw"), &[&outline(jaw_node)]);
     }
 
-    Ok((reading, sha256))
+    let provenance = Provenance {
+        read_from,
+        recorded: recorded.keys().map(|name| name.to_string()).collect(),
+        covered_by_head: covered_landmarks,
+    };
+    Ok(ViewRead {
+        reading,
+        sha256,
+        provenance,
+    })
 }
 
 /// Reads the text of a record of hand-made views.
@@ -245,13 +326,15 @@ pub fn read(text: &str) -> Result<HandMade> {
         .and_then(toml::Value::as_str)
         .ok_or_else(|| Error::new("the record's [source] does not say what the drawings are"))?
         .to_string();
-    let (front, front_sha256) = read_view(&record, "front", false)?;
-    let (three_quarter, three_quarter_sha256) = read_view(&record, "three_quarter", true)?;
+    let front = read_view(&record, "front", false)?;
+    let three_quarter = read_view(&record, "three_quarter", true)?;
     Ok(HandMade {
-        front,
-        three_quarter,
+        front: front.reading,
+        three_quarter: three_quarter.reading,
         what,
-        front_sha256,
-        three_quarter_sha256,
+        front_sha256: front.sha256,
+        three_quarter_sha256: three_quarter.sha256,
+        front_record: front.provenance,
+        three_quarter_record: three_quarter.provenance,
     })
 }

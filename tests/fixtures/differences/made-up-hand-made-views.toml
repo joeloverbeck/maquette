@@ -1,0 +1,56 @@
+# A made-up record of hand-made views, for the tests in tests/differences.rs.
+#
+# Every number here was invented so that the differences can be worked out by hand.
+# There is no drawing behind it, it is no character's, and it is no part of a table.
+# It has the shape of data/saffi/hand-made-views.toml and only the entries the tests need.
+
+[source]
+what = "Made-up positions for the tests. No drawing stands behind them."
+
+# Eye line at y = 300 (the openings run from 290 to 310), chin at 500: the unit is 200.
+# Hair top at y = 100: head height is 400, so 1% of it is 4 units.
+# The skull's centre, and so the upright axis the head turns about, is at x = 500.
+[views.front]
+sha256 = "made-up: there is no drawing"
+
+[views.front.landmarks]
+hair_top = { x = 480.0, y = 100.0, kind = "highest" }
+chin = { x = 500.0, y = 500.0, kind = "lowest" }
+skull_centre = { x = 500.0, y = 250.0, kind = "attribute" }
+eye_right_opening_top = { x = 400.0, y = 290.0, kind = "highest" }
+eye_right_opening_bottom = { x = 400.0, y = 310.0, kind = "lowest" }
+eye_left_opening_top = { x = 600.0, y = 290.0, kind = "highest" }
+eye_left_opening_bottom = { x = 600.0, y = 310.0, kind = "lowest" }
+eye_right_outer_corner = { x = 350.0, y = 300.0, kind = "node" }
+eye_left_outer_corner = { x = 650.0, y = 300.0, kind = "node" }
+nose_mark_bottom = { x = 500.0, y = 380.0, kind = "node" }
+mouth_line_centre = { x = 500.0, y = 420.0, kind = "node" }
+hair_right_extent = { x = 300.0, y = 222.0, kind = "side_extent" }
+hair_left_extent = { x = 700.0, y = 333.0, kind = "side_extent" }
+shoulder_right_point = { x = 200.0, y = 700.0, kind = "node" }
+shoulder_left_point = { x = 800.0, y = 700.0, kind = "node" }
+# In a front view a point of the face outline is the cheek point and the jaw-line point at once.
+face_outline_left_at_eye_level = { x = 640.0, y = 300.0, kind = "crossing" }
+# Nothing in an armature answers to a pupil.
+pupil_left_centre = { x = 600.0, y = 300.0, kind = "centre" }
+
+# Eye line at y = 300, chin at 500: the unit is 200 here too. The skull's centre is at x = 495.
+# The hair's top is at y = 98, so this view's own head height would be 402; shares are of the
+# front view's 400.
+[views.three_quarter]
+sha256 = "made-up: there is no drawing"
+
+[views.three_quarter.landmarks]
+hair_top = { x = 490.0, y = 98.0, kind = "highest" }
+chin = { x = 570.0, y = 500.0, kind = "lowest" }
+skull_centre = { x = 495.0, y = 250.0, kind = "attribute" }
+eye_right_opening_top = { x = 480.0, y = 290.0, kind = "highest" }
+eye_right_opening_bottom = { x = 480.0, y = 310.0, kind = "lowest" }
+nose_mark_bottom = { x = 560.0, y = 380.0, kind = "node" }
+# The near side's outline is the jaw line in a turned view.
+face_outline_right_at_nose_level = { x = 400.0, y = 380.0, kind = "crossing" }
+# A lid line is the middle of the drawn band: this end is at 600, 305.
+lid_line_left_inner_lower = { x = 600.0, y = 310.0, kind = "node" }
+lid_line_left_inner_upper = { x = 600.0, y = 300.0, kind = "node" }
+# The head covers this point in the turned view. It is compared, and marked as covered.
+ear_left_base_outer = { x = 640.0, y = 180.0, kind = "node", under = ["face/cranium"] }

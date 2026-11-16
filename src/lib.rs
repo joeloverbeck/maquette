@@ -9,8 +9,11 @@
 //! - [`guides`]: how the named guides of a view are built from its landmarks.
 //! - [`armature`]: the SVG and the landmark file of a view, as text.
 //! - [`hand_made_views`]: how the record of a hand-made armature is read as landmarks.
+//! - [`differences`]: how a generated armature is laid over a hand-made one, and how far
+//!   apart the two put each landmark.
 
 pub mod armature;
+pub mod differences;
 pub mod guides;
 pub mod hand_made_views;
 pub mod head_model;

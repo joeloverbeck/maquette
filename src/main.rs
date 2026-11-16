@@ -7,7 +7,7 @@ use std::process::ExitCode;
 
 use maquette::head_model::{self, Reading};
 use maquette::views::Placement;
-use maquette::{Error, Result, armature, hand_made_views, proportions};
+use maquette::{Error, Result, armature, differences, hand_made_views, proportions};
 
 const USAGE: &str = "\
 maquette: armatures for anime-style characters, from a set of proportions.
@@ -30,6 +30,14 @@ Usage:
   maquette proportions-from-hand-made-views --record <file> [--out <file>]
       Work out a set of proportions from the record of a hand-made armature's views,
       such as data/saffi/hand-made-views.toml.
+
+  maquette differences-from-hand-made-views --front <file> --three-quarter <file>
+                                            --record <file> [--out <file>]
+      Lay the landmark files of a generated front view and three-quarter view over the
+      record of a hand-made armature's views, and list how far apart the two put each
+      landmark, as a share of head height. Every difference above 1% is numbered. The file
+      states how the views are laid over each other and what has no counterpart. With
+      --out the file is written there and the numbered list is printed.
 ";
 
 fn main() -> ExitCode {
@@ -61,6 +69,7 @@ fn run(arguments: &[String]) -> Result<()> {
         "draw" => draw(rest),
         "proportions-from-landmarks" => proportions_from_landmarks(rest),
         "proportions-from-hand-made-views" => proportions_from_hand_made_views(rest),
+        "differences-from-hand-made-views" => differences_from_hand_made_views(rest),
         other => Err(Error::new(format!(
             "there is no command `{other}`. Run `maquette help` for the commands."
         ))),
@@ -165,6 +174,29 @@ fn proportions_from_landmarks(arguments: &[String]) -> Result<()> {
 # by `maquette proportions-from-landmarks`. `maquette list-proportions` defines each proportion.
 ";
     deliver(&found, &set.write(opening)?)
+}
+
+fn differences_from_hand_made_views(arguments: &[String]) -> Result<()> {
+    let found = options(
+        arguments,
+        &["--front", "--three-quarter", "--record", "--out"],
+    )?;
+    let front = required(&found, "--front")?;
+    let three_quarter = required(&found, "--three-quarter")?;
+    let record = required(&found, "--record")?;
+    let (front_text, three_quarter_text, record_text) =
+        (read(front)?, read(three_quarter)?, read(record)?);
+    let input = |path, text| differences::Input { path, text };
+    let found_differences = differences::compare(
+        input(front, &front_text),
+        input(three_quarter, &three_quarter_text),
+        input(record, &record_text),
+    )?;
+    deliver(&found, &found_differences.file())?;
+    if found.contains_key("--out") {
+        print!("{}", found_differences.summary());
+    }
+    Ok(())
 }
 
 fn text_value(text: &str) -> String {
