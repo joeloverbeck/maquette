@@ -48,6 +48,8 @@ The `.readback.txt` files are those replies cut down to one line per object with
 
 Opening the same file twice gave the same tree, and exporting it twice gave the same bytes.
 
+Since issue #5 the repeatable check is in the Rust package. `maquette read-back --landmarks <file>` makes these three calls for a generated view and compares the replies with the view's landmark file, and `maquette read-back-hard-case` runs the hard case below on the generator's own three-quarter view. Both start the server themselves, against whichever version is installed, and name it. The root `README.md` gives the commands. The files in this folder stay as they were observed for issue #4.
+
 ## Into VectorCraft: what survives an import
 
 No import reported a warning, including the ones that dropped elements.

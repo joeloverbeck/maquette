@@ -1,0 +1,692 @@
+# The list of proportions: every proportion maquette takes from a head or draws one from.
+#
+# This file is the list. A person reads it here, and the program reads this same file: it is
+# built into the binary, `maquette list-proportions` prints it, and a set of proportions is
+# checked against it. Nothing else repeats a definition.
+#
+# It is the first list: what Saffi's front view and three-quarter view need. The side view and
+# the reading of published references are later tickets, and they revise it.
+
+[unit]
+name = "eye line to chin"
+definition = "The height from the eye line down to the chin. Every proportion is a length divided by it, so the chin is 1 below the eye line."
+why = """
+A unit has to be a span drawn in every view of every reference, and it must not depend on the hair. \
+Eye line to chin is upright, so a level head turned about an upright axis shows it at the same length in the front, \
+three-quarter and side views; a sideways span such as the spacing of the eyes narrows with the turn and is gone in a side view. \
+Both of its ends are drawn in every view: an eye and the chin. \
+Neither end is hair: head height ends at the hair's top, and the skull under the hair is a convention. \
+It is the longest such span, so a misplaced point costs it least: brows are often under a fringe, and nose to chin and mouth to chin are shorter. \
+In Saffi's hand-made views it is 197.000 units in the front view and 196.973 in the three-quarter view, \
+where her head heights differ by 1.082 units."""
+
+[eye_line]
+definition = "The level midway between the top and the bottom of the eye opening, averaged over the eyes a view shows."
+why = """
+The opening is drawn in every view and belongs to the lids, which do not move with the gaze. \
+The pupil is the painter's, and the iris is cut by the lid. \
+It is not the level line drawn in Saffi's hand-made views: that line stands 4 units higher (0.8% of head height), \
+and 0.9% of head height above her pupil centres, on no feature of the eye. The armature draws its eye level line on the eye line."""
+
+[head_height]
+definition = "From the hair's top down to the chin: hair_top_rise plus 1, in units. Differences between positions are stated as shares of it. It is not the unit, because it depends on the hair."
+
+[depth]
+definition = "How far a point stands in front of the eyes, toward where the face points. Depth zero is the midpoint between the two eye openings' centres; a negative depth is behind it."
+why = "Depth needs a zero that is drawn. The eye openings are drawn in every view and do not move with the gaze. The skull's centre, which the head turns about, is a convention and is placed from this zero like everything else."
+front = "No depth shows in a front view."
+three_quarter = """
+A level head turned about an upright axis, drawn flat, shows a point at its front offset times the cosine of the turn \
+plus its depth times the sine of the turn. So a left and right pair's midpoint, or a point of the centre line, \
+measured sideways from the midpoint of the two eye openings' centres and divided by the sine of the turn, is its depth. \
+Depth taken this way at a turn near 30 degrees carries twice the reading error of a position."""
+
+[words]
+offset = "A sideways distance from the centre line, in the front view. The head is symmetric: the left and the right point share it."
+half_width = "Half of a sideways extent, in the front view."
+rise = "A height above the eye line."
+drop = "A height below the eye line. A negative drop is above it."
+height_in_views = "A height is the same in every view of a level head."
+measured = "Taken from features that are drawn."
+convention = "Built by a stated rule, because nothing is drawn behind it. A convention is never a measurement and has no valid range."
+
+# Where two views of one head disagree, and what stands in for a point one view does not show.
+# These rules are the head model's, and they are applied in this order.
+[[disagreement_rule]]
+rule = "A height is taken from the three-quarter view. For a left and right pair it is the mean of the two heights there."
+[[disagreement_rule]]
+rule = "An offset is taken from the three-quarter view when it shows both points of the pair: half their spacing over the cosine of the turn."
+[[disagreement_rule]]
+rule = "A depth is taken from the three-quarter view: from the pair's midpoint, or, when it shows one point of the pair, from that point and the offset."
+[[disagreement_rule]]
+rule = "What the three-quarter view does not show is taken from the front view: a point's height, a pair's offset when one of its points is missing, and the half-width of a silhouette."
+[[disagreement_rule]]
+rule = "The neck and the shoulder line take their widths from the front view. A neck is a column, whose width does not narrow as it turns, and the widest span of the figure is read where nothing foreshortens it."
+
+# Guides that are silhouettes or constructions: how each is built in a view from that view's landmarks.
+[[construction]]
+guide = "skull"
+rule = "A sphere centred on the upright axis the head turns about, so it is the same circle in every view. A convention: its radius and its centre are stated, not measured."
+[[construction]]
+guide = "hair-volume"
+rule = "A plain envelope, a convention: a half-ellipse dome from the hair's top down to the height of the skull's centre, then straight sides down to the height of the chin. Seen from above the envelope is an ellipse, so its half-width in a view is the root of (half-width times the cosine of the turn) squared plus (half-depth times the sine of the turn) squared."
+[[construction]]
+guide = "face-outline"
+rule = "At the top, the eye line, the nose level and the mouth level the head has a cheek point and a jaw-line point on each side, at one half-width and two depths. On each side the outline runs through whichever of the two stands further out in the view, then through the jaw point and the chin: a smooth curve that at each point runs parallel to the line joining its two neighbours. Above the nose level nothing is drawn behind the jaw line, and it keeps its depth at the nose level: a convention."
+[[construction]]
+guide = "centre-line"
+rule = "From the skull's top it follows the skull's surface forward and down to the eye line: a convention, because nothing is drawn there. Below the eye line it runs smoothly through the nose mark's bottom, the mouth line's centre and the chin."
+[[construction]]
+guide = "level lines"
+rule = "The eye level line is drawn on the eye line, the nose level line midway between the nose mark's corners and its bottom, and the mouth level line at the mouth line's centre. Each spans the face outline at its height."
+[[construction]]
+guide = "eye opening, lid line and brow line"
+rule = "The opening's top and bottom, the lid line's three points and the brow line's two ends take the depth of the straight line through the eye's two corners at their offset: a convention. The opening is two smooth arcs between its corners, over its top and under its bottom. The lid line is the middle of the drawn lid band, a smooth curve from its inner end over its crest to its outer end. The brow line is the middle of the drawn brow band, a straight line between its two ends."
+[[construction]]
+guide = "iris"
+rule = "A flat disc facing forward, as drawn, where the lid may already cut it: an ellipse whose width narrows by the cosine of the turn."
+[[construction]]
+guide = "ears"
+rule = "A flat upright lobe standing on its two base points: the top and the two side extents take the depth of the straight line through the base points at their offset, a convention. The outline is a smooth curve from the outer base point round the outer extent, the top and the inner extent to the inner base point, upright at the extents and level at the top."
+[[construction]]
+guide = "neck"
+rule = "An upright round column, as wide in every view. Each of its two lines starts at the lowest point where it crosses the face outline and ends at the neck's base. A line that passes outside the face starts where it crosses the lower half of the skull, and one that misses both starts at the chin's height."
+[[construction]]
+guide = "shoulder-line"
+rule = "A straight line between the two shoulder points, which turn with the head."
+
+# ---------------------------------------------------------------- Hair and skull
+
+[[proportion]]
+name = "hair_top_rise"
+kind = "measured"
+sign = "positive"
+what = "How high the hair's top stands above the eye line. With the unit it gives head height."
+front = "The eye line's height minus the height of the highest point of the hair."
+three_quarter = "The same."
+
+[[proportion]]
+name = "hair_half_width"
+kind = "measured"
+sign = "positive"
+what = "Half the width of the hair at its widest."
+front = "Half the distance between the hair's two side extents."
+three_quarter = "Not taken: the extents there mix width and depth. See hair_half_depth."
+
+[[proportion]]
+name = "hair_half_depth"
+kind = "measured"
+sign = "positive"
+what = "Half the depth of the hair from front to back, taking the hair as an ellipse seen from above."
+front = "Not seen."
+three_quarter = "From half the distance h between the hair's two side extents: the root of (h squared minus (hair_half_width times the cosine of the turn) squared), over the sine of the turn."
+
+[[proportion]]
+name = "hair_centre_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the middle of the hair."
+front = "Not seen."
+three_quarter = "The depth of the midpoint of the hair's two side extents."
+
+[[proportion]]
+name = "skull_radius"
+kind = "convention"
+sign = "positive"
+what = "The radius of the skull. Nothing is drawn behind it in a reference; where an underdrawing shows a construction circle, it is that circle's."
+front = "Half the height between the construction circle's top and bottom."
+three_quarter = "The same."
+
+[[proportion]]
+name = "skull_centre_rise"
+kind = "convention"
+sign = "positive"
+what = "How high the skull's centre stands above the eye line."
+front = "The eye line's height minus the height of the construction circle's centre."
+three_quarter = "The same."
+
+[[proportion]]
+name = "skull_centre_depth"
+kind = "convention"
+sign = "any"
+what = "The depth of the skull's centre, and so of the upright axis the head turns about. It is behind the eyes, so it is negative."
+front = "Not seen."
+three_quarter = "The depth of the construction circle's centre."
+
+# ---------------------------------------------------------------- Face outline
+
+[[proportion]]
+name = "chin_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the chin, the lowest point of the face outline. Its height is the unit."
+front = "Not seen."
+three_quarter = "The depth of the lowest point of the face outline."
+
+[[proportion]]
+name = "face_top_rise"
+kind = "measured"
+sign = "any"
+what = "How high above the eye line the face outline starts, at the temple."
+front = "The eye line's height minus the height of the outline's top end, where the hair leaves it showing."
+three_quarter = "The same, on the far side."
+
+[[proportion]]
+name = "face_top_half_width"
+kind = "measured"
+sign = "positive"
+what = "Half the width of the face outline at its top end."
+front = "Half the distance between the outline's two top ends."
+three_quarter = "Not taken: one side only is the same point of the outline."
+
+[[proportion]]
+name = "face_top_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the cheek point at the outline's top end: where the front of the face turns into its side."
+front = "Not seen."
+three_quarter = "From the far side's top end and face_top_half_width."
+
+[[proportion]]
+name = "face_half_width_at_eye_level"
+kind = "measured"
+sign = "positive"
+what = "Half the width of the face outline at the eye line."
+front = "Half the distance between the two points where the outline crosses the eye line."
+three_quarter = "Not taken: one side only is the same point of the outline."
+
+[[proportion]]
+name = "face_depth_at_eye_level"
+kind = "measured"
+sign = "any"
+what = "The depth of the cheek point at the eye line."
+front = "Not seen."
+three_quarter = "From the point where the far side of the outline crosses the eye line, and face_half_width_at_eye_level."
+
+[[proportion]]
+name = "face_half_width_at_nose_level"
+kind = "measured"
+sign = "positive"
+what = "Half the width of the face outline at the nose level."
+front = "Half the distance between the two points where the outline crosses the nose level."
+three_quarter = "Not taken: one side only is the same point of the outline."
+
+[[proportion]]
+name = "face_depth_at_nose_level"
+kind = "measured"
+sign = "any"
+what = "The depth of the cheek point at the nose level."
+front = "Not seen."
+three_quarter = "From the point where the far side of the outline crosses the nose level, and face_half_width_at_nose_level."
+
+[[proportion]]
+name = "face_half_width_at_mouth_level"
+kind = "measured"
+sign = "positive"
+what = "Half the width of the face outline at the mouth level."
+front = "Half the distance between the two points where the outline crosses the mouth level."
+three_quarter = "Not taken: one side only is the same point of the outline."
+
+[[proportion]]
+name = "face_depth_at_mouth_level"
+kind = "measured"
+sign = "any"
+what = "The depth of the cheek point at the mouth level."
+front = "Not seen."
+three_quarter = "From the point where the far side of the outline crosses the mouth level, and face_half_width_at_mouth_level."
+
+[[proportion]]
+name = "jaw_drop"
+kind = "measured"
+sign = "positive"
+what = "How far below the eye line the jaw point is: the point between the mouth level and the chin where the jaw turns into the chin."
+front = "The mean height of the two jaw points minus the eye line's height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "jaw_half_width"
+kind = "measured"
+sign = "positive"
+what = "The jaw point's offset from the centre line."
+front = "Half the spacing of the two jaw points."
+three_quarter = "Half the spacing of the two jaw points, over the cosine of the turn."
+
+[[proportion]]
+name = "jaw_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the jaw point."
+front = "Not seen."
+three_quarter = "The depth of the midpoint of the two jaw points."
+
+[[proportion]]
+name = "jaw_line_depth_at_nose_level"
+kind = "measured"
+sign = "any"
+what = "The depth of the jaw-line point at the nose level: the side of the head, which is the outline of the near side in a turned view."
+front = "Not seen."
+three_quarter = "From the point where the near side of the outline crosses the nose level, and face_half_width_at_nose_level."
+
+[[proportion]]
+name = "jaw_line_depth_at_mouth_level"
+kind = "measured"
+sign = "any"
+what = "The depth of the jaw-line point at the mouth level."
+front = "Not seen."
+three_quarter = "From the point where the near side of the outline crosses the mouth level, and face_half_width_at_mouth_level."
+
+# ---------------------------------------------------------------- Eyes
+
+[[proportion]]
+name = "eye_inner_corner_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of an eye's inner corner: the point of the opening nearest the centre line."
+front = "Half the spacing of the two inner corners."
+three_quarter = "Half the spacing of the two inner corners, over the cosine of the turn."
+
+[[proportion]]
+name = "eye_inner_corner_drop"
+kind = "measured"
+sign = "any"
+what = "How far below the eye line the inner corner is."
+front = "The mean height of the two inner corners minus the eye line's height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "eye_outer_corner_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of an eye's outer corner: the point of the opening furthest from the centre line."
+front = "Half the spacing of the two outer corners."
+three_quarter = "Half the spacing of the two outer corners, over the cosine of the turn."
+
+[[proportion]]
+name = "eye_outer_corner_drop"
+kind = "measured"
+sign = "any"
+what = "How far below the eye line the outer corner is. With the inner corner's drop it gives the opening's tilt."
+front = "The mean height of the two outer corners minus the eye line's height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "eye_wrap_depth"
+kind = "measured"
+sign = "any"
+what = "How far the inner corners stand in front of the outer corners: how much the eyes wrap round the face. Depth zero is midway, so an inner corner's depth is half of it and an outer corner's is minus half."
+front = "Not seen."
+three_quarter = "The depth of the midpoint of the two inner corners minus that of the two outer corners."
+
+[[proportion]]
+name = "eye_opening_height"
+kind = "measured"
+sign = "positive"
+what = "The height of the eye opening from its top to its bottom. The eye line is midway."
+front = "The mean over both eyes of the opening's bottom height minus its top height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "eye_opening_top_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the highest point of the eye opening."
+front = "Half the spacing of the two openings' highest points."
+three_quarter = "Half the spacing of the two openings' highest points, over the cosine of the turn."
+
+[[proportion]]
+name = "eye_opening_bottom_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the lowest point of the eye opening."
+front = "Half the spacing of the two openings' lowest points."
+three_quarter = "Half the spacing of the two openings' lowest points, over the cosine of the turn."
+
+[[proportion]]
+name = "iris_centre_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the iris's centre: midway between the iris's two side extents as drawn."
+front = "Half the spacing of the two iris centres."
+three_quarter = "Half the spacing of the two iris centres, over the cosine of the turn."
+
+[[proportion]]
+name = "iris_centre_drop"
+kind = "measured"
+sign = "any"
+what = "How far below the eye line the iris's centre is: midway between the iris's top and bottom as drawn."
+front = "The mean height of the two iris centres minus the eye line's height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "iris_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the iris's centre."
+front = "Not seen."
+three_quarter = "The depth of the midpoint of the two iris centres."
+
+[[proportion]]
+name = "iris_width"
+kind = "measured"
+sign = "positive"
+what = "The width of the iris as drawn. Over the opening's width, eye_outer_corner_offset minus eye_inner_corner_offset, it is the iris's share of the eye."
+front = "The mean over both eyes of the distance between the iris's two side extents."
+three_quarter = "The mean over both eyes of that distance, over the cosine of the turn."
+
+[[proportion]]
+name = "iris_height"
+kind = "measured"
+sign = "positive"
+what = "The height of the iris as drawn, where the lid may already cut it."
+front = "The mean over both eyes of the iris's bottom height minus its top height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "lid_line_inner_end_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the lid line's inner end: the middle of the inner end of the drawn lid band."
+front = "Half the spacing of the two inner ends."
+three_quarter = "Half the spacing of the two inner ends, over the cosine of the turn."
+
+[[proportion]]
+name = "lid_line_inner_end_drop"
+kind = "measured"
+sign = "any"
+what = "How far below the eye line the lid line's inner end is."
+front = "The mean height of the two inner ends minus the eye line's height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "lid_line_crest_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the lid line's crest: the middle of the drawn lid band at its highest."
+front = "Half the spacing of the two crests."
+three_quarter = "Half the spacing of the two crests, over the cosine of the turn."
+
+[[proportion]]
+name = "lid_line_crest_rise"
+kind = "measured"
+sign = "any"
+what = "How high above the eye line the lid line's crest is."
+front = "The eye line's height minus the mean height of the two crests."
+three_quarter = "The same."
+
+[[proportion]]
+name = "lid_line_outer_end_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the lid line's outer end: the middle of the outer end of the drawn lid band."
+front = "Half the spacing of the two outer ends."
+three_quarter = "Half the spacing of the two outer ends, over the cosine of the turn."
+
+[[proportion]]
+name = "lid_line_outer_end_rise"
+kind = "measured"
+sign = "any"
+what = "How high above the eye line the lid line's outer end is. Against the inner end's drop it gives the lid line's tilt."
+front = "The eye line's height minus the mean height of the two outer ends."
+three_quarter = "The same."
+
+# ---------------------------------------------------------------- Brows, nose and mouth
+
+[[proportion]]
+name = "brow_inner_end_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the brow line's inner end: the middle of the inner end of the drawn brow."
+front = "Half the spacing of the two inner ends."
+three_quarter = "Half the spacing of the two inner ends, over the cosine of the turn."
+
+[[proportion]]
+name = "brow_inner_end_rise"
+kind = "measured"
+sign = "any"
+what = "How high above the eye line the brow line's inner end is."
+front = "The eye line's height minus the mean height of the two inner ends."
+three_quarter = "The same."
+
+[[proportion]]
+name = "brow_outer_end_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the brow line's outer end: the middle of the outer end of the drawn brow."
+front = "Half the spacing of the two outer ends."
+three_quarter = "Half the spacing of the two outer ends, over the cosine of the turn."
+
+[[proportion]]
+name = "brow_outer_end_rise"
+kind = "measured"
+sign = "any"
+what = "How high above the eye line the brow line's outer end is."
+front = "The eye line's height minus the mean height of the two outer ends."
+three_quarter = "The same."
+
+[[proportion]]
+name = "nose_mark_corner_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of a corner of the nose mark: half the mark's width."
+front = "Half the spacing of the mark's two corners."
+three_quarter = "Half the spacing of the mark's two corners, over the cosine of the turn."
+
+[[proportion]]
+name = "nose_mark_corner_drop"
+kind = "measured"
+sign = "positive"
+what = "How far below the eye line the nose mark's corners are."
+front = "The mean height of the mark's two corners minus the eye line's height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "nose_mark_corner_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the nose mark's corners."
+front = "Not seen."
+three_quarter = "The depth of the midpoint of the mark's two corners."
+
+[[proportion]]
+name = "nose_mark_bottom_drop"
+kind = "measured"
+sign = "positive"
+what = "How far below the eye line the nose mark's bottom is, on the centre line. The nose level is midway between it and the corners."
+front = "The height of the mark's bottom minus the eye line's height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "nose_mark_bottom_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the nose mark's bottom."
+front = "Not seen."
+three_quarter = "The depth of the mark's bottom."
+
+[[proportion]]
+name = "mouth_end_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of an end of the mouth line: half the mouth's width."
+front = "Half the spacing of the line's two ends."
+three_quarter = "Half the spacing of the line's two ends, over the cosine of the turn."
+
+[[proportion]]
+name = "mouth_end_drop"
+kind = "measured"
+sign = "positive"
+what = "How far below the eye line the mouth line's ends are."
+front = "The mean height of the line's two ends minus the eye line's height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "mouth_end_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the mouth line's ends."
+front = "Not seen."
+three_quarter = "The depth of the midpoint of the line's two ends."
+
+[[proportion]]
+name = "mouth_centre_drop"
+kind = "measured"
+sign = "positive"
+what = "How far below the eye line the mouth line's centre is, on the centre line. It is the mouth level."
+front = "The height of the line's centre minus the eye line's height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "mouth_centre_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the mouth line's centre."
+front = "Not seen."
+three_quarter = "The depth of the line's centre."
+
+# ---------------------------------------------------------------- Ears
+
+[[proportion]]
+name = "ear_base_outer_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the ear's outer base point: where the side of the ear away from the centre line meets the head."
+front = "Half the spacing of the two outer base points."
+three_quarter = "Half the spacing of the two outer base points, over the cosine of the turn. When the head covers the far ear's base, the front view's."
+
+[[proportion]]
+name = "ear_base_outer_rise"
+kind = "measured"
+sign = "any"
+what = "How high above the eye line the ear's outer base point is."
+front = "The eye line's height minus the mean height of the two outer base points."
+three_quarter = "The same, over the points the head does not cover."
+
+[[proportion]]
+name = "ear_base_outer_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the ear's outer base point."
+front = "Not seen."
+three_quarter = "The depth of the midpoint of the two outer base points, or from the near one and ear_base_outer_offset when the head covers the far one."
+
+[[proportion]]
+name = "ear_base_inner_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the ear's inner base point: where the side of the ear toward the centre line meets the head."
+front = "Half the spacing of the two inner base points."
+three_quarter = "Half the spacing of the two inner base points, over the cosine of the turn. When the head covers the far ear's base, the front view's."
+
+[[proportion]]
+name = "ear_base_inner_rise"
+kind = "measured"
+sign = "any"
+what = "How high above the eye line the ear's inner base point is."
+front = "The eye line's height minus the mean height of the two inner base points."
+three_quarter = "The same, over the points the head does not cover."
+
+[[proportion]]
+name = "ear_base_inner_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the ear's inner base point."
+front = "Not seen."
+three_quarter = "The depth of the midpoint of the two inner base points, or from the near one and ear_base_inner_offset when the head covers the far one."
+
+[[proportion]]
+name = "ear_top_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the ear's highest point."
+front = "Half the spacing of the two ears' highest points."
+three_quarter = "Half the spacing of the two ears' highest points, over the cosine of the turn."
+
+[[proportion]]
+name = "ear_top_rise"
+kind = "measured"
+sign = "positive"
+what = "How high above the eye line the ear's highest point is."
+front = "The eye line's height minus the mean height of the two ears' highest points."
+three_quarter = "The same."
+
+[[proportion]]
+name = "ear_outer_extent_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the ear's outer extent: its point furthest from the centre line."
+front = "Half the spacing of the two outer extents."
+three_quarter = "Half the spacing of the two outer extents, over the cosine of the turn."
+
+[[proportion]]
+name = "ear_outer_extent_rise"
+kind = "measured"
+sign = "any"
+what = "How high above the eye line the ear's outer extent is."
+front = "The eye line's height minus the mean height of the two outer extents."
+three_quarter = "The same."
+
+[[proportion]]
+name = "ear_inner_extent_offset"
+kind = "measured"
+sign = "positive"
+what = "The offset of the ear's inner extent: its point nearest the centre line."
+front = "Half the spacing of the two inner extents."
+three_quarter = "Half the spacing of the two inner extents, over the cosine of the turn. When the head covers the far ear's, the front view's."
+
+[[proportion]]
+name = "ear_inner_extent_rise"
+kind = "measured"
+sign = "any"
+what = "How high above the eye line the ear's inner extent is."
+front = "The eye line's height minus the mean height of the two inner extents."
+three_quarter = "The same, over the points the head does not cover."
+
+# ---------------------------------------------------------------- Neck and shoulder line
+
+[[proportion]]
+name = "neck_half_width"
+kind = "measured"
+sign = "positive"
+what = "Half the width of the neck."
+front = "Half the spacing of the two points where the neck ends."
+three_quarter = "Not taken: the front view's. A column's width does not narrow as it turns."
+
+[[proportion]]
+name = "neck_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the neck's middle. It is behind the eyes, so it is negative."
+front = "Not seen."
+three_quarter = "The depth of the midpoint of the two points where the neck ends."
+
+[[proportion]]
+name = "neck_base_drop"
+kind = "measured"
+sign = "positive"
+what = "How far below the eye line the neck ends."
+front = "The mean height of the two points where the neck ends, minus the eye line's height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "shoulder_half_width"
+kind = "measured"
+sign = "positive"
+what = "The offset of a shoulder point: half the length of the shoulder line."
+front = "Half the spacing of the two shoulder points."
+three_quarter = "Not taken: the front view's. The figure turns whole, so the spacing shown is this times twice the cosine of the turn."
+
+[[proportion]]
+name = "shoulder_drop"
+kind = "measured"
+sign = "positive"
+what = "How far below the eye line the shoulder points are."
+front = "The mean height of the two shoulder points minus the eye line's height."
+three_quarter = "The same."
+
+[[proportion]]
+name = "shoulder_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the shoulder points."
+front = "Not seen."
+three_quarter = "The depth of the midpoint of the two shoulder points."

@@ -1,0 +1,29 @@
+# Formatting, lints with warnings as errors, and the tests, on every pull request.
+#
+# VectorCraft and FigCraft are not available here, and neither is the reference folder.
+# Nothing in `cargo test` needs them: the read-back of an armature in VectorCraft is run
+# locally and shown in the pull request (docs/foundation/02-first-table.md, "The SVG contract").
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # rust-toolchain.toml pins the toolchain and asks for rustfmt and clippy.
+      - name: Install the pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - name: Formatting
+        run: cargo fmt --check
+      - name: Lints, with warnings as errors
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Tests
+        run: cargo test --locked

@@ -1,0 +1,55 @@
+# A made-up landmark file of a front view, for the tests in tests/differences.rs.
+#
+# It was typed by hand, not written by the generator, and every number was invented so that
+# the differences from made-up-hand-made-views.toml can be worked out by hand. It holds only
+# what the comparison reads: the view, the frame and the positions.
+#
+# It is drawn at half the record's size. Laid over the record (unit 200, eye line 300,
+# axis 500), a position x, y of this file stands at 500 + 2 (x - 250), 300 + 2 (y - 150).
+
+view = "front"
+svg = "made-up-front.svg"
+turn_degrees = 0.0
+
+[frame]
+width = 500.0
+height = 500.0
+unit = 100.0
+head_height = 200.0
+eye_line_y = 150.0
+turn_axis_x = 250.0
+
+[landmarks]
+# On the record's chin: no difference.
+chin = { x = 250.0, y = 250.0, depth = 0.0 }
+# Laid over at 500, 101. The record's hair top is at 480, 100. Only its height is compared:
+# 1 unit, 0.25%. Its sideways distance of 20 units would be 5%.
+hair-top = { x = 250.0, y = 50.5, depth = 0.0 }
+skull-centre = { x = 250.0, y = 125.0, depth = 0.0 }
+# Laid over at 500, 384: 4 units from the record's 500, 380. Exactly 1%, which is not above it.
+nose-mark-bottom = { x = 250.0, y = 192.0, depth = 0.0 }
+# Laid over at 500, 424.004: 4.004 units from the record's 500, 420. 1.001%, just above.
+mouth-line-centre = { x = 250.0, y = 212.002, depth = 0.0 }
+# Laid over at 353, 304: 3 sideways and 4 down from the record's 350, 300, so 5 units. 1.25%.
+eye-right-outer-corner = { x = 176.5, y = 152.0, depth = 0.0 }
+eye-left-outer-corner = { x = 325.0, y = 150.0, depth = 0.0 }
+eye-right-opening-top = { x = 200.0, y = 145.0, depth = 0.0 }
+eye-right-opening-bottom = { x = 200.0, y = 155.0, depth = 0.0 }
+eye-left-opening-top = { x = 300.0, y = 145.0, depth = 0.0 }
+eye-left-opening-bottom = { x = 300.0, y = 155.0, depth = 0.0 }
+shoulder-right-point = { x = 100.0, y = 350.0, depth = 0.0 }
+# Laid over at 840, 700: 40 units from the record's 800, 700. 10%.
+shoulder-left-point = { x = 420.0, y = 350.0, depth = 0.0 }
+# Two landmarks at one position in this view, laid over at 640, 300, on the record's outline
+# at the eye level: one difference of nothing, listed once.
+face-outline-left-at-eye-level = { x = 320.0, y = 150.0, depth = 10.0 }
+jaw-line-left-at-eye-level = { x = 320.0, y = 150.0, depth = -40.0 }
+# The record gives no position for this one.
+centre-line-at-eye-level = { x = 250.0, y = 150.0, depth = 0.0 }
+
+[view_points]
+# Laid over at x = 292: 8 units from the record's 300. 2%. Only the sideways position of a
+# side extent is compared: its height differs by 28 units, which would be 7%.
+hair-right-extent = { x = 146.0, y = 125.0 }
+# Laid over at x = 704: 4 units from the record's 700. Exactly 1%, not above it.
+hair-left-extent = { x = 352.0, y = 125.0 }
