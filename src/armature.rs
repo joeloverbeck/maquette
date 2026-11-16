@@ -85,7 +85,7 @@ fn element(guide: &Guide, built: &Guides) -> String {
             )
         }
         Shape::Line => {
-            let ([x1, y1], [x2, y2]) = (at(&guide.anchors[0]), at(&guide.anchors[1]));
+            let ([x1, y1], [x2, y2]) = (at(&guide.passes_through[0]), at(&guide.passes_through[1]));
             format!(
                 "<line id=\"{id}\" x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\"{paint}/>",
                 number(x1),
@@ -96,7 +96,7 @@ fn element(guide: &Guide, built: &Guides) -> String {
         }
         Shape::Polyline => {
             let points: Vec<String> = guide
-                .anchors
+                .passes_through
                 .iter()
                 .map(|name| {
                     let [x, y] = at(name);
@@ -109,10 +109,10 @@ fn element(guide: &Guide, built: &Guides) -> String {
             )
         }
         Shape::Path { stretches, closed } => {
-            let [x, y] = at(&guide.anchors[0]);
+            let [x, y] = at(&guide.passes_through[0]);
             let mut d = format!("M{} {}", number(x), number(y));
             for (index, stretch) in stretches.iter().enumerate() {
-                let [x, y] = at(&guide.anchors[(index + 1) % guide.anchors.len()]);
+                let [x, y] = at(&guide.passes_through[(index + 1) % guide.passes_through.len()]);
                 match stretch {
                     Stretch::Straight => d.push_str(&format!(" L{} {}", number(x), number(y))),
                     Stretch::Curve { leave, arrive } => d.push_str(&format!(
@@ -257,11 +257,10 @@ fn landmark_file(seen: &Seen, built: &Guides, svg_name: &str) -> String {
         }
     }
 
-    out.push_str("\n# Guides: each is the SVG element whose id is its name. `anchors` names the points its outline\n");
-    out.push_str("# passes through, in order. A circle or an ellipse has no anchor at its centre: its anchors are its\n");
-    out.push_str(
-        "# right, bottom, left and top points, which is how VectorCraft reads one back.\n",
-    );
+    out.push_str("\n# Guides: each is the SVG element whose id is its name. `passes_through` names the landmarks and\n");
+    out.push_str("# view points its outline passes through, in order; each is one anchor of the element in the SVG.\n");
+    out.push_str("# A circle or an ellipse passes through its right, bottom, left and top points, not its centre,\n");
+    out.push_str("# which is how VectorCraft reads one back.\n");
     for guide in &built.guides {
         out.push_str(&format!("\n[guides.{}]\n", guide.name));
         match &guide.shape {
@@ -283,7 +282,10 @@ fn landmark_file(seen: &Seen, built: &Guides, svg_name: &str) -> String {
                 out.push_str(&format!("closed = {closed}\n"));
             }
         }
-        out.push_str(&format!("anchors = {}\n", quoted_list(&guide.anchors)));
+        out.push_str(&format!(
+            "passes_through = {}\n",
+            quoted_list(&guide.passes_through)
+        ));
     }
     out
 }
@@ -403,8 +405,9 @@ pub struct DrawnGuide {
     pub element: String,
     /// A closed path, a circle or an ellipse.
     pub closed: bool,
-    /// The points its outline passes through, in order, each with its position.
-    pub anchors: Vec<(String, [f64; 2])>,
+    /// The landmarks and view points its outline passes through, in order, each with its
+    /// position. Each is one anchor of the element in the SVG.
+    pub passes_through: Vec<(String, [f64; 2])>,
     /// Set for a circle or an ellipse.
     pub round: Option<Round>,
 }
@@ -426,7 +429,8 @@ pub struct Drawn {
     pub not_drawn: Vec<String>,
 }
 
-/// Reads the structure and the guides of a landmark file, each anchor with its position.
+/// Reads the structure and the guides of a landmark file, each point a guide passes through
+/// with its position.
 pub fn read_drawn(text: &str) -> Result<Drawn> {
     let table = parsed(text)?;
     let positions = read_landmark_file(text)?;
@@ -503,10 +507,13 @@ pub fn read_drawn(text: &str) -> Result<Drawn> {
                 ))
             })
         };
-        let mut anchors = Vec::new();
-        for anchor in names(entry.get("anchors"), &format!("{of} `anchors`"))? {
-            let position = point(&anchor)?;
-            anchors.push((anchor, position));
+        let mut passes_through = Vec::new();
+        for through in names(
+            entry.get("passes_through"),
+            &format!("{of} `passes_through`"),
+        )? {
+            let position = point(&through)?;
+            passes_through.push((through, position));
         }
         let number = |key: &str| -> Result<f64> {
             match entry.get(key) {
@@ -535,7 +542,7 @@ pub fn read_drawn(text: &str) -> Result<Drawn> {
             }
             _ => None,
         };
-        carried.extend(anchors.iter().map(|(anchor, _)| anchor.clone()));
+        carried.extend(passes_through.iter().map(|(through, _)| through.clone()));
         let closed =
             round.is_some() || entry.get("closed").and_then(toml::Value::as_bool) == Some(true);
         guides.push(DrawnGuide {
@@ -543,7 +550,7 @@ pub fn read_drawn(text: &str) -> Result<Drawn> {
             group,
             element,
             closed,
-            anchors,
+            passes_through,
             round,
         });
     }

@@ -96,7 +96,7 @@ pub struct Point {
 
 pub struct Guide {
     pub element: String,
-    pub anchors: Vec<String>,
+    pub passes_through: Vec<String>,
     pub table: toml::Table,
 }
 
@@ -137,11 +137,11 @@ impl LandmarkFile {
                 let entry = value.as_table().expect("a guide is a table").clone();
                 let guide = Guide {
                     element: entry["element"].as_str().expect("an element").to_string(),
-                    anchors: entry["anchors"]
+                    passes_through: entry["passes_through"]
                         .as_array()
-                        .expect("anchors")
+                        .expect("passes_through")
                         .iter()
-                        .map(|anchor| anchor.as_str().expect("an anchor's name").to_string())
+                        .map(|name| name.as_str().expect("a name").to_string())
                         .collect(),
                     table: entry,
                 };

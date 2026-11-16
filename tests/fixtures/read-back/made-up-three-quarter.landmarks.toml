@@ -6,6 +6,8 @@
 # installed. It is no reference for the generator: no test compares what the generator writes
 # with this file, and nothing in it is accepted. When the recordings are made again, with
 # `maquette read-back-hard-case --record`, this file is replaced with the one drawn then.
+# When only the landmark file's own wording changes, it is drawn again from the same set, and
+# the SVG drawn with it is checked to be byte for byte the one the recordings are of.
 #
 # Landmark file of one view of an armature, written by maquette beside the view's SVG.
 # Positions are in the SVG's own units: x grows toward the viewer's right, y grows downward.
@@ -127,111 +129,112 @@ eye-right = ["eye-opening-right", "lid-line-right", "iris-right"]
 eye-left = ["eye-opening-left", "lid-line-left", "iris-left"]
 neck = ["neck-right", "neck-left"]
 
-# Guides: each is the SVG element whose id is its name. `anchors` names the points its outline
-# passes through, in order. A circle or an ellipse has no anchor at its centre: its anchors are its
-# right, bottom, left and top points, which is how VectorCraft reads one back.
+# Guides: each is the SVG element whose id is its name. `passes_through` names the landmarks and
+# view points its outline passes through, in order; each is one anchor of the element in the SVG.
+# A circle or an ellipse passes through its right, bottom, left and top points, not its centre,
+# which is how VectorCraft reads one back.
 
 [guides.hair-volume]
 element = "path"
 closed = false
-anchors = ["hair-right-end", "hair-right-extent", "hair-top", "hair-left-extent", "hair-left-end"]
+passes_through = ["hair-right-end", "hair-right-extent", "hair-top", "hair-left-extent", "hair-left-end"]
 
 [guides.skull]
 element = "circle"
 centre = "skull-centre"
 r = 187.58
-anchors = ["skull-left-extent", "skull-bottom", "skull-right-extent", "skull-top"]
+passes_through = ["skull-left-extent", "skull-bottom", "skull-right-extent", "skull-top"]
 
 [guides.face-outline]
 element = "path"
 closed = false
-anchors = ["face-outline-left-top", "face-outline-left-at-eye-level", "face-outline-left-at-nose-level", "face-outline-left-at-mouth-level", "face-outline-left-jaw", "chin", "face-outline-right-jaw", "jaw-line-right-at-mouth-level", "jaw-line-right-at-nose-level", "jaw-line-right-at-eye-level", "jaw-line-right-top"]
+passes_through = ["face-outline-left-top", "face-outline-left-at-eye-level", "face-outline-left-at-nose-level", "face-outline-left-at-mouth-level", "face-outline-left-jaw", "chin", "face-outline-right-jaw", "jaw-line-right-at-mouth-level", "jaw-line-right-at-nose-level", "jaw-line-right-at-eye-level", "jaw-line-right-top"]
 
 [guides.centre-line]
 element = "path"
 closed = false
-anchors = ["skull-top", "skull-front", "centre-line-at-eye-level", "nose-mark-bottom", "mouth-line-centre", "chin"]
+passes_through = ["skull-top", "skull-front", "centre-line-at-eye-level", "nose-mark-bottom", "mouth-line-centre", "chin"]
 
 [guides.eye-level-line]
 element = "line"
-anchors = ["jaw-line-right-at-eye-level", "face-outline-left-at-eye-level"]
+passes_through = ["jaw-line-right-at-eye-level", "face-outline-left-at-eye-level"]
 
 [guides.nose-level-line]
 element = "line"
-anchors = ["jaw-line-right-at-nose-level", "face-outline-left-at-nose-level"]
+passes_through = ["jaw-line-right-at-nose-level", "face-outline-left-at-nose-level"]
 
 [guides.mouth-level-line]
 element = "line"
-anchors = ["jaw-line-right-at-mouth-level", "face-outline-left-at-mouth-level"]
+passes_through = ["jaw-line-right-at-mouth-level", "face-outline-left-at-mouth-level"]
 
 [guides.eye-opening-right]
 element = "path"
 closed = true
-anchors = ["eye-right-outer-corner", "eye-right-opening-top", "eye-right-inner-corner", "eye-right-opening-bottom"]
+passes_through = ["eye-right-outer-corner", "eye-right-opening-top", "eye-right-inner-corner", "eye-right-opening-bottom"]
 
 [guides.lid-line-right]
 element = "path"
 closed = false
-anchors = ["lid-line-right-inner-end", "lid-line-right-crest", "lid-line-right-outer-end"]
+passes_through = ["lid-line-right-inner-end", "lid-line-right-crest", "lid-line-right-outer-end"]
 
 [guides.iris-right]
 element = "ellipse"
 centre = "iris-right-centre"
 rx = 20.807
 ry = 21.21
-anchors = ["iris-right-inner-extent", "iris-right-bottom", "iris-right-outer-extent", "iris-right-top"]
+passes_through = ["iris-right-inner-extent", "iris-right-bottom", "iris-right-outer-extent", "iris-right-top"]
 
 [guides.eye-opening-left]
 element = "path"
 closed = true
-anchors = ["eye-left-outer-corner", "eye-left-opening-top", "eye-left-inner-corner", "eye-left-opening-bottom"]
+passes_through = ["eye-left-outer-corner", "eye-left-opening-top", "eye-left-inner-corner", "eye-left-opening-bottom"]
 
 [guides.lid-line-left]
 element = "path"
 closed = false
-anchors = ["lid-line-left-inner-end", "lid-line-left-crest", "lid-line-left-outer-end"]
+passes_through = ["lid-line-left-inner-end", "lid-line-left-crest", "lid-line-left-outer-end"]
 
 [guides.iris-left]
 element = "ellipse"
 centre = "iris-left-centre"
 rx = 20.807
 ry = 21.21
-anchors = ["iris-left-outer-extent", "iris-left-bottom", "iris-left-inner-extent", "iris-left-top"]
+passes_through = ["iris-left-outer-extent", "iris-left-bottom", "iris-left-inner-extent", "iris-left-top"]
 
 [guides.brow-line-right]
 element = "line"
-anchors = ["brow-line-right-inner-end", "brow-line-right-outer-end"]
+passes_through = ["brow-line-right-inner-end", "brow-line-right-outer-end"]
 
 [guides.brow-line-left]
 element = "line"
-anchors = ["brow-line-left-inner-end", "brow-line-left-outer-end"]
+passes_through = ["brow-line-left-inner-end", "brow-line-left-outer-end"]
 
 [guides.nose-mark]
 element = "polyline"
-anchors = ["nose-mark-right-corner", "nose-mark-bottom", "nose-mark-left-corner"]
+passes_through = ["nose-mark-right-corner", "nose-mark-bottom", "nose-mark-left-corner"]
 
 [guides.mouth-line]
 element = "polyline"
-anchors = ["mouth-line-right-end", "mouth-line-centre", "mouth-line-left-end"]
+passes_through = ["mouth-line-right-end", "mouth-line-centre", "mouth-line-left-end"]
 
 [guides.ear-right]
 element = "path"
 closed = false
-anchors = ["ear-right-base-outer", "ear-right-outer-extent", "ear-right-top", "ear-right-inner-extent", "ear-right-base-inner"]
+passes_through = ["ear-right-base-outer", "ear-right-outer-extent", "ear-right-top", "ear-right-inner-extent", "ear-right-base-inner"]
 
 [guides.ear-left]
 element = "path"
 closed = false
-anchors = ["ear-left-base-outer", "ear-left-outer-extent", "ear-left-top", "ear-left-inner-extent", "ear-left-base-inner"]
+passes_through = ["ear-left-base-outer", "ear-left-outer-extent", "ear-left-top", "ear-left-inner-extent", "ear-left-base-inner"]
 
 [guides.neck-right]
 element = "line"
-anchors = ["neck-right-top", "neck-right-base"]
+passes_through = ["neck-right-top", "neck-right-base"]
 
 [guides.neck-left]
 element = "line"
-anchors = ["neck-left-top", "neck-left-base"]
+passes_through = ["neck-left-top", "neck-left-base"]
 
 [guides.shoulder-line]
 element = "line"
-anchors = ["shoulder-right-point", "shoulder-left-point"]
+passes_through = ["shoulder-right-point", "shoulder-left-point"]

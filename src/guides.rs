@@ -5,9 +5,10 @@
 //! mouth line, the ears, the neck, the hair volume and the shoulder line. Nothing the painter
 //! owns is here: no pupil, no hair shape, no torso, no marking, no form of the nose.
 //!
-//! Every anchor of a guide is a named point: a landmark, which is a point in space, or a view
-//! point, which belongs to one view only (a silhouette's extent, a crossing). Each
-//! construction is stated for a person in `proportions/list.toml`.
+//! Every point a guide passes through, each an anchor of its element in the SVG, is a named
+//! point: a landmark, which is a point in space, or a view point, which belongs to one view
+//! only (a silhouette's extent, a crossing). Each construction is stated for a person in
+//! `proportions/list.toml`.
 
 use std::collections::BTreeMap;
 
@@ -64,8 +65,9 @@ pub struct Guide {
     pub group: Option<&'static str>,
     pub paint: Paint,
     pub shape: Shape,
-    /// The names of the guide's anchors, in order.
-    pub anchors: Vec<String>,
+    /// The landmarks and view points the guide passes through, in order. Each is one anchor
+    /// of its element in the SVG.
+    pub passes_through: Vec<String>,
 }
 
 /// The guides of one view, in drawing order, with the view points they introduce.
@@ -106,14 +108,14 @@ impl Guides {
         group: Option<&'static str>,
         paint: Paint,
         shape: Shape,
-        anchors: Vec<String>,
+        passes_through: Vec<String>,
     ) {
         self.guides.push(Guide {
             name: name.to_string(),
             group,
             paint,
             shape,
-            anchors,
+            passes_through,
         });
     }
 

@@ -420,12 +420,12 @@ fn compare_positions(
         ));
         return None;
     };
-    if read.len() != guide.anchors.len() {
+    if read.len() != guide.passes_through.len() {
         fail(format!(
             "`{}` is read back with {} anchors, and the landmark file gives it {}",
             guide.name,
             read.len(),
-            guide.anchors.len()
+            guide.passes_through.len()
         ));
         return None;
     }
@@ -434,7 +434,7 @@ fn compare_positions(
         largest: 0.0,
         largest_at: String::new(),
     };
-    for ((name, expected), read) in guide.anchors.iter().zip(read) {
+    for ((name, expected), read) in guide.passes_through.iter().zip(read) {
         let off = distance(*expected, *read);
         if off > compared.largest || compared.largest_at.is_empty() {
             compared.largest = off;

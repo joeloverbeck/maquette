@@ -308,7 +308,7 @@ fn positions_follow_from_the_proportions_as_the_list_defines_them() {
 
     // The eye level line is on the eye line, and the iris narrows with the turn while its height stays.
     for file in [&front, &turned] {
-        for end in &file.guides["eye-level-line"].anchors {
+        for end in &file.guides["eye-level-line"].passes_through {
             assert_eq!(file.point(end).y, 400.0);
         }
     }
@@ -423,7 +423,7 @@ fn every_guide_passes_through_the_points_the_landmark_file_names() {
             assert_eq!(node.tag_name().name(), guide.element, "{view}: {name}");
 
             let mut expected: Vec<[f64; 2]> = guide
-                .anchors
+                .passes_through
                 .iter()
                 .map(|anchor| {
                     let point = file.point(anchor);

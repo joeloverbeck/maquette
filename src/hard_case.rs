@@ -130,7 +130,10 @@ fn pairs(drawn: &Drawn) -> Vec<(&DrawnGuide, &DrawnGuide)> {
 /// How wide and how high a guide's anchors spread.
 fn spread(guide: &DrawnGuide) -> [f64; 2] {
     let span = |index: usize| {
-        let values = guide.anchors.iter().map(|(_, position)| position[index]);
+        let values = guide
+            .passes_through
+            .iter()
+            .map(|(_, position)| position[index]);
         let (low, high) = values.fold((f64::INFINITY, f64::NEG_INFINITY), |(low, high), value| {
             (low.min(value), high.max(value))
         });
@@ -140,11 +143,11 @@ fn spread(guide: &DrawnGuide) -> [f64; 2] {
 }
 
 fn differ_in_place(left: &DrawnGuide, right: &DrawnGuide) -> bool {
-    left.anchors.len() != right.anchors.len()
+    left.passes_through.len() != right.passes_through.len()
         || left
-            .anchors
+            .passes_through
             .iter()
-            .zip(&right.anchors)
+            .zip(&right.passes_through)
             .any(|(first, second)| {
                 (first.1[0] - second.1[0]).hypot(first.1[1] - second.1[1]) > TOLERANCE
             })
@@ -230,7 +233,12 @@ pub fn run(landmark_path: &str, landmark_text: &str, svg: &Path) -> Result<Optio
     let coordinates: Vec<f64> = drawn
         .guides
         .iter()
-        .flat_map(|guide| guide.anchors.iter().flat_map(|(_, position)| *position))
+        .flat_map(|guide| {
+            guide
+                .passes_through
+                .iter()
+                .flat_map(|(_, position)| *position)
+        })
         .collect();
     let not_whole = coordinates
         .iter()
