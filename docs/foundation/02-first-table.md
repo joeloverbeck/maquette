@@ -55,7 +55,7 @@ Proposed by the agent on 2026-11-16, awaiting Jon's acceptance. Every statement 
 
 **Version.** `vectorcraft-cli` 0.24.1, headless: the binary on Jon's machine, whose digest is in the probe folder. Mudsong starts the same command on the same machine, so it runs this binary. Its foundation records 0.24.0, which was not tested. When the version changes on either side, the probes are rerun before the contract is relied on.
 
-**Sources, in order.** What this version does when run; then VectorCraft's `docs/mcp.md`; then SVG 1.1, which the armature must still be valid as. The earlier wins, and each disagreement is recorded in the probe folder. Jon rules on what they leave open.
+**Sources, in order.** What this version does when run; then VectorCraft's `docs/mcp.md`; then SVG 1.1, which the armature must still be valid as. The earlier wins. The probe folder names the exact revision of each and records each disagreement. Jon rules on what they leave open.
 
 **What the armature uses.**
 
@@ -65,9 +65,9 @@ Proposed by the agent on 2026-11-16, awaiting Jon's acceptance. Every statement 
 - *Paint:* a stroke with `fill="none"`, as attributes on the element or a group above it.
 - *Structure:* every top-level element is a `g` with an `id`, which arrives as a layer. Groups nest, each with an `id` and at least one guide.
 
-Nothing is hidden in the file. VectorCraft drops an element with no stroke, an element with `visibility="hidden"` and an empty group, and reports no warning.
+Nothing is hidden in the file. VectorCraft drops an element with neither fill nor stroke, an unfilled element whose stroke is of width 0, an element with `visibility="hidden"` and an empty group, and reports no warning.
 
-**The oracle.** Open the SVG with the server's `open_file`, read the tree with `inspect_document` and the anchors with `document.node`, and compare with the landmark file. It passes when the import reports no warning; the names read back are the landmark file's guide names, each once; every position the landmark file gives is within 0.001 unit of the anchor read back; and every guide is visible, stroked and unfilled. Coordinates come back at single precision, at most 0.00004 unit off in the hard case. Expected values come from the landmark file, never from the SVG. The oracle is a mechanical validator (`AUTH-3`): it shows that VectorCraft keeps what the landmark file says, not that the landmark file is right (`EVID-4`). It runs locally, and its read-back is shown in the pull request.
+**The oracle.** Open the SVG with the server's `open_file`, read the tree with `inspect_document` and each path's points, which VectorCraft calls anchors, with `document.node`, and compare with the landmark file. It passes when the import reports no warning; the names read back are the landmark file's guide names, each once; every position the landmark file gives is within 0.001 unit of the anchor read back; and every guide is visible, stroked and unfilled. A circle or an ellipse comes back as four anchors at its right, bottom, left and top, with none at its centre, so its centre and radii are checked through those four points. Coordinates come back at single precision, at most 0.00004 unit off in the hard case. Expected values come from the landmark file, never from the SVG. The oracle is a mechanical validator (`AUTH-3`): it shows that VectorCraft keeps what the landmark file says, not that the landmark file is right (`EVID-4`). It runs locally, and its read-back is shown in the pull request.
 
 **When a guide does not survive.** The check fails, and the armature is neither put to Jon nor exported. Nothing is renamed, loosened or passed with a note. The generator's output returns to the list above, or the contract is revised from new probes and Jon accepts the revision.
 
@@ -79,7 +79,7 @@ Nothing is hidden in the file. VectorCraft drops an element with no stroke, an e
 - after import, one member of a pair hidden by its name, and only it hidden;
 - two spoiled copies that the oracle must fail: one with a guide given `visibility="hidden"`, one with a pair's names exchanged. The second reads back with the right set of names, and only positions show it.
 
-`design/svg-contract/in/hard-case.svg` is a hand-written stand-in that passes. It proves nothing about the generator.
+`design/svg-contract/in/hard-case.svg` is a hand-written stand-in that passes. Its numbers are those of the stand-in armature in `design/first-table-sheets/`, which follows Saffi's hand-made three-quarter view, with decimals added. It proves nothing about the generator.
 
 **The other direction.** VectorCraft exports an authored shape with its name in `data-name` whenever the name is not already a valid `id`, with positions rounded to three decimals unless seven are asked for, and without hidden objects unless they are asked for. A reader takes the name from `data-name` first. The hard case for this direction is chosen when a ticket first uses an authored shape.
 
