@@ -7,7 +7,8 @@ Everything here was observed by running VectorCraft's MCP server on 2026-11-16:
 - `vectorcraft-cli` 0.24.1, headless, started as `.mcp.json` starts it (`vectorcraft-cli mcp --automation-read-root . --automation-write-root design`).
 - The binary's SHA-256 is `5ade309aea03d8987073d59f56741ec03b4e9d87ac6b5ee98a8a598e75ffa5c1`. It was installed on 2026-11-14 from the VectorCraft checkout.
 - The preference `identifyObjectsBy` was at its default, `objectName`.
-- The documentation compared against is `docs/mcp.md` in the VectorCraft checkout at commit `9ddbf25be`.
+- The documentation compared against is `docs/mcp.md` in the VectorCraft checkout at commit `9ddbf25bef7711c3404549d95b730f7dec3210e7`, where that file is Git blob `fc03d070b6ce5c31751a97e3a9762b69f81fd301`.
+- "SVG 1.1", here and in the contract, is *Scalable Vector Graphics (SVG) 1.1 (Second Edition)*, W3C Recommendation, 16 August 2011, `https://www.w3.org/TR/2011/REC-SVG11-20110816/`. One statement below rests on it: an element with no paint stated has a black fill and no stroke, which is the initial value of `fill` in its section 11.3 and of `stroke` in its section 11.4, read on 2026-11-16.
 
 The names in the probes are neutral guide names. They are not the generator's naming scheme, which the next ticket chooses inside the contract.
 
@@ -43,7 +44,7 @@ Three calls to the `vectorcraft` server, from an agent session in this repositor
 2. `inspect_document {}`: the tree with ids, kinds, names, visibility, bounds and paint.
 3. `run_command {"command": "document.node", "params": {"id": N}}` for each top-level layer id `N` from step 2: every object below it with its anchors.
 
-The `.readback.txt` files are those replies cut down to one line per object with `jq`, a one-off done by hand for this evidence. Numbers are as the server printed them. The object ids are VectorCraft's own, given in document order with a group after its children. They are not stable names and no check should rest on them.
+The `.readback.txt` files are those replies cut down to one line per object with `jq`, a one-off done by hand for this evidence. That and the comparisons of numbers reported under "The hard case" were one-off checks run outside the repository with `jq` and `awk`: nothing that is not Rust is committed, and the repeatable check belongs to the Rust package the next ticket brings. Numbers are as the server printed them. The object ids are VectorCraft's own, given in document order with a group after its children. They are not stable names and no check should rest on them.
 
 Opening the same file twice gave the same tree, and exporting it twice gave the same bytes.
 
@@ -86,7 +87,7 @@ No import reported a warning, including the ones that dropped elements.
 | `fill="none"` with a stroke | Kept, whether stated as attributes, in `style`, by a CSS class or on a group above. Closed shapes stay unfilled |
 | No paint stated | Black fill and no stroke, as SVG says |
 | Dashes, caps, joins, `opacity`, `stroke-opacity`, named colours | Kept |
-| `stroke="none"` with `fill="none"`, or `stroke-width="0"` | Dropped |
+| `fill="none"` with `stroke="none"`, or `fill="none"` with `stroke-width="0"` | Dropped. Each was a `line`. Neither was tried with a fill |
 | `display="none"`, as an attribute or in `style` | Kept, hidden. On a group or layer, the group or layer is hidden and its children are kept |
 | `visibility="hidden"`, as an attribute or in `style` | Dropped. In a hidden group, only a child with `visibility="visible"` is kept |
 | `opacity="0"`, `stroke-opacity="0"` | Kept and visible, at that opacity |
@@ -142,6 +143,7 @@ Observed behaviour wins in both. The documentation agrees with the behaviour on 
 - The preference `identifyObjectsBy` set to `xmlId`.
 - Text, gradients, patterns, clipping paths, masks, images, symbols and filters. The armature uses none.
 - Coordinates above 1050.
+- Whether any probe is valid SVG 1.1. No run through a validator is recorded.
 - FigCraft's reading of the same files.
 - Mudsong's own import. The handoff stays unproven until mudsong has read the names and positions back itself.
 
@@ -157,7 +159,7 @@ Chosen from what the tables above show to be fragile, before any generator exist
 - That stand-in follows the hand-made three-quarter view of Saffi, Jon's own character, moved 5 units toward the viewer's right. Of its 66 distinct points (path nodes, line ends, and the centres of the circle and the two ellipses), 34 are landmarks of `data/saffi/hand-made-views.toml` once 5 is added to x. The skull's radius is hers, and the three level lines are at her three levels. No other whole shift from −30 to 30 matches more than 3 points.
 - The 32 points that do not match are the hair volume, the ends of the level lines, the brows, the nose mark, the centres of the irises, the neck, the shoulder line, the top of the face outline's near side and the bottom of the far eye's opening.
 
-The hard case is a test input for the importer. It is not a record of Saffi and not a measurement, and it never enters a proportion table. Her record is `data/saffi/`. These counts come from a one-off comparison of the three committed files, run outside the repository.
+The hard case is a test input for the importer. It is not a record of Saffi and not a measurement, and it never enters a proportion table. Her record is `data/saffi/`. These counts come from a comparison of the three committed files.
 
 `in/hard-case.svg` was put through it by hand:
 
