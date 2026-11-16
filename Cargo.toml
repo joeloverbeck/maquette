@@ -19,3 +19,8 @@ toml = { version = "1.2", default-features = false, features = ["std", "parse", 
 [dev-dependencies]
 # The tests read the written SVG with a parser the generator does not share.
 roxmltree = "0.21"
+
+# Its own stand-in for VectorCraft's server, so it has no test harness: see the file.
+[[test]]
+name = "vectorcraft_stand_in"
+harness = false

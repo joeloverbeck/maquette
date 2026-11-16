@@ -63,7 +63,7 @@ cargo run -- read-back --landmarks target/saffi/three-quarter.landmarks.toml
 cargo run -- read-back-hard-case --landmarks target/saffi/three-quarter.landmarks.toml
 ```
 
-`read-back` starts `vectorcraft-cli mcp` itself, allowed to read the SVG's folder and to write nothing, opens the SVG the landmark file names, and compares what VectorCraft holds with the landmark file: no import warning, the same names each once, every anchor within 0.001 unit, every guide visible, stroked and unfilled. It prints the read-back and the VectorCraft version it ran against, which is whichever is installed. It exits 0 on a pass and 1 on a failure. Where `vectorcraft-cli` is not installed it says so and exits 2: nothing was checked, which is neither. `read-back-hard-case` runs the contract's hard case on a three-quarter view, with the two spoiled copies the oracle must fail.
+`read-back` starts `vectorcraft-cli mcp` itself, allowed to read the SVG's folder and to write nothing, opens the SVG the landmark file names, and compares what VectorCraft holds with the landmark file: no import warning, the same names each once, every anchor within 0.001 unit, every guide visible, stroked and unfilled. It prints the read-back and the VectorCraft version it ran against, which is whichever is installed. It exits 0 on a pass and 1 on a failure. Where `vectorcraft-cli` is not installed it says so and exits 2: nothing was checked, which is neither. A server that stops, or leaves a request unanswered for a minute, also ends the run with 1; the message says which request it was and passes on what the server wrote to its error output. `read-back-hard-case` runs the contract's hard case on a three-quarter view, with the two spoiled copies the oracle must fail.
 
 A pass says VectorCraft keeps what the landmark file says. It does not say the landmark file is right or that the armature looks right.
 
@@ -72,6 +72,8 @@ A pass says VectorCraft keeps what the landmark file says. It does not say the l
 ```sh
 cargo test --test read_back_in_vectorcraft -- --ignored
 ```
+
+`tests/vectorcraft_stand_in.rs` runs the read-back against a stand-in for the server, which is that test's own program under the name `vectorcraft-cli`: one that stops at once, in `cargo test`, and one that never answers, which waits out the minute and so runs only with `cargo test --test vectorcraft_stand_in -- --ignored`.
 
 ## Where things are
 

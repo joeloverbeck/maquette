@@ -65,7 +65,9 @@ Usage:
       nothing. --record also writes VectorCraft's replies to a file; --replies compares
       such a recording instead of starting VectorCraft, and says so.
       Exit status: 0 when it passes, 1 when it fails, 2 when vectorcraft-cli is not
-      installed and nothing was checked.
+      installed and nothing was checked. A server that stops, or does not answer a request
+      within a minute, also ends it with 1: the message says which request, and passes on
+      what the server wrote to its error output.
 
   maquette read-back-hard-case --landmarks <file> [--svg <file>] [--record <folder>]
       The hard case of the SVG contract, on a three-quarter view, in VectorCraft: every
