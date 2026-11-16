@@ -51,9 +51,9 @@ The compatibility promise is narrow: the exported SVG, as read by the VectorCraf
 
 ## The SVG contract (`FID-1`, `FID-2`, `FID-3`)
 
-Proposed by the agent on 2026-11-16, awaiting Jon's acceptance. Every statement about VectorCraft here was observed that day by running its MCP server. The probes, the read-backs and every result are in `design/svg-contract/`.
+Proposed by the agent on 2026-11-16 and accepted by Jon the same day, in pull request #11. Every statement about VectorCraft here was observed that day by running its MCP server. The probes, the read-backs and every result are in `design/svg-contract/`.
 
-**Version.** `vectorcraft-cli` 0.24.1, headless: the binary on Jon's machine, whose digest is in the probe folder. Mudsong starts the same command on the same machine, so it runs this binary. Its foundation records 0.24.0, which was not tested. When the version changes on either side, the probes are rerun before the contract is relied on.
+**Version.** Observed on `vectorcraft-cli` 0.24.1, headless: the binary on Jon's machine that day, whose digest is in the probe folder. Mudsong starts the same command on the same machine, so it runs the same binary. Its foundation records 0.24.0, which was not tested. VectorCraft is updated almost daily, so the contract is not pinned to this version (Jon, 2026-11-16). The oracle is what holds it to the installed one: it runs each time an armature is put to Jon or exported, against whichever version is installed, and its read-back names that version. The probes are rerun when the oracle fails, or when the armature needs something outside the list below.
 
 **Sources, in order.** What this version does when run; then VectorCraft's `docs/mcp.md`; then SVG 1.1, which the armature must still be valid as. The earlier wins. The probe folder names the exact revision of each and records each disagreement. Jon rules on what they leave open.
 
@@ -83,7 +83,7 @@ Nothing is hidden in the file. VectorCraft drops an element with neither fill no
 
 **The other direction.** VectorCraft exports an authored shape with its name in `data-name` whenever the name is not already a valid `id`, with positions rounded to three decimals unless seven are asked for, and without hidden objects unless they are asked for. A reader takes the name from `data-name` first. The hard case for this direction is chosen when a ticket first uses an authored shape.
 
-**Not tested.** Version 0.24.0, the desktop app, mudsong's own import, and anything the armature does not use.
+**Not tested.** Any version but 0.24.1, the desktop app, mudsong's own import, and anything the armature does not use.
 
 ## What this cannot show
 

@@ -69,14 +69,14 @@ The revision read the complete core and the five adopted modules, and mudsong #6
 
 The revision read the complete core and the five adopted modules. No module's trigger changed.
 
-**Decided by Jon** on 2026-11-16, after a summary of the reading of its independent claims: maquette disregards US patent 8,791,942. It constrains no work, and the question about it leaves `03-direction.md` (`04-evidence-and-references.md`).
+**Decided by Jon** on 2026-11-16, after a summary of the reading of its independent claims: maquette disregards US patent 8,791,942. It constrains no work, and the question about it leaves `03-direction.md` (`04-evidence-and-references.md`). He ruled with his acceptance that the contract is not pinned to a VectorCraft version, because VectorCraft is updated almost daily (`02-first-table.md`).
 
-**Proposed by the agent and awaiting Jon's acceptance** in the pull request for issue #4:
+**Proposed by the agent and accepted by Jon** on 2026-11-16, in pull request #11:
 
-1. The SVG contract (`02-first-table.md`): the version it is pinned to, the order of its sources, what the armature uses, the oracle and its tolerance, what happens when a guide does not survive, and the hard case.
+1. The SVG contract (`02-first-table.md`): the version it was observed on, the order of its sources, what the armature uses, the oracle and its tolerance, what happens when a guide does not survive, and the hard case.
 2. The removal of the sentence about AniCraft's importer. It was read and never run, and the contract covers VectorCraft only.
 3. The sentence in `04-evidence-and-references.md` that says Saffi's hand-made views are committed as numbers, in `data/saffi/`.
 
 ## The GOV-1 count
 
-Five foundations and this index. The count was about 4,100 words at founding, about 5,500 after the reorientation and is about 6,600 with the SVG contract, over the 5,000 at which `GOV-1` asks for a recheck. The recheck: every addition records a ruling Jon made on 2026-11-16 or a fact the first increment needs, and none describes work beyond that increment except in `03-direction.md`, which authorizes nothing. The contract's consumer is issue #5, which builds the generator's output on it, and its detail stays in `design/svg-contract/`. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.
+Five foundations and this index. The count was about 4,100 words at founding, about 5,500 after the reorientation and is about 6,700 with the SVG contract, over the 5,000 at which `GOV-1` asks for a recheck. The recheck: every addition records a ruling Jon made on 2026-11-16 or a fact the first increment needs, and none describes work beyond that increment except in `03-direction.md`, which authorizes nothing. The contract's consumer is issue #5, which builds the generator's output on it, and its detail stays in `design/svg-contract/`. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.
