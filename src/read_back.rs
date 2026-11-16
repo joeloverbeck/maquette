@@ -724,6 +724,27 @@ fn report(
         verdict(failures, Check::Paint)
     ));
 
+    let rounds = drawn
+        .guides
+        .iter()
+        .filter(|guide| guide.round.is_some())
+        .count();
+    out.push_str(&format!(
+        "\nWhat the positions cover: every anchor of every guide, and the centre and radii of the {rounds} circles and ellipses through their four outer points. The handles between anchors are not in the landmark file and are not compared.\n"
+    ));
+    if !drawn.not_drawn.is_empty() {
+        let names: Vec<String> = drawn
+            .not_drawn
+            .iter()
+            .map(|name| format!("`{name}`"))
+            .collect();
+        out.push_str(&format!(
+            "Not compared: {} positions of the landmark file are neither an anchor nor a centre of any guide, so the SVG does not carry them and VectorCraft holds nothing to set against them: {}.\n",
+            names.len(),
+            names.join(", ")
+        ));
+    }
+
     out.push_str(
         "\nWhat was read back, in drawing order. Each anchor is x,y as VectorCraft gave it, to six decimals.\n",
     );

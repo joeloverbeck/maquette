@@ -117,3 +117,15 @@ _Avoid_: round, review
 
 **Review sheet**:
 The layout shown to Jon at a look. An armature review sheet shows generated views; a reference check sheet shows references with the points read from them.
+
+**Difference**:
+How far a generated view puts a landmark from where the hand-made view puts it, once the one is laid over the other, as a share of head height. A list of differences judges none of them.
+_Avoid_: error, deviation, mismatch
+
+**Lay over**:
+To put a generated view on a hand-made one by one scale and one shift for the whole view, so that their units, eye lines and turn axes coincide. It is fitted to no single landmark.
+_Avoid_: align, register, fit
+
+**Read-back**:
+What VectorCraft holds of an armature's SVG after opening it, compared with the view's landmark file: names, the anchors of each guide, visibility and paint. It checks that VectorCraft keeps what the landmark file says, not that the landmark file is right.
+_Avoid_: import test, round trip

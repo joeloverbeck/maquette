@@ -159,6 +159,10 @@ fn a_recording_of_the_view_as_generated_passes_and_is_reported_as_a_recording() 
         "2. Names: 26 objects read back. The landmark file gives 26 names: 1 layer, 3 groups and 22 guides, each to be read back once. pass",
         "the 5 closed ones included. pass",
         "Expected values come from it, never from the SVG.",
+        // What the SVG does not carry cannot be read back, and the read-back says which.
+        "Not compared: 10 positions of the landmark file are neither an anchor nor a centre of any guide",
+        "`eye-left-opening-centre`",
+        "The handles between anchors are not in the landmark file and are not compared.",
         "PASSED",
     ] {
         assert!(

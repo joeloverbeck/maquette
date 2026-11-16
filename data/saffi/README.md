@@ -135,7 +135,14 @@ cargo run -- proportions-from-hand-made-views --record data/saffi/hand-made-view
 - The ear's outer extent stands at y = 124.9, the mean of 139.9 on the near ear and 110.0 on the far one: 15 units from each (3.1%), and 21 from the front view's 145.8 (4.4%). Her two ears in the three-quarter view are not one ear seen from two sides.
 - Where a pair's spacing in her two views does not fit the turn, the three-quarter view is kept and the front view moves: the lid lines' crests by 4.5 units a side (0.9%), the inner eye corners by 2.2 (0.4%).
 
-The list of every difference between a head drawn from this set and her hand-made views belongs to the armature review sheet, not to this file.
+The list of every difference between a head drawn from this set and her hand-made views belongs to the armature review sheet, not to this file. The program writes it from this folder's record and the generator's landmark files:
+
+```sh
+cargo run -- draw --proportions data/saffi/proportions.toml --out target/saffi
+cargo run -- differences-from-hand-made-views --front target/saffi/front.landmarks.toml --three-quarter target/saffi/three-quarter.landmarks.toml --record data/saffi/hand-made-views.toml --out target/saffi/differences.toml
+```
+
+The file it writes states how each generated view is laid over its hand-made view: the unit, the eye line and the upright axis the head turns about are made to coincide, by one scale and one shift for the whole view. It is not committed, because it changes whenever the generator does and nothing in it is accepted.
 
 ## What this is evidence of
 

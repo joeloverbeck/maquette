@@ -421,6 +421,9 @@ pub struct Drawn {
     pub groups: Vec<String>,
     /// The guides in drawing order.
     pub guides: Vec<DrawnGuide>,
+    /// The positions the file gives that are neither an anchor nor a centre of any guide.
+    /// The SVG does not carry them, so nothing read back from it can be set against them.
+    pub not_drawn: Vec<String>,
 }
 
 /// Reads the structure and the guides of a landmark file, each anchor with its position.
@@ -480,6 +483,8 @@ pub fn read_drawn(text: &str) -> Result<Drawn> {
     }
 
     let mut guides = Vec::new();
+    // The names of the positions the SVG carries: an anchor or a centre of some guide.
+    let mut carried: Vec<String> = Vec::new();
     for (name, group) in placed {
         let entry = guide_table
             .get(&name)
@@ -513,18 +518,24 @@ pub fn read_drawn(text: &str) -> Result<Drawn> {
             }
         };
         let round = match element.as_str() {
-            "circle" => Some(Round {
-                centre: point(&word(entry, "centre", &of)?)?,
-                rx: number("r")?,
-                ry: number("r")?,
-            }),
-            "ellipse" => Some(Round {
-                centre: point(&word(entry, "centre", &of)?)?,
-                rx: number("rx")?,
-                ry: number("ry")?,
-            }),
+            "circle" | "ellipse" => {
+                let centre = word(entry, "centre", &of)?;
+                let (rx, ry) = if element == "circle" {
+                    ("r", "r")
+                } else {
+                    ("rx", "ry")
+                };
+                let round = Round {
+                    centre: point(&centre)?,
+                    rx: number(rx)?,
+                    ry: number(ry)?,
+                };
+                carried.push(centre);
+                Some(round)
+            }
             _ => None,
         };
+        carried.extend(anchors.iter().map(|(anchor, _)| anchor.clone()));
         let closed =
             round.is_some() || entry.get("closed").and_then(toml::Value::as_bool) == Some(true);
         guides.push(DrawnGuide {
@@ -544,5 +555,11 @@ pub fn read_drawn(text: &str) -> Result<Drawn> {
         layer: word(structure, "layer", "[structure]")?,
         groups,
         guides,
+        not_drawn: positions
+            .points
+            .keys()
+            .filter(|name| !carried.contains(name))
+            .cloned()
+            .collect(),
     })
 }
