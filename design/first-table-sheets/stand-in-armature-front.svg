@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <title>stand-in-armature-front</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <path id="hair_volume" d="M284 545 L284 300 C284 180.7 380.7 84 500 84 C619.3 84 716 180.7 716 300 L716 545" fill="none" stroke="#8d93a6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 7"/>
+    <circle id="skull" cx="500" cy="301.5" r="191.5" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-miterlimit="10"/>
+    <path id="face_outline" d="M362 330 C360 380 364 430 380 470 C396 508 430 540 466 558 C478 564 490 567 500 567 C510 567 522 564 534 558 C570 540 604 508 620 470 C636 430 640 380 638 330" fill="none" stroke="#2a2f3d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <line id="centre_line" x1="500" y1="110" x2="500" y2="567" fill="none" stroke="#2f6fdd" stroke-width="1.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="level_eyes" x1="350" y1="366" x2="650" y2="366" fill="none" stroke="#2f6fdd" stroke-width="1.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="level_nose" x1="450" y1="450" x2="550" y2="450" fill="none" stroke="#2f6fdd" stroke-width="1.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="level_mouth" x1="440" y1="500" x2="560" y2="500" fill="none" stroke="#2f6fdd" stroke-width="1.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <path id="ear_r" d="M330 172 C320 132 334 86 366 70 C392 60 420 76 426 108 C430 130 426 152 418 170" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="ear_l" d="M670 172 C680 132 666 86 634 70 C608 60 580 76 574 108 C570 130 574 152 582 170" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="eye_r_opening" d="M384 369 C393 356 411 350 429 350 C445 351 455 358 461 374 C453 385 439 390 423 390 C407 390 393 383 384 369 Z" fill="none" stroke="#2a2f3d" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle id="eye_r_iris" cx="423" cy="370" r="20" fill="none" stroke="#2a2f3d" stroke-width="1.5" stroke-miterlimit="10"/>
+    <path id="eye_r_lid" d="M384 369 C393 356 411 350 429 350 C445 351 455 358 461 374" fill="none" stroke="#2a2f3d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="eye_l_opening" d="M616 369 C607 356 589 350 571 350 C555 351 545 358 539 374 C547 385 561 390 577 390 C593 390 607 383 616 369 Z" fill="none" stroke="#2a2f3d" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle id="eye_l_iris" cx="577" cy="370" r="20" fill="none" stroke="#2a2f3d" stroke-width="1.5" stroke-miterlimit="10"/>
+    <path id="eye_l_lid" d="M616 369 C607 356 589 350 571 350 C555 351 545 358 539 374" fill="none" stroke="#2a2f3d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="brow_r" d="M385 323 C407 315 437 319 460 334" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-miterlimit="10"/>
+    <path id="brow_l" d="M615 323 C593 315 563 319 540 334" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-miterlimit="10"/>
+    <polyline id="nose_mark" points="492,447 500,456 508,447" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="mouth_line" d="M474 500 C486 503 494 499 500 500 C506 499 514 503 526 500" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <line id="neck_r" x1="410" y1="508" x2="410" y2="640" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="neck_l" x1="590" y1="508" x2="590" y2="640" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <path id="shoulder_line" d="M105 728 L105 752 M105 740 L895 740 M895 728 L895 752" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-miterlimit="10"/>
+  </g>
+</svg>

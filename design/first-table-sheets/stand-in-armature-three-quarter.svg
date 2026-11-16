@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <title>stand-in-armature-three-quarter</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <path id="hair_volume" d="M275 545 L275 300 C275 180.7 371.3 84 490 84 C608.7 84 705 180.7 705 300 L705 545" fill="none" stroke="#8d93a6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 7"/>
+    <circle id="skull" cx="500" cy="301.5" r="191.5" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-miterlimit="10"/>
+    <path id="face_outline" d="M681 337 C677 350 672 358 672 368 C672 384 675 402 674 420 C673 446 667 470 657 490 C645 514 631 536 613 552 C603 562 593 567 581 567 C571 567 563 565 555 561 C517 550 477 532 445 508 C425 494 409 474 399 450 C390 425 382 380 381 330" fill="none" stroke="#2a2f3d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="centre_line" d="M495 110 C545 116 575 180 583 250 C589 300 587 340 589 372 C593 410 599 432 597 448 C595 470 593 484 593 500 C589 524 585 546 582 567" fill="none" stroke="#2f6fdd" stroke-width="1.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="level_eyes" x1="381" y1="366" x2="681" y2="366" fill="none" stroke="#2f6fdd" stroke-width="1.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="level_nose" x1="560" y1="450" x2="660" y2="450" fill="none" stroke="#2f6fdd" stroke-width="1.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="level_mouth" x1="540" y1="500" x2="650" y2="500" fill="none" stroke="#2f6fdd" stroke-width="1.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <path id="ear_r" d="M341 176 C327 136 337 88 371 68 C399 54 433 70 441 104 C445 126 443 148 435 168" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="ear_l" d="M581 150 C577 114 587 78 607 66 C625 62 637 82 637 110 C637 128 633 146 627 160" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="eye_r_opening" d="M458 369 C467 356 485 350 503 350 C519 351 529 358 535 374 C527 385 513 390 497 390 C481 390 467 383 458 369 Z" fill="none" stroke="#2a2f3d" stroke-width="1.5" stroke-linejoin="round"/>
+    <ellipse id="eye_r_iris" cx="493" cy="370" rx="21" ry="20" fill="none" stroke="#2a2f3d" stroke-width="1.5" stroke-miterlimit="10"/>
+    <path id="eye_r_lid" d="M458 369 C467 356 485 350 503 350 C519 351 529 358 535 374" fill="none" stroke="#2a2f3d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="eye_l_opening" d="M607 374 C611 360 621 351 635 350 C647 350 656 356 660 366 C657 379 647 388 635 390 C623 391 613 385 607 374 Z" fill="none" stroke="#2a2f3d" stroke-width="1.5" stroke-linejoin="round"/>
+    <ellipse id="eye_l_iris" cx="629.5" cy="370" rx="15.5" ry="20" fill="none" stroke="#2a2f3d" stroke-width="1.5" stroke-miterlimit="10"/>
+    <path id="eye_l_lid" d="M607 374 C611 360 621 351 635 350 C647 350 656 356 660 366" fill="none" stroke="#2a2f3d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="brow_r" d="M459 323 C481 316 509 319 534 333" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-miterlimit="10"/>
+    <path id="brow_l" d="M607 335 C623 325 643 319 661 319" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-miterlimit="10"/>
+    <polyline id="nose_mark" points="588,447 597,456 604,448" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="mouth_line" d="M561 500 C573 503 585 499 595 500 C601 499 605 500 609 498" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <line id="neck_r" x1="393" y1="462" x2="393" y2="640" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="neck_l" x1="569" y1="567" x2="569" y2="640" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <path id="shoulder_line" d="M133 728 L133 752 M133 740 L817 740 M817 728 L817 752" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-miterlimit="10"/>
+  </g>
+</svg>

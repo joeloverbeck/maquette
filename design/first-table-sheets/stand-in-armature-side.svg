@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <title>stand-in-armature-side</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <path id="hair_volume" d="M268 545 L268 300 C268 180.7 362.9 84 480 84 C597.1 84 692 180.7 692 300 L692 335" fill="none" stroke="#8d93a6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 7"/>
+    <circle id="skull" cx="500" cy="301.5" r="191.5" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-miterlimit="10"/>
+    <path id="face_outline" d="M684 250 C690 290 686 320 680 338 C677 352 675 362 676 372 C680 400 690 430 693 452 C691 458 686 461 682 462 C683 472 685 482 686 490 L683 500 C684 506 684 510 683 513 C678 522 676 534 676 545 C676 558 670 567 660 567 C620 560 570 520 538 478 C528 450 516 410 510 380" fill="none" stroke="#2a2f3d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <line id="level_eyes" x1="520" y1="366" x2="700" y2="366" fill="none" stroke="#2f6fdd" stroke-width="1.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="level_nose" x1="640" y1="450" x2="710" y2="450" fill="none" stroke="#2f6fdd" stroke-width="1.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="level_mouth" x1="640" y1="500" x2="700" y2="500" fill="none" stroke="#2f6fdd" stroke-width="1.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <path id="ear_r" d="M469 174 C462 134 470 88 490 70 C506 60 521 78 524 108 C526 130 524 152 520 170" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="eye_r_opening" d="M640 352 C632 356 622 362 618 369 C624 380 634 388 640 390 C644 380 644 362 640 352 Z" fill="none" stroke="#2a2f3d" stroke-width="1.5" stroke-linejoin="round"/>
+    <ellipse id="eye_r_iris" cx="637" cy="370" rx="5" ry="18" fill="none" stroke="#2a2f3d" stroke-width="1.5" stroke-miterlimit="10"/>
+    <path id="eye_r_lid" d="M618 369 C622 362 632 356 640 352" fill="none" stroke="#2a2f3d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="brow_r" d="M620 322 C632 318 642 324 650 334" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="nose_mark" x1="684" y1="455" x2="693" y2="452" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <line id="mouth_line" x1="683" y1="500" x2="668" y2="502" fill="none" stroke="#2a2f3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <line id="neck_back" x1="392" y1="452" x2="372" y2="640" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="neck_front" x1="556" y1="528" x2="532" y2="640" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-miterlimit="10"/>
+    <path id="shoulder_line" d="M392 728 L392 752 M392 740 L512 740 M512 728 L512 752" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-miterlimit="10"/>
+  </g>
+</svg>
