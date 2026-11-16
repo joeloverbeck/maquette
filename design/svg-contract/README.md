@@ -149,9 +149,11 @@ Observed behaviour wins in both. The documentation agrees with the behaviour on 
 
 Chosen from what the tables above show to be fragile, before any generator exists: names that survive only in one form, elements dropped without a warning, coordinates that come back rounded, and a tree whose shape depends on what sits at the top level. A front view with round numbers would pass an exact comparison of coordinates, which real proportions will not. The hard case is a three-quarter view with positions that are not round, every guide at once in nested groups, left and right pairs that differ, one name inside another (`neck`, `neck-left`), and closed guides.
 
+"Every guide" is the list in issue #3 and in `docs/foundation/02-first-table.md`: the skull, the face outline, the centre line, the level lines for the eyes, the nose and the mouth, each eye's opening, lid line and iris, the two brow lines, the nose mark, the mouth line, the two ears, the neck, the hair volume and the shoulder line. That is 22 drawn elements. With the layer and the three groups, the file has 26 `id`s.
+
 **Where its numbers came from.** They are not made up.
 
-- Every geometry number of `in/hard-case.svg` is the matching number of `design/first-table-sheets/stand-in-armature-three-quarter.svg` moved by at most 0.9 unit, so that none is round: 285 numbers in 20 elements. The shoulder line keeps only the long stroke of the stand-in's three. The stand-in's level lines for the nose and the mouth are left out.
+- Every geometry number of `in/hard-case.svg` is the matching number of `design/first-table-sheets/stand-in-armature-three-quarter.svg` moved by at most 0.9 unit, so that none is round: 293 numbers in 21 elements. The shoulder line, the 22nd, keeps only the long stroke of the stand-in's three, its four numbers moved the same way. The names are new and the paint is one stroke for all.
 - That stand-in follows the hand-made three-quarter view of Saffi, Jon's own character, moved 5 units toward the viewer's right. Of its 66 distinct points (path nodes, line ends, and the centres of the circle and the two ellipses), 34 are landmarks of `data/saffi/hand-made-views.toml` once 5 is added to x. The skull's radius is hers, and the three level lines are at her three levels. No other whole shift from −30 to 30 matches more than 3 points.
 - The 32 points that do not match are the hair volume, the ends of the level lines, the brows, the nose mark, the centres of the irises, the neck, the shoulder line, the top of the face outline's near side and the bottom of the far eye's opening.
 
@@ -162,14 +164,22 @@ The hard case is a test input for the importer. It is not a record of Saffi and 
 | Step | Result |
 |---|---|
 | `open_file` | No warning |
-| Names read back | The 24 `id`s of the file, each once, under one layer `armature` |
-| Positions | 274 typed coordinates within 0.000024 of the file's numbers. The outer points of the circle and the two ellipses within 0.000037 |
-| Paint | Every guide stroked and unfilled, the closed ones included |
+| Names read back | The 26 `id`s of the file, each once, under one layer `armature`: 26 objects |
+| Positions | 282 typed coordinates within 0.000024 of the file's numbers: every anchor and handle of the 19 paths, lines and polylines. The 24 coordinates of the outer points of the circle and the two ellipses within 0.000037 |
+| Paint | All 22 guides visible, stroked and unfilled, the 5 closed ones included |
 | `document.find {"name": "neck"}` | Three matches: `neck`, `neck-left`, `neck-right` |
 | `eye-opening-left` hidden by name | That guide alone is hidden |
-| Spoiled copy: `visibility="hidden"` on `brow-line-left` | 23 objects, `brow-line-left` missing, no warning |
-| Spoiled copy: the `id`s of the two eye openings exchanged | 24 objects, the same set of names, no warning. Only the positions show it: `eye-opening-left` reads back at 458.2, 369.4 where the right one was |
+| Spoiled copy: `visibility="hidden"` on `brow-line-left` | 25 objects, `brow-line-left` missing, no warning |
+| Spoiled copy: the `id`s of the two eye openings exchanged | 26 objects, the same set of names, no warning. Only the positions show it: `eye-opening-left` reads back at 458.2, 369.4 where the right one was, and all 24 anchors and handles of the two openings are more than 0.001 from the file's |
 
 The two spoiled copies were made, read back and deleted. They are not in `in/`.
+
+**How positions were compared.** The expected numbers were taken from the text of `in/hard-case.svg`, because no landmark file exists yet.
+
+- *Paths, lines and polylines:* each anchor and each handle read back was set against the number typed in the file. A closed path's last point repeats its first and is merged into it, so it is compared once: 282 coordinates where the file types 286.
+- *The circle and the two ellipses:* they arrive as four anchors and none is at the centre. The four outer points were worked out from the file's attributes, as `cx + rx, cy`, then `cx, cy + ry`, `cx − rx, cy` and `cx, cy − ry`, with `r` for both radii of the circle, and set against the four anchors in the order they are read back: right, bottom, left, top. The handles between them are VectorCraft's own and were not compared.
+- *A centre read back:* the top and bottom anchors carry `cx` as their x, and the right and left anchors carry `cy` as their y, each within 0.000013 of the file's. Half the distance between opposite anchors gives a radius within 0.000025.
+
+The hard case was run again on 2026-11-16 after the nose and mouth level lines were added and `eye-line` was renamed `eye-level-line` to match them. Every `out/hard-case.*` file is from that run. Before the change the same check gave 24 objects and 274 typed coordinates, with the same largest differences.
 
 This is one hand-written file read by an agent. It shows the subset can pass. It shows nothing about the generator, whose own three-quarter view has to pass with a landmark file as the source of expected values.
