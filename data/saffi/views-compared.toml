@@ -1,0 +1,512 @@
+# Saffi's hand-made views compared: the turn of the three-quarter view, and where the two
+# views do not describe one head.
+#
+# Every number here follows from the positions in hand-made-views.toml by the arithmetic
+# stated beside it, so it can be recomputed from that file alone. See README.md.
+# These numbers are the comparison case. They never enter a proportion table.
+
+[yardstick]
+head_height = 480.318  # front view, hair_top to chin; every share below is of this
+head_height_three_quarter = 481.4
+one_percent = 4.803
+
+# Every left and right landmark of the front view, set against its mirror twin about the centre line.
+[front_symmetry]
+centre_line_x = 500.0
+pairs_checked = 50
+largest_sideways_offset = 0.002
+largest_level_offset = 0.513
+pairs_not_mirrored = ["hair_extent"]
+
+# The turn. A level head turns about an upright axis and is drawn flat, with no perspective.
+# Two landmarks that mirror each other across the centre line then stand cos(turn) times as
+# far apart as in the front view, whatever their depth. So each pair gives a turn of its own:
+# acos(three-quarter spacing / front spacing).
+#
+# One turn for the whole head is the one that leaves the smallest squared misfit in spacing
+# over all the head's pairs: cosine = sum(front * three_quarter) / sum(front * front).
+# A pair is every left and right landmark of the head, of kind `node` or `centre`, recorded in
+# both views. The pairs left out are listed with the reason, and the shoulders follow separately.
+# No pair was dropped for its result.
+[turn]
+direction = "Toward the viewer's right. The character's right is the near side: her left eye is the narrower one and the nose stands to the viewer's right of the skull's centre."
+pairs = 18
+cosine = 0.875
+degrees = 28.96
+lowest_pair_degrees = 0.0
+highest_pair_degrees = 32.74
+median_pair_degrees = 27.15
+# The same fit over only the pairs whose four points are all uncovered in the drawings.
+uncovered_pairs = 15
+uncovered_cosine = 0.8842
+uncovered_degrees = 27.85
+
+[turn.not_counted]
+pupil_top = "same sideways position as pupil_centre"
+pupil_bottom = "same sideways position as pupil_centre"
+lid_line_upper_mid = "same sideways position as lid_line_lower_mid"
+eye_opening_centre = "the mean of the two corners of the opening, which are both counted"
+neck_base = "the neck is a column: both its edges are silhouettes, and a column's width does not narrow as it turns"
+
+# One entry for each pair of the head. `misfit` is the three-quarter spacing minus the front spacing
+# times the fitted cosine: how far the pair's spacing is from what one head at the fitted turn would show.
+
+[[turn.pair]]
+name = "eye_outer_corner"
+front_spacing = 232.0
+three_quarter_spacing = 202.0
+ratio = 0.8707
+turn_degrees = 29.46
+misfit = -0.997
+percent_of_head_height = 0.21
+above_one_percent = false
+
+[[turn.pair]]
+name = "eye_inner_corner"
+front_spacing = 78.0
+three_quarter_spacing = 72.0
+ratio = 0.9231
+turn_degrees = 22.62
+misfit = 3.751
+percent_of_head_height = 0.78
+above_one_percent = false
+
+[[turn.pair]]
+name = "iris_centre"
+front_spacing = 155.392
+three_quarter_spacing = 136.0
+ratio = 0.8752
+turn_degrees = 28.93
+misfit = 0.034
+percent_of_head_height = 0.01
+above_one_percent = false
+
+[[turn.pair]]
+name = "pupil_centre"
+front_spacing = 156.0
+three_quarter_spacing = 137.0
+ratio = 0.8782
+turn_degrees = 28.57
+misfit = 0.502
+percent_of_head_height = 0.1
+above_one_percent = false
+
+[[turn.pair]]
+name = "lid_line_inner_lower"
+front_spacing = 72.0
+three_quarter_spacing = 66.0
+ratio = 0.9167
+turn_degrees = 23.56
+misfit = 3.001
+percent_of_head_height = 0.62
+above_one_percent = false
+
+[[turn.pair]]
+name = "lid_line_lower_mid"
+front_spacing = 142.0
+three_quarter_spacing = 132.0
+ratio = 0.9296
+turn_degrees = 21.63
+misfit = 7.752
+percent_of_head_height = 1.61
+above_one_percent = true
+
+[[turn.pair]]
+name = "lid_line_outer_lower"
+front_spacing = 234.0
+three_quarter_spacing = 206.0
+ratio = 0.8803
+turn_degrees = 28.32
+misfit = 1.253
+percent_of_head_height = 0.26
+above_one_percent = false
+
+[[turn.pair]]
+name = "lid_line_outer_tip"
+front_spacing = 254.0
+three_quarter_spacing = 222.0
+ratio = 0.874
+turn_degrees = 29.07
+misfit = -0.247
+percent_of_head_height = 0.05
+above_one_percent = false
+covered = ["lid_line_right_outer_tip in the front view"]
+
+[[turn.pair]]
+name = "lid_line_inner_upper"
+front_spacing = 62.0
+three_quarter_spacing = 57.0
+ratio = 0.9194
+turn_degrees = 23.17
+misfit = 2.751
+percent_of_head_height = 0.57
+above_one_percent = false
+
+[[turn.pair]]
+name = "brow_outer_top"
+front_spacing = 234.0
+three_quarter_spacing = 204.0
+ratio = 0.8718
+turn_degrees = 29.33
+misfit = -0.747
+percent_of_head_height = 0.16
+above_one_percent = false
+
+[[turn.pair]]
+name = "brow_inner_top"
+front_spacing = 78.0
+three_quarter_spacing = 70.0
+ratio = 0.8974
+turn_degrees = 26.18
+misfit = 1.751
+percent_of_head_height = 0.36
+above_one_percent = false
+
+[[turn.pair]]
+name = "brow_inner_bottom"
+front_spacing = 84.0
+three_quarter_spacing = 77.0
+ratio = 0.9167
+turn_degrees = 23.56
+misfit = 3.501
+percent_of_head_height = 0.73
+above_one_percent = false
+
+[[turn.pair]]
+name = "brow_outer_bottom"
+front_spacing = 226.0
+three_quarter_spacing = 201.0
+ratio = 0.8894
+turn_degrees = 27.2
+misfit = 3.252
+percent_of_head_height = 0.68
+above_one_percent = false
+
+[[turn.pair]]
+name = "nose_mark_corner"
+front_spacing = 30.0
+three_quarter_spacing = 30.0
+ratio = 1.0
+turn_degrees = 0.0
+misfit = 3.75
+percent_of_head_height = 0.78
+above_one_percent = false
+
+[[turn.pair]]
+name = "mouth_line_end"
+front_spacing = 52.0
+three_quarter_spacing = 48.0
+ratio = 0.9231
+turn_degrees = 22.62
+misfit = 2.501
+percent_of_head_height = 0.52
+above_one_percent = false
+
+[[turn.pair]]
+name = "ear_base_outer"
+front_spacing = 340.0
+three_quarter_spacing = 286.0
+ratio = 0.8412
+turn_degrees = 32.74
+misfit = -11.496
+percent_of_head_height = 2.39
+above_one_percent = true
+covered = ["ear_left_base_outer in the three-quarter view"]
+
+[[turn.pair]]
+name = "ear_upper_node"
+front_spacing = 268.0
+three_quarter_spacing = 236.0
+ratio = 0.8806
+turn_degrees = 28.29
+misfit = 1.503
+percent_of_head_height = 0.31
+above_one_percent = false
+
+[[turn.pair]]
+name = "ear_base_inner"
+front_spacing = 164.0
+three_quarter_spacing = 146.0
+ratio = 0.8902
+turn_degrees = 27.1
+misfit = 2.502
+percent_of_head_height = 0.52
+above_one_percent = false
+covered = ["ear_left_base_inner in the three-quarter view"]
+
+# The shoulders: the spacing of the two shoulder points, kept out of the turn because they belong
+# to the body. `misfit` is against the head's fitted turn: what the spacing would have to lose for
+# the shoulders to turn as far as the head.
+
+[shoulders]
+front_spacing = 744.0
+three_quarter_spacing = 742.0
+ratio = 0.9973
+turn_degrees = 4.2
+misfit = 91.008
+percent_of_head_height = 18.95
+above_one_percent = true
+
+# Levels. A level head turning about an upright axis keeps every point at its height, and the
+# top and bottom of an outline stay the top and bottom. So every landmark recorded in both views
+# under one name, except side extents, crossings and outline nodes, should have one y.
+[levels]
+compared = 78
+equal = 53
+different = 25
+above_one_percent = 5
+
+[[levels.difference]]
+landmark = "neck_right_base"
+front_y = 590.0
+three_quarter_y = 560.0
+difference = -30.0  # positive is lower in the three-quarter view
+percent_of_head_height = 6.25
+above_one_percent = true
+
+[[levels.difference]]
+landmark = "ear_left_base_inner"
+front_y = 170.0
+three_quarter_y = 150.0
+difference = -20.0  # positive is lower in the three-quarter view
+percent_of_head_height = 4.16
+above_one_percent = true
+covered_in = ["three_quarter"]
+
+[[levels.difference]]
+landmark = "ear_left_base_outer"
+front_y = 172.0
+three_quarter_y = 160.0
+difference = -12.0  # positive is lower in the three-quarter view
+percent_of_head_height = 2.5
+above_one_percent = true
+covered_in = ["three_quarter"]
+
+[[levels.difference]]
+landmark = "neck_left_base"
+front_y = 590.0
+three_quarter_y = 596.0
+difference = 6.0  # positive is lower in the three-quarter view
+percent_of_head_height = 1.25
+above_one_percent = true
+
+[[levels.difference]]
+landmark = "brow_left_outer_bottom"
+front_y = 329.0
+three_quarter_y = 324.0
+difference = -5.0  # positive is lower in the three-quarter view
+percent_of_head_height = 1.04
+above_one_percent = true
+
+[[levels.difference]]
+landmark = "ear_right_top"
+front_y = 67.04
+three_quarter_y = 62.936
+difference = -4.104  # positive is lower in the three-quarter view
+percent_of_head_height = 0.85
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "brow_left_outer_top"
+front_y = 318.0
+three_quarter_y = 314.0
+difference = -4.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.83
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "ear_left_upper_node"
+front_y = 70.0
+three_quarter_y = 66.0
+difference = -4.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.83
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "ear_right_base_outer"
+front_y = 172.0
+three_quarter_y = 176.0
+difference = 4.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.83
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "lid_line_left_outer_tip"
+front_y = 364.0
+three_quarter_y = 360.0
+difference = -4.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.83
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "eye_left_outer_corner"
+front_y = 369.0
+three_quarter_y = 366.0
+difference = -3.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.62
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "brow_left_inner_bottom"
+front_y = 339.0
+three_quarter_y = 341.0
+difference = 2.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.42
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "brow_left_inner_top"
+front_y = 328.0
+three_quarter_y = 330.0
+difference = 2.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.42
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "ear_right_base_inner"
+front_y = 170.0
+three_quarter_y = 168.0
+difference = -2.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.42
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "ear_right_upper_node"
+front_y = 70.0
+three_quarter_y = 68.0
+difference = -2.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.42
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "lid_line_left_inner_upper"
+front_y = 372.0
+three_quarter_y = 374.0
+difference = 2.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.42
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "lid_line_left_outer_lower"
+front_y = 366.0
+three_quarter_y = 364.0
+difference = -2.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.42
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "mouth_line_left_end"
+front_y = 500.0
+three_quarter_y = 498.0
+difference = -2.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.42
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "ear_left_top"
+front_y = 67.04
+three_quarter_y = 65.49
+difference = -1.55  # positive is lower in the three-quarter view
+percent_of_head_height = 0.32
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "hair_top"
+front_y = 86.682
+three_quarter_y = 85.6
+difference = -1.082  # positive is lower in the three-quarter view
+percent_of_head_height = 0.23
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "lid_line_left_lower_mid"
+front_y = 347.0
+three_quarter_y = 346.0
+difference = -1.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.21
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "lid_line_left_upper_mid"
+front_y = 337.0
+three_quarter_y = 338.0
+difference = 1.0  # positive is lower in the three-quarter view
+percent_of_head_height = 0.21
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "eye_left_opening_bottom"
+front_y = 390.0
+three_quarter_y = 390.108
+difference = 0.108  # positive is lower in the three-quarter view
+percent_of_head_height = 0.02
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "brow_left_highest"
+front_y = 313.923
+three_quarter_y = 314.0
+difference = 0.077  # positive is lower in the three-quarter view
+percent_of_head_height = 0.02
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "eye_left_opening_centre"
+front_y = 370.0
+three_quarter_y = 370.054
+difference = 0.054  # positive is lower in the three-quarter view
+percent_of_head_height = 0.01
+above_one_percent = false
+
+# The centre line. In the front view the skull's top, the nose mark, the mouth's centre and the
+# chin all stand on the centre line. On one head they still do after a turn: the centre line is
+# where the middle of the head shows. `offset` is the feature's x minus the centre line's x at
+# the feature's height. The centre line starts at the height of the skull's top in both views.
+
+[[centre_line.offset]]
+feature = "skull_top"
+centre_line_at = "centre_line_top"
+front_offset = 0.0
+three_quarter_offset = 5.0  # positive is toward the viewer's right
+percent_of_head_height = 1.04
+above_one_percent = true
+
+[[centre_line.offset]]
+feature = "nose_mark_top"
+centre_line_at = "centre_line_at_nose_mark_top"
+front_offset = 0.0
+three_quarter_offset = -1.304  # positive is toward the viewer's right
+percent_of_head_height = 0.27
+above_one_percent = false
+
+[[centre_line.offset]]
+feature = "nose_mark_bottom"
+centre_line_at = "centre_line_at_nose_mark_bottom"
+front_offset = 0.0
+three_quarter_offset = -0.047  # positive is toward the viewer's right
+percent_of_head_height = 0.01
+above_one_percent = false
+
+[[centre_line.offset]]
+feature = "philtrum_bottom"
+centre_line_at = "centre_line_at_philtrum_bottom"
+front_offset = 0.0
+three_quarter_offset = 0.237  # positive is toward the viewer's right
+percent_of_head_height = 0.05
+above_one_percent = false
+
+[[centre_line.offset]]
+feature = "mouth_line_centre"
+centre_line_at = "centre_line_at_mouth_level"
+front_offset = 0.0
+three_quarter_offset = 2.0  # positive is toward the viewer's right
+percent_of_head_height = 0.42
+above_one_percent = false
+
+[[centre_line.offset]]
+feature = "chin"
+centre_line_at = "centre_line_bottom"
+front_offset = 0.0
+three_quarter_offset = -1.0  # positive is toward the viewer's right
+percent_of_head_height = 0.21
+above_one_percent = false

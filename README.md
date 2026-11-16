@@ -19,6 +19,7 @@ Founded on 2026-11-16, and reoriented by Jon the same day toward measured propor
 | `.mcp.json` | Registers the VectorCraft and FigCraft MCP servers for Claude Code |
 | `design/` | Designs made by hand in those two tools; the only folder their servers may write to |
 | `docs/agents/` | How agents use the issue tracker and the triage labels |
+| `data/saffi/` | The hand-made front and three-quarter views of the comparison case, as landmark positions. Numbers only; they never enter a proportion table |
 | `GLOSSARY.md` | The words maquette uses for armatures, views and proportions |
 | `docs/research/` | The research behind the founding and the reorientation. Evidence only |
 
