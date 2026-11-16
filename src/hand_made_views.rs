@@ -5,11 +5,16 @@
 //! drawings, a front view and a three-quarter view. It was written before the list of
 //! proportions existed, so it names what the drawings hold, not what the head model reads.
 //! This module is the one place that knows how the two meet, and [`RULES`] states it.
-//! It serves that one record: a second hand-made armature would earn its own reading.
+//! It also writes the set of proportions worked out from the record, with a note of the record
+//! and the rules it was read by. It serves that one record: a second hand-made armature would
+//! earn its own reading.
 
 use std::collections::BTreeMap;
 
-use crate::head_model::Reading;
+use crate::head_model::{self, Reading};
+use crate::number::toml as toml_number;
+use crate::proportions;
+use crate::toml_text::{quoted, quoted_lines};
 use crate::views::View;
 use crate::{Error, Result};
 
@@ -158,7 +163,7 @@ struct ViewRead {
 }
 
 /// The table of the record that holds a view.
-pub fn record_key(view: View) -> &'static str {
+fn record_key(view: View) -> &'static str {
     match view {
         View::Front => "front",
         View::ThreeQuarter => "three_quarter",
@@ -365,4 +370,76 @@ pub fn read(text: &str) -> Result<HandMade> {
         front_record: front.provenance,
         three_quarter_record: three_quarter.provenance,
     })
+}
+
+impl HandMade {
+    /// The set of proportions worked out from the record, as the text of its file: the set
+    /// under a `[source]` table that names the record, the rules it was read by, and where
+    /// each hand-made view puts the unit, the eye line and the turn axis. `record_path` is the
+    /// path the record was named by, which the file gives as it is.
+    pub fn proportions_file(&self, record_path: &str) -> Result<String> {
+        let set = head_model::proportions_from_views(&self.front, &self.three_quarter)?;
+        let mut opening = String::from(
+            "\
+# A set of proportions worked out from the record of a hand-made armature's views,
+# by `maquette proportions-from-hand-made-views`. It was not typed in by hand: the tests check
+# that this file is what the command writes from the record.
+#
+# These are the proportions of a comparison case. They never enter a proportion table.
+#
+# `maquette list-proportions` defines each proportion. `maquette draw` reads this file as it
+# reads any set of proportions.
+
+",
+        );
+        opening.push_str("[source]\n");
+        opening.push_str(&format!("record = {}\n", quoted(record_path)));
+        opening.push_str(&format!("what = {}\n", quoted(&self.what)));
+        opening.push_str(&format!("front_sha256 = {}\n", quoted(&self.front_sha256)));
+        opening.push_str(&format!(
+            "three_quarter_sha256 = {}\n",
+            quoted(&self.three_quarter_sha256)
+        ));
+        opening.push_str(&format!(
+            "turn_degrees = {}\n",
+            toml_number(self.three_quarter.turn_degrees, 3)
+        ));
+        opening.push_str(&format!(
+            "taken_by = {}\n",
+            quoted(
+                "The head model's inverse direction: landmark positions read from the two views, back into proportions."
+            )
+        ));
+        opening.push_str("# How the record's positions were read as the landmarks the list of proportions asks for.\n");
+        opening.push_str(&format!("reading_rules = {}\n", quoted_lines(RULES)));
+        opening.push_str(
+            "# What was done where the two views disagree, or one does not show a point.\n",
+        );
+        opening.push_str(&format!(
+            "disagreement_rules = {}\n",
+            quoted_lines(proportions::list()?.disagreement_rules())
+        ));
+        opening.push_str("\n# Where each hand-made view puts the unit, the eye line and the upright axis the head turns about,\n");
+        opening.push_str("# in the record's own units. `maquette draw` with these lays a generated view over the hand-made one.\n");
+        opening.push_str(&frame_lines(&self.front, View::Front)?);
+        opening.push('\n');
+        opening.push_str(&frame_lines(&self.three_quarter, View::ThreeQuarter)?);
+        set.write(&opening)
+    }
+}
+
+/// Where a hand-made view puts the unit, the eye line and the turn axis, in its own units.
+fn frame_lines(reading: &Reading, view: View) -> Result<String> {
+    let frame = reading.frame(view)?;
+    let table = record_key(view);
+    let axis = reading
+        .points
+        .get("skull-centre")
+        .ok_or_else(|| Error::new(format!("the record's {table} view has no skull centre")))?;
+    Ok(format!(
+        "[source.{table}]\nunit = {}\neye_line_y = {}\nturn_axis_x = {}\n",
+        toml_number(frame.unit, 3),
+        toml_number(frame.eye_line_y, 3),
+        toml_number(axis[0], 3),
+    ))
 }

@@ -8,7 +8,8 @@
 //! - [`views`]: how the landmarks are shown from the front and from the three-quarter turn.
 //! - [`guides`]: how the named guides of a view are built from its landmarks.
 //! - [`armature`]: the SVG and the landmark file of a view, as text.
-//! - [`hand_made_views`]: how the record of a hand-made armature is read as landmarks.
+//! - [`hand_made_views`]: how the record of a hand-made armature is read as landmarks, and
+//!   the set of proportions worked out from it written.
 //! - [`differences`]: how a generated armature is laid over a hand-made one, and how far
 //!   apart the two put each landmark.
 //! - [`overlay`]: how a hand-made view and its numbered differences are drawn over a

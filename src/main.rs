@@ -5,9 +5,8 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use maquette::head_model::{self, Reading};
-use maquette::toml_text::{quoted, quoted_lines};
-use maquette::views::{Placement, View};
+use maquette::head_model;
+use maquette::views::Placement;
 use maquette::{
     Error, Result, armature, differences, hand_made_views, hard_case, overlay, proportions,
     read_back, vectorcraft,
@@ -361,79 +360,9 @@ fn overlay_hand_made_views(arguments: &[String]) -> Result<()> {
     Ok(())
 }
 
-/// Where a hand-made view puts the unit, the eye line and the turn axis, in its own units.
-fn frame_lines(reading: &Reading, view: View) -> Result<String> {
-    let frame = reading.frame(view)?;
-    let table = hand_made_views::record_key(view);
-    let axis = reading
-        .points
-        .get("skull-centre")
-        .ok_or_else(|| Error::new(format!("the record's {table} view has no skull centre")))?;
-    Ok(format!(
-        "[source.{table}]\nunit = {}\neye_line_y = {}\nturn_axis_x = {}\n",
-        maquette::number::toml(frame.unit, 3),
-        maquette::number::toml(frame.eye_line_y, 3),
-        maquette::number::toml(axis[0], 3),
-    ))
-}
-
 fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
     let found = options(arguments, &["--record", "--out"])?;
     let record_path = required(&found, "--record")?;
     let hand_made = hand_made_views::read(&read(record_path)?)?;
-    let set = head_model::proportions_from_views(&hand_made.front, &hand_made.three_quarter)?;
-
-    let mut opening = String::from(
-        "\
-# A set of proportions worked out from the record of a hand-made armature's views,
-# by `maquette proportions-from-hand-made-views`. It was not typed in by hand: the tests check
-# that this file is what the command writes from the record.
-#
-# These are the proportions of a comparison case. They never enter a proportion table.
-#
-# `maquette list-proportions` defines each proportion. `maquette draw` reads this file as it
-# reads any set of proportions.
-
-",
-    );
-    opening.push_str("[source]\n");
-    opening.push_str(&format!("record = {}\n", quoted(record_path)));
-    opening.push_str(&format!("what = {}\n", quoted(&hand_made.what)));
-    opening.push_str(&format!(
-        "front_sha256 = {}\n",
-        quoted(&hand_made.front_sha256)
-    ));
-    opening.push_str(&format!(
-        "three_quarter_sha256 = {}\n",
-        quoted(&hand_made.three_quarter_sha256)
-    ));
-    opening.push_str(&format!(
-        "turn_degrees = {}\n",
-        maquette::number::toml(hand_made.three_quarter.turn_degrees, 3)
-    ));
-    opening.push_str(
-        "taken_by = \"The head model's inverse direction: landmark positions read from the two views, back into proportions.\"\n",
-    );
-    let reading_rules: Vec<String> = hand_made_views::RULES
-        .iter()
-        .map(|rule| rule.to_string())
-        .collect();
-    opening.push_str("# How the record's positions were read as the landmarks the list of proportions asks for.\n");
-    opening.push_str(&format!(
-        "reading_rules = {}\n",
-        quoted_lines(&reading_rules)
-    ));
-    opening
-        .push_str("# What was done where the two views disagree, or one does not show a point.\n");
-    opening.push_str(&format!(
-        "disagreement_rules = {}\n",
-        quoted_lines(proportions::list()?.disagreement_rules())
-    ));
-    opening.push_str("\n# Where each hand-made view puts the unit, the eye line and the upright axis the head turns about,\n");
-    opening.push_str("# in the record's own units. `maquette draw` with these lays a generated view over the hand-made one.\n");
-    opening.push_str(&frame_lines(&hand_made.front, View::Front)?);
-    opening.push('\n');
-    opening.push_str(&frame_lines(&hand_made.three_quarter, View::ThreeQuarter)?);
-
-    deliver(&found, &set.write(&opening)?)
+    deliver(&found, &hand_made.proportions_file(record_path)?)
 }
