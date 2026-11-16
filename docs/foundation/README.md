@@ -81,13 +81,17 @@ The revision read the complete core and the five adopted modules. No module's tr
 
 Running the oracle in Rust on the generator's own output for #5 found three sentences of the accepted contract that could not be run as written, and one observation the new runs made false.
 
-**Proposed by the agent and awaiting Jon's acceptance** in the pull request for issue #5, all in `02-first-table.md`:
+**Proposed by the agent and accepted by Jon** on 2026-11-16, with the armature, in pull request #12 for issue #5. All in `02-first-table.md`:
 
 1. The names the oracle compares are the landmark file's layer, groups and guides, not its guides alone.
 2. The oracle compares every point a guide passes through. A position no guide passes through is not in the SVG, so the read-back names it and does not compare it.
 3. In the hard case, left and right pairs differ in place, and in shape wherever the head model draws the two sides differently. The two irises are the same ellipse in two places.
 4. Coordinates came back at most 0.00005 unit off in the generated views, not 0.00004.
 
+## Look 1, 2026-11-16
+
+Jon accepted Saffi's generated front and three-quarter views at look 1 (of 8), in pull request #12: they read as one head, and as her armature. He also ruled that the shoulder line turns with the head. Her hand-made three-quarter view, whose shoulders turn about 4° against the head's 29°, is wrong on that point, so differences there come from the hand-made drawing and not from the generator.
+
 ## The GOV-1 count
 
-Five foundations and this index. The count was about 4,100 words at founding, about 5,500 after the reorientation and is about 6,700 with the SVG contract, over the 5,000 at which `GOV-1` asks for a recheck. The recheck: every addition records a ruling Jon made on 2026-11-16 or a fact the first increment needs, and none describes work beyond that increment except in `03-direction.md`, which authorizes nothing. The contract's consumer is issue #5, which builds the generator's output on it, and its detail stays in `design/svg-contract/`. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.
+Five foundations and this index. The count was about 4,100 words at founding, about 5,500 after the reorientation and is about 6,700 with the SVG contract and about 6,900 after look 1, over the 5,000 at which `GOV-1` asks for a recheck. The recheck: every addition records a ruling Jon made on 2026-11-16 or a fact the first increment needs, and none describes work beyond that increment except in `03-direction.md`, which authorizes nothing. The contract's consumer is issue #5, which builds the generator's output on it, and its detail stays in `design/svg-contract/`. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.

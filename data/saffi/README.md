@@ -97,7 +97,7 @@ Each line is a share of the front view's head height. The full list, with the 20
 | Level of `brow_left_outer_bottom`, the far brow's outer lower corner | y = 329.0 | y = 324.0 | 5.0 higher | **1.04%** |
 | The skull's top against the top of the centre line | on it | 5.0 units toward the viewer's right of it | 5.0 | **1.04%** |
 
-**The shoulders.** By their own spacing the shoulders are turned 4.2°, against the head's 28.96°. They are level in both views (y = 744.0). The neck ends at one height in the front view and at two heights 36 units apart in the three-quarter view. The shoulder line of a figure that turns whole will differ from the hand-made one by these amounts.
+**The shoulders.** By their own spacing the shoulders are turned 4.2°, against the head's 28.96°. They are level in both views (y = 744.0). The neck ends at one height in the front view and at two heights 36 units apart in the three-quarter view. The shoulder line of a figure that turns whole will differ from the hand-made one by these amounts. Jon ruled at look 1 that the shoulder line turns with the head: the hand-made shoulders are the flaw.
 
 **Levels.** Of 78 landmarks recorded in both views and comparable in height, 53 are at exactly the same height and 25 are not. The three level lines and the chin are identical. Five differences are above 1% and are in the table. The largest of the rest are the top of the near ear (0.85%) and four points at 0.83%: the far brow's outer top corner, the far ear's upper node, the near ear's outer base and the outer tip of the far lid line. The hair's top is 1.08 units higher in the three-quarter view (0.23%), which is why the two head heights differ.
 
@@ -130,7 +130,7 @@ cargo run -- proportions-from-hand-made-views --record data/saffi/hand-made-view
 **What follows from them.** Each is arithmetic on the positions above.
 
 - Her eye line is at y = 370.027, 4 units below the level line drawn in both views (0.8% of head height).
-- A head drawn from this set shows its shoulder points 650.7 units apart in the three-quarter view, where hers are 742.0 apart: 45.6 units a side (9.5%). Hers hardly turn. Jon decides at the first look whether the shoulder line turns with the head.
+- A head drawn from this set shows its shoulder points 650.7 units apart in the three-quarter view, where hers are 742.0 apart: 45.6 units a side (9.5%). Hers hardly turn. Jon ruled at look 1 (2026-11-16) that the shoulder line turns with the head, so this difference is a flaw of the hand-made drawing, not of the generator.
 - The neck ends at y = 578.0, the mean of 560.0 and 596.0. That is 18 units from each in her three-quarter view (3.7%) and 12 from her front view's 590.0 (2.5%).
 - The ear's outer extent stands at y = 124.9, the mean of 139.9 on the near ear and 110.0 on the far one: 15 units from each (3.1%), and 21 from the front view's 145.8 (4.4%). Her two ears in the three-quarter view are not one ear seen from two sides.
 - Where a pair's spacing in her two views does not fit the turn, the three-quarter view is kept and the front view moves: the lid lines' crests by 4.5 units a side (0.9%), the inner eye corners by 2.2 (0.4%).
