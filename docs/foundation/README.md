@@ -92,6 +92,10 @@ Running the oracle in Rust on the generator's own output for #5 found three sent
 
 Jon accepted Saffi's generated front and three-quarter views at look 1 (of 8), in pull request #12: they read as one head, and as her armature. He also ruled that the shoulder line turns with the head. Her hand-made three-quarter view, whose shoulders turn about 4° against the head's 29°, is wrong on that point, so differences there come from the hand-made drawing and not from the generator.
 
+## Review sheets, 2026-11-16
+
+At look 1 Jon could not tell from the sheet whether its percentages came from published references. **Decided by Jon** after the retrospective that followed: a review sheet says what every number on it is measured against (`04-evidence-and-references.md`, "Asking for Jon's eyes").
+
 ## The GOV-1 count
 
 Five foundations and this index. The count was about 4,100 words at founding, about 5,500 after the reorientation and is about 6,700 with the SVG contract and about 6,900 after look 1, over the 5,000 at which `GOV-1` asks for a recheck. The recheck: every addition records a ruling Jon made on 2026-11-16 or a fact the first increment needs, and none describes work beyond that increment except in `03-direction.md`, which authorizes nothing. The contract's consumer is issue #5, which builds the generator's output on it, and its detail stays in `design/svg-contract/`. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.
