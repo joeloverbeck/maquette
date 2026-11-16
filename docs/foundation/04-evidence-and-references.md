@@ -52,4 +52,4 @@ The legal reading behind this is in the research's `notes/legal_and_licensing.md
 
 ## Asking for Jon's eyes (`EVID-8`)
 
-Every request names the decision it serves, why no check can make it, how many drawings it covers and when it stops. Looks are counted against the ceiling in `01-mission.md`.
+Every request names the decision it serves, why no check can make it, how many drawings it covers and when it stops. The sheet itself says what every number on it is measured against. Looks are counted against the ceiling in `01-mission.md`.
