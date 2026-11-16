@@ -15,11 +15,18 @@ pub fn repository() -> PathBuf {
 
 /// Runs the program from the repository's root.
 pub fn maquette(arguments: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_maquette"))
-        .args(arguments)
-        .current_dir(repository())
-        .output()
-        .expect("the program starts")
+    maquette_with_path(arguments, None)
+}
+
+/// Runs the program from the repository's root, with `PATH` set to `path` when one is given:
+/// where the program looks for `vectorcraft-cli`.
+pub fn maquette_with_path(arguments: &[&str], path: Option<&std::ffi::OsStr>) -> Output {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_maquette"));
+    command.args(arguments).current_dir(repository());
+    if let Some(path) = path {
+        command.env("PATH", path);
+    }
+    command.output().expect("the program starts")
 }
 
 /// Runs the program and insists that it succeeds, returning what it printed.

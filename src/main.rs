@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use maquette::head_model::{self, Reading};
+use maquette::toml_text::{quoted, quoted_lines};
 use maquette::views::Placement;
 use maquette::{
     Error, Result, armature, differences, hand_made_views, hard_case, overlay, proportions,
@@ -360,19 +361,6 @@ fn overlay_hand_made_views(arguments: &[String]) -> Result<()> {
     Ok(())
 }
 
-fn text_value(text: &str) -> String {
-    format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""))
-}
-
-fn text_list(lines: &[String]) -> String {
-    let mut out = String::from("[\n");
-    for line in lines {
-        out.push_str(&format!("  {},\n", text_value(line)));
-    }
-    out.push(']');
-    out
-}
-
 /// Where a hand-made view puts the unit, the eye line and the turn axis, in its own units.
 fn frame_lines(reading: &Reading, view: &str, table: &str) -> Result<String> {
     let frame = reading.frame(view)?;
@@ -408,15 +396,15 @@ fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
 ",
     );
     opening.push_str("[source]\n");
-    opening.push_str(&format!("record = {}\n", text_value(record_path)));
-    opening.push_str(&format!("what = {}\n", text_value(&hand_made.what)));
+    opening.push_str(&format!("record = {}\n", quoted(record_path)));
+    opening.push_str(&format!("what = {}\n", quoted(&hand_made.what)));
     opening.push_str(&format!(
         "front_sha256 = {}\n",
-        text_value(&hand_made.front_sha256)
+        quoted(&hand_made.front_sha256)
     ));
     opening.push_str(&format!(
         "three_quarter_sha256 = {}\n",
-        text_value(&hand_made.three_quarter_sha256)
+        quoted(&hand_made.three_quarter_sha256)
     ));
     opening.push_str(&format!(
         "turn_degrees = {}\n",
@@ -430,12 +418,15 @@ fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
         .map(|rule| rule.to_string())
         .collect();
     opening.push_str("# How the record's positions were read as the landmarks the list of proportions asks for.\n");
-    opening.push_str(&format!("reading_rules = {}\n", text_list(&reading_rules)));
+    opening.push_str(&format!(
+        "reading_rules = {}\n",
+        quoted_lines(&reading_rules)
+    ));
     opening
         .push_str("# What was done where the two views disagree, or one does not show a point.\n");
     opening.push_str(&format!(
         "disagreement_rules = {}\n",
-        text_list(proportions::list()?.disagreement_rules())
+        quoted_lines(proportions::list()?.disagreement_rules())
     ));
     opening.push_str("\n# Where each hand-made view puts the unit, the eye line and the upright axis the head turns about,\n");
     opening.push_str("# in the record's own units. `maquette draw` with these lays a generated view over the hand-made one.\n");

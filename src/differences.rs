@@ -11,6 +11,7 @@ use crate::armature::{self, Placed};
 use crate::hand_made_views::{self, MARKS_RULE, Marks, Provenance};
 use crate::head_model::Reading;
 use crate::number::{plain, round3, toml as toml_number};
+use crate::toml_text::{quoted, quoted_list};
 use crate::{Error, Result};
 
 /// A difference is listed with a number when it is more than this share of head height.
@@ -273,15 +274,6 @@ pub fn compare(front: Input, three_quarter: Input, record: Input) -> Result<Diff
         front,
         three_quarter,
     })
-}
-
-fn quoted(text: &str) -> String {
-    format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""))
-}
-
-fn quoted_list(names: &[String]) -> String {
-    let quoted: Vec<String> = names.iter().map(|name| quoted(name)).collect();
-    format!("[{}]", quoted.join(", "))
 }
 
 fn position(value: [f64; 2]) -> String {

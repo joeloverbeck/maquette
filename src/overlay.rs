@@ -11,7 +11,7 @@
 use crate::armature::{self, File};
 use crate::differences::{self, Differences, Input, ViewDifferences};
 use crate::hand_made_views::{self, Provenance};
-use crate::number::plain;
+use crate::number::{plain, plain3};
 use crate::{Error, Result};
 
 /// The hand-made positions: a warm colour the generated guides never use.
@@ -69,10 +69,6 @@ fn view_size(text: &str) -> Result<[f64; 2]> {
     Ok([number("width")?, number("height")?])
 }
 
-fn number(value: f64) -> String {
-    plain(value, 3)
-}
-
 fn view_overlay(
     found: &Differences,
     view: &ViewDifferences,
@@ -101,16 +97,16 @@ fn view_overlay(
     svg.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     svg.push_str(&format!(
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{w}\" height=\"{h}\" viewBox=\"0 0 {w} {h}\">\n",
-        w = number(width),
-        h = number(height)
+        w = plain3(width),
+        h = plain3(height)
     ));
     svg.push_str(&format!(
         "  <!-- The hand-made {view} view of {record}, over the generated view of {file}, written by\n       `maquette overlay-hand-made-views`. Placed at the same place and size as that view's SVG,\n       it lies over it exactly. A record position x, y stands here at\n       (x - {sx}) / {scale}, (y - {sy}) / {scale}: the comparison's lay-over, undone.\n       Filled dots: every position the record gives the view. A dashed ring: a position the\n       head covers in the hand-made drawing. A numbered line: a difference above 1% of head\n       height, from the generated position to the hand-made one, numbered as the\n       differences file numbers it. -->\n",
         view = view.view,
         record = found.record,
         file = file.path,
-        sx = number(lay_over.shift_x),
-        sy = number(lay_over.shift_y),
+        sx = plain3(lay_over.shift_x),
+        sy = plain3(lay_over.shift_y),
         scale = plain(lay_over.scale, 6),
     ));
 
@@ -122,19 +118,19 @@ fn view_overlay(
         if position.covered_by_head {
             svg.push_str(&format!(
                 "    <circle id=\"hand-made-{name}\" class=\"covered\" cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"none\" stroke=\"{HAND_MADE}\" stroke-width=\"{}\" stroke-dasharray=\"{} {}\"/>\n",
-                number(x),
-                number(y),
-                number(COVERED_RADIUS * unit),
-                number(0.0125 * unit),
-                number(0.02 * unit),
-                number(0.015 * unit),
+                plain3(x),
+                plain3(y),
+                plain3(COVERED_RADIUS * unit),
+                plain3(0.0125 * unit),
+                plain3(0.02 * unit),
+                plain3(0.015 * unit),
             ));
         } else {
             svg.push_str(&format!(
                 "    <circle id=\"hand-made-{name}\" cx=\"{}\" cy=\"{}\" r=\"{}\"/>\n",
-                number(x),
-                number(y),
-                number(MARK_RADIUS * unit)
+                plain3(x),
+                plain3(y),
+                plain3(MARK_RADIUS * unit)
             ));
         }
     }
@@ -160,37 +156,37 @@ fn view_overlay(
         let to = back(difference.hand_made);
         let badge = place_badge(to, centre, radius, unit, [width, height], &badges);
         badges.push(badge);
-        let stroke = number(0.01 * unit);
+        let stroke = plain3(0.01 * unit);
         svg.push_str(&format!(
             "    <g id=\"difference-{label}\" class=\"difference\">\n"
         ));
         svg.push_str(&format!(
             "      <line class=\"leader\" x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{APART}\" stroke-width=\"{stroke}\"/>\n",
-            number(to[0]),
-            number(to[1]),
-            number(badge[0]),
-            number(badge[1]),
+            plain3(to[0]),
+            plain3(to[1]),
+            plain3(badge[0]),
+            plain3(badge[1]),
         ));
         svg.push_str(&format!(
             "      <line class=\"apart\" x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{APART}\" stroke-width=\"{}\" stroke-linecap=\"round\"/>\n",
-            number(from[0]),
-            number(from[1]),
-            number(to[0]),
-            number(to[1]),
-            number(0.02 * unit),
+            plain3(from[0]),
+            plain3(from[1]),
+            plain3(to[0]),
+            plain3(to[1]),
+            plain3(0.02 * unit),
         ));
         svg.push_str(&format!(
             "      <circle class=\"badge\" cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"{HAND_MADE}\" stroke=\"#ffffff\" stroke-width=\"{stroke}\"/>\n",
-            number(badge[0]),
-            number(badge[1]),
-            number(radius),
+            plain3(badge[0]),
+            plain3(badge[1]),
+            plain3(radius),
         ));
         let font = BADGE_FONT * unit;
         svg.push_str(&format!(
             "      <text class=\"number\" x=\"{}\" y=\"{}\" text-anchor=\"middle\" font-family=\"Inter\" font-weight=\"700\" font-size=\"{}\" fill=\"#ffffff\">{label}</text>\n",
-            number(badge[0]),
-            number(badge[1] + 0.35 * font),
-            number(font),
+            plain3(badge[0]),
+            plain3(badge[1] + 0.35 * font),
+            plain3(font),
         ));
         svg.push_str("    </g>\n");
     }

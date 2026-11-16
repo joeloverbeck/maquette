@@ -394,6 +394,34 @@ fn the_same_input_gives_the_same_file_and_a_list_a_person_can_read() {
 }
 
 #[test]
+fn a_path_with_a_quote_a_backslash_or_a_line_break_is_written_as_valid_toml() {
+    // The differences file carries the paths it was given as TOML text, so a path that holds
+    // a character TOML must escape still gives a file that reads back to that same path.
+    let folder = scratch("differences-odd-paths");
+    let odd = |name: &str, from: &str| {
+        let path = folder.join(name);
+        std::fs::copy(support::repository().join(from), &path).expect("copied");
+        path
+    };
+    let record = odd(
+        "record \"made up\"\\\nwith a line break.toml",
+        MADE_UP_RECORD,
+    );
+    let front = odd("front\tview.landmarks.toml", MADE_UP_FRONT);
+    let table = differences(
+        "differences-odd-paths-out",
+        path_text(&front),
+        MADE_UP_THREE_QUARTER,
+        path_text(&record),
+    );
+    assert_eq!(table["record"].as_str(), Some(path_text(&record)));
+    assert_eq!(
+        table["front"]["landmark_file"].as_str(),
+        Some(path_text(&front))
+    );
+}
+
+#[test]
 fn files_given_for_the_wrong_view_are_refused() {
     let output = maquette(&[
         "differences-from-hand-made-views",

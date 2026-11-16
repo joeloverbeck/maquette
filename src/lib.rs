@@ -18,6 +18,8 @@
 //! - [`hard_case`]: the hard case the contract lists, run on a three-quarter view, with the
 //!   two spoiled copies the oracle must fail.
 //! - [`vectorcraft`]: how VectorCraft's server is started and spoken to.
+//! - [`number`] and [`toml_text`]: how numbers and text are written, so that every file
+//!   agrees on them.
 
 pub mod armature;
 pub mod differences;
@@ -29,6 +31,7 @@ pub mod number;
 pub mod overlay;
 pub mod proportions;
 pub mod read_back;
+pub mod toml_text;
 pub mod vectorcraft;
 pub mod views;
 

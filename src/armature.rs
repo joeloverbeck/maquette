@@ -14,8 +14,9 @@
 
 use crate::guides::{self, Guide, Guides, Paint, Shape, Stretch};
 use crate::head_model::{self, Reading};
-use crate::number::{plain, toml as toml_number};
+use crate::number::{plain3, toml as toml_number};
 use crate::proportions::Set;
+use crate::toml_text::{quoted, quoted_list};
 use crate::views::{self, Placement, Seen, View};
 use crate::{Error, Result};
 
@@ -47,10 +48,6 @@ pub fn draw(set: &Set, placement: &Placement) -> Result<Vec<File>> {
     Ok(files)
 }
 
-fn number(value: f64) -> String {
-    plain(value, 3)
-}
-
 fn paint_attributes(paint: Paint) -> &'static str {
     match paint {
         Paint::Form => "",
@@ -69,29 +66,29 @@ fn element(guide: &Guide, built: &Guides) -> String {
             let [cx, cy] = at(centre);
             format!(
                 "<circle id=\"{id}\" cx=\"{}\" cy=\"{}\" r=\"{}\"{paint}/>",
-                number(cx),
-                number(cy),
-                number(*r)
+                plain3(cx),
+                plain3(cy),
+                plain3(*r)
             )
         }
         Shape::Ellipse { centre, rx, ry } => {
             let [cx, cy] = at(centre);
             format!(
                 "<ellipse id=\"{id}\" cx=\"{}\" cy=\"{}\" rx=\"{}\" ry=\"{}\"{paint}/>",
-                number(cx),
-                number(cy),
-                number(*rx),
-                number(*ry)
+                plain3(cx),
+                plain3(cy),
+                plain3(*rx),
+                plain3(*ry)
             )
         }
         Shape::Line => {
             let ([x1, y1], [x2, y2]) = (at(&guide.passes_through[0]), at(&guide.passes_through[1]));
             format!(
                 "<line id=\"{id}\" x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\"{paint}/>",
-                number(x1),
-                number(y1),
-                number(x2),
-                number(y2)
+                plain3(x1),
+                plain3(y1),
+                plain3(x2),
+                plain3(y2)
             )
         }
         Shape::Polyline => {
@@ -100,7 +97,7 @@ fn element(guide: &Guide, built: &Guides) -> String {
                 .iter()
                 .map(|name| {
                     let [x, y] = at(name);
-                    format!("{},{}", number(x), number(y))
+                    format!("{},{}", plain3(x), plain3(y))
                 })
                 .collect();
             format!(
@@ -110,19 +107,19 @@ fn element(guide: &Guide, built: &Guides) -> String {
         }
         Shape::Path { stretches, closed } => {
             let [x, y] = at(&guide.passes_through[0]);
-            let mut d = format!("M{} {}", number(x), number(y));
+            let mut d = format!("M{} {}", plain3(x), plain3(y));
             for (index, stretch) in stretches.iter().enumerate() {
                 let [x, y] = at(&guide.passes_through[(index + 1) % guide.passes_through.len()]);
                 match stretch {
-                    Stretch::Straight => d.push_str(&format!(" L{} {}", number(x), number(y))),
+                    Stretch::Straight => d.push_str(&format!(" L{} {}", plain3(x), plain3(y))),
                     Stretch::Curve { leave, arrive } => d.push_str(&format!(
                         " C{} {} {} {} {} {}",
-                        number(leave[0]),
-                        number(leave[1]),
-                        number(arrive[0]),
-                        number(arrive[1]),
-                        number(x),
-                        number(y)
+                        plain3(leave[0]),
+                        plain3(leave[1]),
+                        plain3(arrive[0]),
+                        plain3(arrive[1]),
+                        plain3(x),
+                        plain3(y)
                     )),
                 }
             }
@@ -150,7 +147,7 @@ fn layout(built: &Guides) -> Vec<(Option<&'static str>, Vec<&Guide>)> {
 }
 
 fn svg(seen: &Seen, built: &Guides) -> String {
-    let (width, height) = (number(seen.width), number(seen.height));
+    let (width, height) = (plain3(seen.width), plain3(seen.height));
     let mut out = String::new();
     out.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     out.push_str(&format!(
@@ -176,11 +173,6 @@ fn svg(seen: &Seen, built: &Guides) -> String {
     out
 }
 
-fn quoted_list(names: &[String]) -> String {
-    let quoted: Vec<String> = names.iter().map(|name| format!("\"{name}\"")).collect();
-    format!("[{}]", quoted.join(", "))
-}
-
 fn landmark_file(seen: &Seen, built: &Guides, svg_name: &str) -> String {
     let position = |value: f64| toml_number(value, 3);
     let mut out = String::new();
@@ -189,8 +181,8 @@ fn landmark_file(seen: &Seen, built: &Guides, svg_name: &str) -> String {
     );
     out.push_str("# Positions are in the SVG's own units: x grows toward the viewer's right, y grows downward.\n");
     out.push_str("# Left and right in a name are the character's own.\n\n");
-    out.push_str(&format!("view = \"{}\"\n", seen.view.name()));
-    out.push_str(&format!("svg = \"{svg_name}\"\n"));
+    out.push_str(&format!("view = {}\n", quoted(seen.view.name())));
+    out.push_str(&format!("svg = {}\n", quoted(svg_name)));
     out.push_str("# How far the head is turned toward the viewer's right, so the character's right is the near side.\n");
     out.push_str(&format!(
         "turn_degrees = {}\n",
@@ -242,7 +234,7 @@ fn landmark_file(seen: &Seen, built: &Guides, svg_name: &str) -> String {
 
     out.push_str("\n# The SVG's structure: one layer, its children in drawing order, and the guides inside each group.\n");
     out.push_str("[structure]\n");
-    out.push_str(&format!("layer = \"{}\"\n", guides::LAYER));
+    out.push_str(&format!("layer = {}\n", quoted(guides::LAYER)));
     let children = layout(built);
     let order: Vec<String> = children
         .iter()
@@ -266,12 +258,12 @@ fn landmark_file(seen: &Seen, built: &Guides, svg_name: &str) -> String {
         match &guide.shape {
             Shape::Circle { centre, r } => {
                 out.push_str("element = \"circle\"\n");
-                out.push_str(&format!("centre = \"{centre}\"\n"));
+                out.push_str(&format!("centre = {}\n", quoted(centre)));
                 out.push_str(&format!("r = {}\n", position(*r)));
             }
             Shape::Ellipse { centre, rx, ry } => {
                 out.push_str("element = \"ellipse\"\n");
-                out.push_str(&format!("centre = \"{centre}\"\n"));
+                out.push_str(&format!("centre = {}\n", quoted(centre)));
                 out.push_str(&format!("rx = {}\n", position(*rx)));
                 out.push_str(&format!("ry = {}\n", position(*ry)));
             }

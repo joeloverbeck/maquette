@@ -32,12 +32,7 @@ struct Ran {
 
 /// Runs the program with no PATH, so that no `vectorcraft-cli` can be found.
 fn maquette_without_vectorcraft(arguments: &[&str]) -> Ran {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_maquette"))
-        .args(arguments)
-        .current_dir(repository())
-        .env("PATH", "")
-        .output()
-        .expect("the program starts");
+    let output = support::maquette_with_path(arguments, Some("".as_ref()));
     Ran {
         status: output.status.code(),
         printed: String::from_utf8_lossy(&output.stdout).into_owned(),

@@ -22,6 +22,12 @@ pub fn plain(value: f64, places: usize) -> String {
     if text == "-0" { "0".to_string() } else { text }
 }
 
+/// A position or a length for an SVG: [`plain`] to a thousandth, the precision every
+/// position is kept to.
+pub fn plain3(value: f64) -> String {
+    plain(value, 3)
+}
+
 /// A number for a TOML file: as [`plain`], but always with a decimal point, so that every
 /// value of a table is a float.
 pub fn toml(value: f64, places: usize) -> String {
