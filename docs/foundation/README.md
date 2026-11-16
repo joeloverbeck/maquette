@@ -65,9 +65,11 @@ The revision read the complete core and the five adopted modules, and mudsong #6
 3. Rules 5 to 7 for references, and the five-work floor for a view (`04-evidence-and-references.md`).
 4. That a Rust tool renders reference check sheets from a layout designed in FigCraft (`05-code-and-design-tools.md`).
 
-## SVG contract record, 2026-11-16
+## SVG contract and patent record, 2026-11-16
 
 The revision read the complete core and the five adopted modules. No module's trigger changed.
+
+**Decided by Jon** on 2026-11-16, after a summary of the reading of its independent claims: maquette disregards US patent 8,791,942. It constrains no work, and the question about it leaves `03-direction.md` (`04-evidence-and-references.md`).
 
 **Proposed by the agent and awaiting Jon's acceptance** in the pull request for issue #4:
 
