@@ -179,7 +179,7 @@ impl Replies {
     }
 }
 
-/// The four things the oracle asks, and what stands in the way of asking.
+/// The four things the oracle asks.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Check {
     /// The import reports no warning.

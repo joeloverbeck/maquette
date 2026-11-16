@@ -181,10 +181,6 @@ fn exchange_in_svg(svg: &str, first: &str, second: &str) -> Result<String> {
         .replace(HELD_ASIDE, &second_id))
 }
 
-fn start(folder: &Path) -> Result<Option<Server>> {
-    Server::start(folder)
-}
-
 fn listed(names: &[String]) -> String {
     names
         .iter()
@@ -360,7 +356,7 @@ pub fn run(landmark_path: &str, landmark_text: &str, svg: &Path) -> Result<Optio
     };
 
     // The view as generated.
-    let Some(mut server) = start(folder)? else {
+    let Some(mut server) = Server::start(folder)? else {
         return Ok(None);
     };
     let version = server.version().to_string();
@@ -503,7 +499,7 @@ pub fn run(landmark_path: &str, landmark_text: &str, svg: &Path) -> Result<Optio
     let temporary = Temporary::new()?;
     let read_spoiled = |kind: &str, text: &str| -> Result<Option<(Replies, Outcome)>> {
         let copy = temporary.copy(kind, svg_name, text)?;
-        let Some(mut server) = start(copy.parent().unwrap_or(Path::new("/")))? else {
+        let Some(mut server) = Server::start(copy.parent().unwrap_or(Path::new("/")))? else {
             return Ok(None);
         };
         let replies = Replies::read(&mut server, &copy)?;
