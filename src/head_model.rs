@@ -126,208 +126,46 @@ const fn centre(name: &'static str, drop: Origin, depth: Origin) -> Spec {
     }
 }
 
-/// Every landmark of the head, and the proportion behind each of its coordinates.
+/// Every landmark of the head, and the proportion behind each of its coordinates:
+/// its offset, its drop and its depth, in that order.
+#[rustfmt::skip]
 const LANDMARKS: &[Spec] = &[
     centre("chin", Unit, Plus("chin_depth")),
     centre("hair-top", Rise("hair_top_rise"), Rule),
-    centre(
-        "skull-centre",
-        Rise("skull_centre_rise"),
-        Plus("skull_centre_depth"),
-    ),
+    centre("skull-centre", Rise("skull_centre_rise"), Plus("skull_centre_depth")),
     centre("skull-front", Rule, Rule),
     centre("centre-line-at-eye-level", Zero, Rule),
-    centre(
-        "nose-mark-bottom",
-        Plus("nose_mark_bottom_drop"),
-        Plus("nose_mark_bottom_depth"),
-    ),
-    centre(
-        "mouth-line-centre",
-        Plus("mouth_centre_drop"),
-        Plus("mouth_centre_depth"),
-    ),
-    pair(
-        "face-outline",
-        "top",
-        Plus("face_top_half_width"),
-        Rise("face_top_rise"),
-        Plus("face_top_depth"),
-    ),
-    pair(
-        "face-outline",
-        "at-eye-level",
-        Plus("face_half_width_at_eye_level"),
-        Zero,
-        Plus("face_depth_at_eye_level"),
-    ),
-    pair(
-        "face-outline",
-        "at-nose-level",
-        Plus("face_half_width_at_nose_level"),
-        Rule,
-        Plus("face_depth_at_nose_level"),
-    ),
-    pair(
-        "face-outline",
-        "at-mouth-level",
-        Plus("face_half_width_at_mouth_level"),
-        Rule,
-        Plus("face_depth_at_mouth_level"),
-    ),
-    pair(
-        "face-outline",
-        "jaw",
-        Plus("jaw_half_width"),
-        Plus("jaw_drop"),
-        Plus("jaw_depth"),
-    ),
+    centre("nose-mark-bottom", Plus("nose_mark_bottom_drop"), Plus("nose_mark_bottom_depth")),
+    centre("mouth-line-centre", Plus("mouth_centre_drop"), Plus("mouth_centre_depth")),
+    pair("face-outline", "top", Plus("face_top_half_width"), Rise("face_top_rise"), Plus("face_top_depth")),
+    pair("face-outline", "at-eye-level", Plus("face_half_width_at_eye_level"), Zero, Plus("face_depth_at_eye_level")),
+    pair("face-outline", "at-nose-level", Plus("face_half_width_at_nose_level"), Rule, Plus("face_depth_at_nose_level")),
+    pair("face-outline", "at-mouth-level", Plus("face_half_width_at_mouth_level"), Rule, Plus("face_depth_at_mouth_level")),
+    pair("face-outline", "jaw", Plus("jaw_half_width"), Plus("jaw_drop"), Plus("jaw_depth")),
     pair("jaw-line", "top", Rule, Rule, Rule),
     pair("jaw-line", "at-eye-level", Rule, Zero, Rule),
-    pair(
-        "jaw-line",
-        "at-nose-level",
-        Rule,
-        Rule,
-        Plus("jaw_line_depth_at_nose_level"),
-    ),
-    pair(
-        "jaw-line",
-        "at-mouth-level",
-        Rule,
-        Rule,
-        Plus("jaw_line_depth_at_mouth_level"),
-    ),
-    pair(
-        "eye",
-        "outer-corner",
-        Plus("eye_outer_corner_offset"),
-        Plus("eye_outer_corner_drop"),
-        Rule,
-    ),
-    pair(
-        "eye",
-        "inner-corner",
-        Plus("eye_inner_corner_offset"),
-        Plus("eye_inner_corner_drop"),
-        Rule,
-    ),
-    pair(
-        "eye",
-        "opening-top",
-        Plus("eye_opening_top_offset"),
-        Rule,
-        Rule,
-    ),
-    pair(
-        "eye",
-        "opening-bottom",
-        Plus("eye_opening_bottom_offset"),
-        Rule,
-        Rule,
-    ),
+    pair("jaw-line", "at-nose-level", Rule, Rule, Plus("jaw_line_depth_at_nose_level")),
+    pair("jaw-line", "at-mouth-level", Rule, Rule, Plus("jaw_line_depth_at_mouth_level")),
+    pair("eye", "outer-corner", Plus("eye_outer_corner_offset"), Plus("eye_outer_corner_drop"), Rule),
+    pair("eye", "inner-corner", Plus("eye_inner_corner_offset"), Plus("eye_inner_corner_drop"), Rule),
+    pair("eye", "opening-top", Plus("eye_opening_top_offset"), Rule, Rule),
+    pair("eye", "opening-bottom", Plus("eye_opening_bottom_offset"), Rule, Rule),
     pair("eye", "opening-centre", Rule, Zero, Zero),
-    pair(
-        "iris",
-        "centre",
-        Plus("iris_centre_offset"),
-        Plus("iris_centre_drop"),
-        Plus("iris_depth"),
-    ),
-    pair(
-        "lid-line",
-        "inner-end",
-        Plus("lid_line_inner_end_offset"),
-        Plus("lid_line_inner_end_drop"),
-        Rule,
-    ),
-    pair(
-        "lid-line",
-        "crest",
-        Plus("lid_line_crest_offset"),
-        Rise("lid_line_crest_rise"),
-        Rule,
-    ),
-    pair(
-        "lid-line",
-        "outer-end",
-        Plus("lid_line_outer_end_offset"),
-        Rise("lid_line_outer_end_rise"),
-        Rule,
-    ),
-    pair(
-        "brow-line",
-        "inner-end",
-        Plus("brow_inner_end_offset"),
-        Rise("brow_inner_end_rise"),
-        Rule,
-    ),
-    pair(
-        "brow-line",
-        "outer-end",
-        Plus("brow_outer_end_offset"),
-        Rise("brow_outer_end_rise"),
-        Rule,
-    ),
-    pair(
-        "nose-mark",
-        "corner",
-        Plus("nose_mark_corner_offset"),
-        Plus("nose_mark_corner_drop"),
-        Plus("nose_mark_corner_depth"),
-    ),
-    pair(
-        "mouth-line",
-        "end",
-        Plus("mouth_end_offset"),
-        Plus("mouth_end_drop"),
-        Plus("mouth_end_depth"),
-    ),
-    pair(
-        "ear",
-        "base-outer",
-        Plus("ear_base_outer_offset"),
-        Rise("ear_base_outer_rise"),
-        Plus("ear_base_outer_depth"),
-    ),
-    pair(
-        "ear",
-        "base-inner",
-        Plus("ear_base_inner_offset"),
-        Rise("ear_base_inner_rise"),
-        Plus("ear_base_inner_depth"),
-    ),
-    pair(
-        "ear",
-        "top",
-        Plus("ear_top_offset"),
-        Rise("ear_top_rise"),
-        Rule,
-    ),
-    pair(
-        "ear",
-        "outer-extent",
-        Plus("ear_outer_extent_offset"),
-        Rise("ear_outer_extent_rise"),
-        Rule,
-    ),
-    pair(
-        "ear",
-        "inner-extent",
-        Plus("ear_inner_extent_offset"),
-        Rise("ear_inner_extent_rise"),
-        Rule,
-    ),
-    Spec {
-        width: Width::Front,
-        ..pair(
-            "shoulder",
-            "point",
-            Plus("shoulder_half_width"),
-            Plus("shoulder_drop"),
-            Plus("shoulder_depth"),
-        )
-    },
+    pair("iris", "centre", Plus("iris_centre_offset"), Plus("iris_centre_drop"), Plus("iris_depth")),
+    pair("lid-line", "inner-end", Plus("lid_line_inner_end_offset"), Plus("lid_line_inner_end_drop"), Rule),
+    pair("lid-line", "crest", Plus("lid_line_crest_offset"), Rise("lid_line_crest_rise"), Rule),
+    pair("lid-line", "outer-end", Plus("lid_line_outer_end_offset"), Rise("lid_line_outer_end_rise"), Rule),
+    pair("brow-line", "inner-end", Plus("brow_inner_end_offset"), Rise("brow_inner_end_rise"), Rule),
+    pair("brow-line", "outer-end", Plus("brow_outer_end_offset"), Rise("brow_outer_end_rise"), Rule),
+    pair("nose-mark", "corner", Plus("nose_mark_corner_offset"), Plus("nose_mark_corner_drop"), Plus("nose_mark_corner_depth")),
+    pair("mouth-line", "end", Plus("mouth_end_offset"), Plus("mouth_end_drop"), Plus("mouth_end_depth")),
+    pair("ear", "base-outer", Plus("ear_base_outer_offset"), Rise("ear_base_outer_rise"), Plus("ear_base_outer_depth")),
+    pair("ear", "base-inner", Plus("ear_base_inner_offset"), Rise("ear_base_inner_rise"), Plus("ear_base_inner_depth")),
+    pair("ear", "top", Plus("ear_top_offset"), Rise("ear_top_rise"), Rule),
+    pair("ear", "outer-extent", Plus("ear_outer_extent_offset"), Rise("ear_outer_extent_rise"), Rule),
+    pair("ear", "inner-extent", Plus("ear_inner_extent_offset"), Rise("ear_inner_extent_rise"), Rule),
+    // The shoulder line's width is read from the front view (rule 5 of the list).
+    Spec { width: Width::Front, ..pair("shoulder", "point", Plus("shoulder_half_width"), Plus("shoulder_drop"), Plus("shoulder_depth")) },
 ];
 
 /// The levels at which the face outline has a cheek point and a jaw-line point.
@@ -392,9 +230,10 @@ pub fn head(set: &Set) -> Result<Head> {
     let mut landmarks = Vec::new();
     for spec in LANDMARKS {
         let [offset, drop, depth] = at[&spec.key()];
-        debug_assert!(
+        // A coordinate the table marks `Rule` and no rule fills is a fault in the program.
+        assert!(
             offset.is_finite() && drop.is_finite() && depth.is_finite(),
-            "no rule placed {}",
+            "the head model places {} nowhere",
             spec.label()
         );
         if spec.pair {
