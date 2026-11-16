@@ -12,6 +12,7 @@ use crate::armature::{self, File};
 use crate::differences::{self, Differences, Input, ViewDifferences};
 use crate::hand_made_views::{self, Provenance};
 use crate::number::{plain, plain3};
+use crate::views::View;
 use crate::{Error, Result};
 
 /// The hand-made positions: a warm colour the generated guides never use.
@@ -33,8 +34,8 @@ const BADGE_GAP: f64 = 0.02;
 const BADGE_TRIES: usize = 60;
 
 /// The file name of a view's overlay.
-pub fn file_name(view: &str) -> String {
-    format!("{view}.hand-made-overlay.svg")
+pub fn file_name(view: View) -> String {
+    format!("{}.hand-made-overlay.svg", view.name())
 }
 
 /// Writes the overlays of a generated front view and three-quarter view: one SVG for each,
@@ -102,7 +103,7 @@ fn view_overlay(
     ));
     svg.push_str(&format!(
         "  <!-- The hand-made {view} view of {record}, over the generated view of {file}, written by\n       `maquette overlay-hand-made-views`. Placed at the same place and size as that view's SVG,\n       it lies over it exactly. A record position x, y stands here at\n       (x - {sx}) / {scale}, (y - {sy}) / {scale}: the comparison's lay-over, undone.\n       Filled dots: every position the record gives the view. A dashed ring: a position the\n       head covers in the hand-made drawing. A numbered line: a difference above 1% of head\n       height, from the generated position to the hand-made one, numbered as the\n       differences file numbers it. -->\n",
-        view = view.view,
+        view = view.view.name(),
         record = found.record,
         file = file.path,
         sx = plain3(lay_over.shift_x),

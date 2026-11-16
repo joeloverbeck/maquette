@@ -10,7 +10,7 @@
 use std::collections::BTreeMap;
 
 use crate::head_model::Reading;
-use crate::views::THREE_QUARTER_TURN_DEGREES;
+use crate::views::View;
 use crate::{Error, Result};
 
 /// How the record's positions are read as landmarks. Written into every set of proportions
@@ -157,7 +157,18 @@ struct ViewRead {
     provenance: Provenance,
 }
 
-fn read_view(record: &toml::Table, view: &str, turned: bool) -> Result<ViewRead> {
+/// The table of the record that holds a view.
+pub fn record_key(view: View) -> &'static str {
+    match view {
+        View::Front => "front",
+        View::ThreeQuarter => "three_quarter",
+    }
+}
+
+fn read_view(record: &toml::Table, view: View) -> Result<ViewRead> {
+    let (turned, turn_degrees) = (view != View::Front, view.turn_degrees());
+    // The messages below name the view as the record does.
+    let view = record_key(view);
     let section = record
         .get("views")
         .and_then(|views| views.get(view))
@@ -212,11 +223,7 @@ fn read_view(record: &toml::Table, view: &str, turned: bool) -> Result<ViewRead>
     };
 
     let mut reading = Reading {
-        turn_degrees: if turned {
-            THREE_QUARTER_TURN_DEGREES
-        } else {
-            0.0
-        },
+        turn_degrees,
         ..Reading::default()
     };
     let mut read_from: BTreeMap<String, Vec<String>> = BTreeMap::new();
@@ -347,8 +354,8 @@ pub fn read(text: &str) -> Result<HandMade> {
         .and_then(toml::Value::as_str)
         .ok_or_else(|| Error::new("the record's [source] does not say what the drawings are"))?
         .to_string();
-    let front = read_view(&record, "front", false)?;
-    let three_quarter = read_view(&record, "three_quarter", true)?;
+    let front = read_view(&record, View::Front)?;
+    let three_quarter = read_view(&record, View::ThreeQuarter)?;
     Ok(HandMade {
         front: front.reading,
         three_quarter: three_quarter.reading,

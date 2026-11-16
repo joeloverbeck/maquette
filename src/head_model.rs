@@ -17,6 +17,7 @@
 use std::collections::BTreeMap;
 
 use crate::proportions::Set;
+use crate::views::View;
 use crate::{Error, Result};
 
 use Origin::{Plus, Rise, Rule, Unit, Zero};
@@ -397,15 +398,19 @@ impl Reading {
         self.points.get(name).copied()
     }
 
-    fn need(&self, name: &str, view: &str) -> Result<[f64; 2]> {
-        self.get(name)
-            .ok_or_else(|| Error::new(format!("the {view} view has no position for `{name}`")))
+    fn need(&self, name: &str, view: View) -> Result<[f64; 2]> {
+        self.get(name).ok_or_else(|| {
+            Error::new(format!(
+                "the {} view has no position for `{name}`",
+                view.name()
+            ))
+        })
     }
 
     /// The eye line and the unit as this view shows them: the eye line midway between the
     /// top and the bottom of the eye opening, averaged over the eyes shown, and the unit
     /// from there down to the chin.
-    pub fn frame(&self, view: &str) -> Result<Frame> {
+    pub fn frame(&self, view: View) -> Result<Frame> {
         let mut levels = Vec::new();
         for side in ["left", "right"] {
             let top = self.get(&format!("eye-{side}-opening-top"));
@@ -416,14 +421,16 @@ impl Reading {
         }
         if levels.is_empty() {
             return Err(Error::new(format!(
-                "the {view} view shows no eye opening with a top and a bottom, so it has no eye line"
+                "the {} view shows no eye opening with a top and a bottom, so it has no eye line",
+                view.name()
             )));
         }
         let eye_line_y = levels.iter().sum::<f64>() / levels.len() as f64;
         let unit = self.need("chin", view)?[1] - eye_line_y;
         if unit <= 0.0 {
             return Err(Error::new(format!(
-                "in the {view} view the chin is not below the eye line"
+                "in the {} view the chin is not below the eye line",
+                view.name()
             )));
         }
         Ok(Frame { eye_line_y, unit })
@@ -442,8 +449,8 @@ struct Views<'a> {
     sin: f64,
 }
 
-const FRONT: &str = "front";
-const TURNED: &str = "three-quarter";
+const FRONT: View = View::Front;
+const TURNED: View = View::ThreeQuarter;
 
 impl Views<'_> {
     fn front_frame(&self) -> Result<Frame> {

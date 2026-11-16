@@ -12,6 +12,7 @@ use crate::hand_made_views::{self, MARKS_RULE, Marks, Provenance};
 use crate::head_model::Reading;
 use crate::number::{plain, round3, toml as toml_number};
 use crate::toml_text::{quoted, quoted_list};
+use crate::views::View;
 use crate::{Error, Result};
 
 /// A difference is listed with a number when it is more than this share of head height.
@@ -93,8 +94,7 @@ pub struct LayOver {
 /// The differences of one view.
 #[derive(Debug, Clone)]
 pub struct ViewDifferences {
-    /// `front` or `three-quarter`.
-    pub view: &'static str,
+    pub view: View,
     pub landmark_file: String,
     pub lay_over: LayOver,
     /// Numbered, largest first.
@@ -122,7 +122,7 @@ fn above_threshold(distance: f64, head_height: f64) -> bool {
 }
 
 fn compare_view(
-    view: &'static str,
+    view: View,
     file: Input,
     hand_made: &Reading,
     provenance: &Provenance,
@@ -130,20 +130,24 @@ fn compare_view(
 ) -> Result<ViewDifferences> {
     let placed = armature::read_placement(file.text)
         .map_err(|error| Error::new(format!("{}: {error}", file.path)))?;
-    if placed.view != view {
+    if placed.view != view.name() {
         return Err(Error::new(format!(
-            "{} is the landmark file of a {} view, not of a {view} view",
-            file.path, placed.view
+            "{} is the landmark file of a {} view, not of a {} view",
+            file.path,
+            placed.view,
+            view.name()
         )));
     }
     let generated = armature::read_landmark_file(file.text)
         .map_err(|error| Error::new(format!("{}: {error}", file.path)))?;
 
     let frame = hand_made.frame(view)?;
-    let axis = hand_made
-        .points
-        .get("skull-centre")
-        .ok_or_else(|| Error::new(format!("the record's {view} view has no skull centre")))?[0];
+    let axis = hand_made.points.get("skull-centre").ok_or_else(|| {
+        Error::new(format!(
+            "the record's {} view has no skull centre",
+            view.name()
+        ))
+    })?[0];
     let scale = frame.unit / placed.unit;
     let lay_over = LayOver {
         scale,
@@ -250,14 +254,14 @@ pub fn compare(front: Input, three_quarter: Input, record: Input) -> Result<Diff
     }
 
     let mut front = compare_view(
-        "front",
+        View::Front,
         front,
         &hand_made.front,
         &hand_made.front_record,
         head_height,
     )?;
     let mut three_quarter = compare_view(
-        "three-quarter",
+        View::ThreeQuarter,
         three_quarter,
         &hand_made.three_quarter,
         &hand_made.three_quarter_record,
@@ -298,7 +302,7 @@ impl ViewDifferences {
     }
 
     fn file(&self, out: &mut String) {
-        let view = self.view;
+        let view = self.view.name();
         out.push_str(&format!("\n[{view}]\n"));
         out.push_str(&format!(
             "landmark_file = {}\n",
@@ -394,7 +398,7 @@ impl ViewDifferences {
             });
         out.push_str(&format!(
             "\n{}: {} compared, {} above 1%, {} at or under{largest_under}\n",
-            self.view,
+            self.view.name(),
             self.compared(),
             self.above.len(),
             self.at_or_under.len()

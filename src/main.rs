@@ -7,7 +7,7 @@ use std::process::ExitCode;
 
 use maquette::head_model::{self, Reading};
 use maquette::toml_text::{quoted, quoted_lines};
-use maquette::views::Placement;
+use maquette::views::{Placement, View};
 use maquette::{
     Error, Result, armature, differences, hand_made_views, hard_case, overlay, proportions,
     read_back, vectorcraft,
@@ -362,12 +362,13 @@ fn overlay_hand_made_views(arguments: &[String]) -> Result<()> {
 }
 
 /// Where a hand-made view puts the unit, the eye line and the turn axis, in its own units.
-fn frame_lines(reading: &Reading, view: &str, table: &str) -> Result<String> {
+fn frame_lines(reading: &Reading, view: View) -> Result<String> {
     let frame = reading.frame(view)?;
+    let table = hand_made_views::record_key(view);
     let axis = reading
         .points
         .get("skull-centre")
-        .ok_or_else(|| Error::new(format!("the record's {view} view has no skull centre")))?;
+        .ok_or_else(|| Error::new(format!("the record's {table} view has no skull centre")))?;
     Ok(format!(
         "[source.{table}]\nunit = {}\neye_line_y = {}\nturn_axis_x = {}\n",
         maquette::number::toml(frame.unit, 3),
@@ -430,13 +431,9 @@ fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
     ));
     opening.push_str("\n# Where each hand-made view puts the unit, the eye line and the upright axis the head turns about,\n");
     opening.push_str("# in the record's own units. `maquette draw` with these lays a generated view over the hand-made one.\n");
-    opening.push_str(&frame_lines(&hand_made.front, "front", "front")?);
+    opening.push_str(&frame_lines(&hand_made.front, View::Front)?);
     opening.push('\n');
-    opening.push_str(&frame_lines(
-        &hand_made.three_quarter,
-        "three-quarter",
-        "three_quarter",
-    )?);
+    opening.push_str(&frame_lines(&hand_made.three_quarter, View::ThreeQuarter)?);
 
     deliver(&found, &set.write(&opening)?)
 }
