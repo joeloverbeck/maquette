@@ -126,6 +126,9 @@ _Avoid_: error, deviation, mismatch
 To put a generated view on a hand-made one by one scale and one shift for the whole view, so that their units, eye lines and turn axes coincide. It is fitted to no single landmark.
 _Avoid_: align, register, fit
 
+**Overlay**:
+An SVG in a generated view's own units that shows a hand-made view as its recorded landmarks, with every difference above 1% numbered, so that it lies exactly over the generated SVG on a review sheet. It is the lay-over undone, not a second lay-over.
+
 **Read-back**:
 What VectorCraft holds of an armature's SVG after opening it, compared with the view's landmark file: names, the anchors of each guide, visibility and paint. It checks that VectorCraft keeps what the landmark file says, not that the landmark file is right.
 _Avoid_: import test, round trip

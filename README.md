@@ -41,6 +41,18 @@ cargo run -- differences-from-hand-made-views \
 
 This lays the two generated views over Saffi's hand-made ones and writes, for every landmark both give, how far apart they put it as a share of head height. It prints the differences above 1%, numbered; the armature review sheet puts those numbers on the drawing. The file states how the views are laid over each other, which is one scale and one shift for a view and fitted to no landmark, and what has no counterpart on either side. It lists differences and judges none: whether one matters is Jon's look.
 
+### The overlays for a review sheet
+
+```sh
+cargo run -- overlay-hand-made-views \
+  --front target/saffi/front.landmarks.toml \
+  --three-quarter target/saffi/three-quarter.landmarks.toml \
+  --record data/saffi/hand-made-views.toml \
+  --out target/saffi
+```
+
+This writes `front.hand-made-overlay.svg` and `three-quarter.hand-made-overlay.svg`: in each view's own units, every position the record gives as an orange dot, a dashed ring where the head covers it in her drawing, and every difference above 1% as a line from the generated position to the hand-made one with the number the differences file gives it. Placed over the view's SVG at the same place and size, an overlay lies over it exactly. `design/look-1-saffi-front-three-quarter/README.md` says how the review sheet is composed from these files in FigCraft.
+
 ### The read-back in VectorCraft
 
 An armature is put to Jon or exported only after its SVG has been read back in VectorCraft ([`docs/foundation/02-first-table.md`](docs/foundation/02-first-table.md), "The SVG contract"). That is run locally, for each view, where `vectorcraft-cli` is on the PATH:
