@@ -47,7 +47,43 @@ That an armature improves the drawing made over it is a separate claim. Its evid
 
 Maquette exports Saffi's accepted armature at a tagged commit. Mudsong copies the files into its own study folder, records the commit and imports them into VectorCraft itself. Maquette does not depend on mudsong's working tree. Jon approved one exception on 2026-11-16: the hand-made drawings in mudsong's study folder are read once, pinned by digest, and only numbers taken from them are committed, with where they came from (`INT-4`).
 
-The compatibility promise is narrow: the exported SVG, as read by the VectorCraft version mudsong uses, keeps every guide's name and position. Nobody has yet checked what VectorCraft keeps on import. AniCraft's importer, read but not run, drops group structure and hidden elements. The controlling sources and the oracle (import, then read the names and coordinates back) are fixed before anything is built on the format.
+The compatibility promise is narrow: the exported SVG, as read by the VectorCraft version mudsong uses, keeps every guide's name and position. The SVG contract below says what that takes. The handoff is proven only when mudsong has imported the files and read the names and positions back itself.
+
+## The SVG contract (`FID-1`, `FID-2`, `FID-3`)
+
+Proposed by the agent on 2026-11-16 and accepted by Jon the same day, in pull request #11. Every statement about VectorCraft here was observed that day by running its MCP server. The probes, the read-backs and every result are in `design/svg-contract/`.
+
+**Version.** Observed on `vectorcraft-cli` 0.24.1, headless: the binary on Jon's machine that day, whose digest is in the probe folder. Mudsong starts the same command on the same machine, so it runs the same binary. Its foundation records 0.24.0, which was not tested. VectorCraft is updated almost daily, so the contract is not pinned to this version (Jon, 2026-11-16). The oracle is what holds it to the installed one: it runs each time an armature is put to Jon or exported, against whichever version is installed, and its read-back names that version. The probes are rerun when the oracle fails, or when the armature needs something outside the list below.
+
+**Sources, in order.** What this version does when run; then VectorCraft's `docs/mcp.md`; then SVG 1.1, which the armature must still be valid as. The earlier wins. The probe folder names the exact revision of each and records each disagreement. Jon rules on what they leave open.
+
+**What the armature uses.**
+
+- *Size:* `width` and `height` as plain numbers equal to a `viewBox` that starts at `0 0`. Other units or another `viewBox` change every coordinate.
+- *Names:* the `id` alone, in lower-case letters, digits and hyphens, starting with a letter, once per file. It arrives unchanged as the object's name. `data-name`, `inkscape:label` and `aria-label` would replace it.
+- *Guides:* `path` with one subpath of `M`, `L`, `C` and `Z`; `line`; `polyline`; `circle`; `ellipse`. Each arrives as a path whose anchors can be read. Arcs, transforms, `use` and paths of several subpaths arrive approximated, rounded or as pieces without names, and are left out.
+- *Paint:* a stroke with `fill="none"`, as attributes on the element or a group above it.
+- *Structure:* every top-level element is a `g` with an `id`, which arrives as a layer. Groups nest, each with an `id` and at least one guide.
+
+Nothing is hidden in the file. VectorCraft drops an element with neither fill nor stroke, an unfilled element whose stroke is of width 0, an element with `visibility="hidden"` and an empty group, and reports no warning.
+
+**The oracle.** Open the SVG with the server's `open_file`, read the tree with `inspect_document` and each path's points, which VectorCraft calls anchors, with `document.node`, and compare with the landmark file. It passes when the import reports no warning; the names read back are the landmark file's guide names, each once; every position the landmark file gives is within 0.001 unit of the anchor read back; and every guide is visible, stroked and unfilled. A circle or an ellipse comes back as four anchors at its right, bottom, left and top, with none at its centre, so its centre and radii are checked through those four points. Coordinates come back at single precision, at most 0.00004 unit off in the hard case. Expected values come from the landmark file, never from the SVG. The oracle is a mechanical validator (`AUTH-3`): it shows that VectorCraft keeps what the landmark file says, not that the landmark file is right (`EVID-4`). It runs locally, and its read-back is shown in the pull request.
+
+**When a guide does not survive.** The check fails, and the armature is neither put to Jon nor exported. Nothing is renamed, loosened or passed with a note. The generator's output returns to the list above, or the contract is revised from new probes and Jon accepts the revision.
+
+**The hard case** the generator's output must pass first (`FID-2`) was chosen from what the probes showed to be fragile, not from any design of the generator. It is a three-quarter view whose positions are not round numbers:
+
+- every guide at once, in nested groups, with one name contained in another;
+- left and right pairs whose two members differ in shape and place;
+- closed guides, which must arrive unfilled;
+- after import, one member of a pair hidden by its name, and only it hidden;
+- two spoiled copies that the oracle must fail: one with a guide given `visibility="hidden"`, one with a pair's names exchanged. The second reads back with the right set of names, and only positions show it.
+
+`design/svg-contract/in/hard-case.svg` is a hand-written stand-in that passes. Its numbers are those of the stand-in armature in `design/first-table-sheets/`, which follows Saffi's hand-made three-quarter view, with decimals added. It proves nothing about the generator.
+
+**The other direction.** VectorCraft exports an authored shape with its name in `data-name` whenever the name is not already a valid `id`, with positions rounded to three decimals unless seven are asked for, and without hidden objects unless they are asked for. A reader takes the name from `data-name` first. The hard case for this direction is chosen when a ticket first uses an authored shape.
+
+**Not tested.** Any version but 0.24.1, the desktop app, mudsong's own import, and anything the armature does not use.
 
 ## What this cannot show
 

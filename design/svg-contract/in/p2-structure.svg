@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Probe 2, hand-written: groups, nesting, layers and stacking order. -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="1000" height="1000" viewBox="0 0 1000 1000" fill="none" stroke="#2a2f3d" stroke-width="2">
+  <line id="loose-before" x1="100" y1="50" x2="200" y2="50"/>
+  <g id="armature">
+    <g id="head">
+      <circle id="skull" cx="500" cy="300" r="190"/>
+      <g id="eyes">
+        <g id="eye-left">
+          <path id="eye-opening-left" d="M540 370 L616 370"/>
+          <path id="lid-line-left" d="M540 360 L616 360"/>
+        </g>
+        <g id="eye-right">
+          <path id="eye-opening-right" d="M384 370 L460 370"/>
+          <path id="lid-line-right" d="M384 360 L460 360"/>
+        </g>
+      </g>
+    </g>
+    <g id="neck">
+      <line id="neck-left" x1="590" y1="508" x2="590" y2="640"/>
+    </g>
+    <g id="empty-group"/>
+  </g>
+  <g id="guides-layer" inkscape:groupmode="layer" inkscape:label="guides layer label">
+    <line id="centre-line" x1="500" y1="100" x2="500" y2="600"/>
+    <g id="sublayer" inkscape:groupmode="layer" inkscape:label="sublayer label">
+      <line id="eye-line" x1="350" y1="366" x2="650" y2="366"/>
+    </g>
+  </g>
+  <g id="Layer_2" data-name="Layer 2">
+    <line id="mouth-line" x1="474" y1="500" x2="526" y2="500"/>
+  </g>
+  <g>
+    <line id="in-anonymous-group" x1="100" y1="950" x2="200" y2="950"/>
+    <line id="also-in-anonymous-group" x1="300" y1="950" x2="400" y2="950"/>
+  </g>
+  <line id="loose-after" x1="800" y1="50" x2="900" y2="50"/>
+</svg>

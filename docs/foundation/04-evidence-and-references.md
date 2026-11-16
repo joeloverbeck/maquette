@@ -18,7 +18,7 @@
 | Drawing lessons agree that in a side view the ear sits at or just behind the middle of the head's depth, between the brow and the base of the nose. | No source gives an anime head's depth as a number, or measures how drawn three-quarter and side views depart from geometry. |
 | Official sites publish level front heads freely. Level three-quarter heads are rare, and side heads are mostly in official setting-material books. | Seven sources, picked by the agent that looked. No head sheet of an adult woman was among them. |
 | An agent read 52 points off five clean hand-made drawings to within 1.5% of head height, unaided. | Published drawings are harder, and judging whether a head is level was not tested. |
-| MIT lists US patent 8,791,942 on 2.5D cartoon models. | Not examined. Check it before publishing a method that blends authored views around points in space. |
+| US patent 8,791,942 (MIT, granted 2014) covers turning a 2D cartoon by way of 2.5D cartoon models. | Its independent claims were read on 2026-11-16, in the pull request for #4. Each starts from two or more drawn views, which the generator does not take, and the USPTO's Official Gazette of 2026-09-22 lists the patent as expired on 2026-07-29. This is an agent's account of the claims, not legal advice. Jon ruled the same day that maquette disregards the patent: it constrains no work here. |
 
 Matching measured sources and helping Jon are separate claims with separate evidence (`FID-4`). A table can be faithful to its sources and still give an armature he rejects.
 
@@ -37,6 +37,8 @@ A reference is a published drawing whose proportions are measured for a table.
 ## What is committed, and what never is
 
 Committed: the tables, and the list of works each was measured from. A table gives each proportion's lowest, middle and highest value and the number of works behind it.
+
+Also committed, as numbers only: the landmark positions of Saffi's hand-made views, in `data/saffi/`. She is Jon's own character, so the rule below against a landmark set of one identifiable character does not reach her (`02-first-table.md`, "The handoff"). Her numbers never enter a table.
 
 Never committed, because the repository is public and the works are other people's:
 

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Probe 2b, hand-written: every top-level element is a group. Do they become layers? -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000" fill="none" stroke="#2a2f3d" stroke-width="2">
+  <g id="construction">
+    <circle id="skull" cx="500" cy="300" r="190"/>
+    <g id="level-lines">
+      <line id="eye-line" x1="350" y1="366" x2="650" y2="366"/>
+      <line id="mouth-level-line" x1="440" y1="500" x2="560" y2="500"/>
+    </g>
+  </g>
+  <g id="features">
+    <path id="eye-opening-left" d="M540 370 L616 370"/>
+    <path id="eye-opening-right" d="M384 370 L460 370"/>
+  </g>
+  <g id="hidden-guides" display="none">
+    <line id="centre-line" x1="500" y1="100" x2="500" y2="600"/>
+  </g>
+</svg>

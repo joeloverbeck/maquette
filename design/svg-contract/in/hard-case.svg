@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hard case for the SVG contract, written by hand: a head in a three-quarter view whose numbers are not round.
+     It is not generator output. It uses only the subset the contract allows.
+     The numbers are not made up. They are those of design/first-table-sheets/stand-in-armature-three-quarter.svg,
+     each moved by less than 1 unit so that it has decimals. That stand-in follows the hand-made three-quarter view
+     of Saffi, Jon's own character, moved 5 units toward the viewer's right. Her record is data/saffi/, not this file.
+     design/svg-contract/README.md, "The hard case", gives the counts. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <g id="armature" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path id="hair-volume" d="M275.12 545.4 L275.12 300.333 C275.12 180.71 371.34 84.06 490.25 84.06 C608.69 84.06 705.4 180.71 705.4 300.333 L705.4 545.4" stroke="#8d93a6" stroke-dasharray="10 7"/>
+    <circle id="skull" cx="500.37" cy="301.52" r="191.48"/>
+    <path id="face-outline" d="M681.3 337.1 C677.25 350.6 672.4 358.2 672.4 368.9 C672.4 384.15 675.7 402.3 674.1 420.45 C673.6 446.2 667.8 470.9 657.05 490.3 C645.5 514.7 631.2 536.8 613.9 552.15 C603.3 562.4 593.6 567.37 581.8 567.37 C571.2 567.37 563.4 565.1 555.9 561.6 C517.3 550.2 477.6 532.9 445.1 508.4 C425.7 494.6 409.2 474.3 399.8 450.7 C390.4 425.9 382.6 380.2 381.9 330.6"/>
+    <path id="centre-line" d="M495.5 110.2 C545.1 116.7 575.9 180.3 583.4 250.6 C589.2 300.1 587.7 340.8 589.3 372.4 C593.6 410.9 599.1 432.2 597.8 448.6 C595.2 470.4 593.9 484.7 593.3 500.25 C589.6 524.1 585.4 546.3 581.8 567.37"/>
+    <line id="eye-level-line" x1="381.9" y1="366.667" x2="681.3" y2="366.667"/>
+    <line id="nose-level-line" x1="560.4" y1="450.7" x2="660.8" y2="450.7"/>
+    <line id="mouth-level-line" x1="540.6" y1="500.25" x2="650.2" y2="500.25"/>
+    <g id="eye-right">
+      <path id="eye-opening-right" d="M458.2 369.4 C467.6 356.1 485.3 350.2 503.7 350.2 C519.4 351.6 529.8 358.3 535.6 374.9 C527.1 385.7 513.5 390.8 497.3 390.8 C481.9 390.8 467.2 383.6 458.2 369.4 Z"/>
+      <path id="lid-line-right" d="M458.2 369.4 C467.6 356.1 485.3 350.2 503.7 350.2 C519.4 351.6 529.8 358.3 535.6 374.9" stroke-width="4"/>
+      <ellipse id="iris-right" cx="493.45" cy="370.5" rx="21.3" ry="20.3"/>
+    </g>
+    <g id="eye-left">
+      <path id="eye-opening-left" d="M607.4 374.9 C611.8 360.3 621.2 351.7 635.9 350.2 C647.3 350.2 656.6 356.8 660.1 366.4 C657.5 379.2 647.9 388.6 635.9 390.8 C623.2 391.4 613.7 385.5 607.4 374.9 Z"/>
+      <path id="lid-line-left" d="M607.4 374.9 C611.8 360.3 621.2 351.7 635.9 350.2 C647.3 350.2 656.6 356.8 660.1 366.4" stroke-width="4"/>
+      <ellipse id="iris-left" cx="629.55" cy="370.5" rx="15.6" ry="20.3"/>
+    </g>
+    <path id="brow-line-right" d="M459.3 323.8 C481.6 316.4 509.2 319.7 534.9 333.1"/>
+    <path id="brow-line-left" d="M607.7 335.2 C623.4 325.6 643.1 319.3 661.8 319.3"/>
+    <polyline id="nose-mark" points="588.4,447.6 597.2,456.3 604.9,448.1"/>
+    <path id="mouth-line" d="M561.7 500.25 C573.2 503.4 585.6 499.1 595.3 500.25 C601.8 499.6 605.4 500.7 609.9 498.3"/>
+    <path id="ear-right" d="M341.6 176.3 C327.2 136.8 337.9 88.4 371.5 68.7 C399.3 54.2 433.8 70.6 441.1 104.9 C445.7 126.2 443.4 148.5 435.2 168.8"/>
+    <path id="ear-left" d="M581.3 150.6 C577.8 114.2 587.4 78.9 607.6 66.3 C625.1 62.7 637.5 82.4 637.5 110.8 C637.5 128.3 633.9 146.1 627.2 160.4"/>
+    <g id="neck">
+      <line id="neck-right" x1="393.6" y1="462.8" x2="393.6" y2="640.125"/>
+      <line id="neck-left" x1="569.3" y1="567.37" x2="569.3" y2="640.125"/>
+    </g>
+    <line id="shoulder-line" x1="133.7" y1="740.6" x2="817.9" y2="740.6"/>
+  </g>
+</svg>

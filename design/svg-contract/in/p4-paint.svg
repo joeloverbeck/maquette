@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Probe 4, hand-written: strokes without fill, and the ways paint can be stated. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <style>.guide { fill: none; stroke: #2f6fdd; stroke-width: 1.5; }</style>
+  <path id="attr-stroke-no-fill" d="M100 100 L300 100 L300 200" fill="none" stroke="#2a2f3d" stroke-width="2.5"/>
+  <path id="style-stroke-no-fill" d="M100 250 L300 250 L300 350" style="fill:none;stroke:#2a2f3d;stroke-width:2.5"/>
+  <path id="class-stroke-no-fill" class="guide" d="M100 400 L300 400 L300 500"/>
+  <path id="default-paint" d="M100 550 L300 550 L300 650"/>
+  <path id="stroke-only-no-fill-attr" d="M100 700 L300 700 L300 800" stroke="#2a2f3d"/>
+  <g id="inherit-group" fill="none" stroke="#8d93a6" stroke-width="3">
+    <path id="inherits-from-group" d="M500 100 L700 100 L700 200"/>
+  </g>
+  <path id="dashed" d="M500 250 L700 250" fill="none" stroke="#8d93a6" stroke-width="2.5" stroke-dasharray="10 7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="half-opacity" d="M500 300 L700 300" fill="none" stroke="#2a2f3d" stroke-width="2" opacity="0.5"/>
+  <path id="stroke-opacity" d="M500 350 L700 350" fill="none" stroke="#2a2f3d" stroke-width="2" stroke-opacity="0.5"/>
+  <path id="named-colour" d="M500 400 L700 400" fill="none" stroke="red" stroke-width="2"/>
+  <path id="scaled-stroke" d="M250 225 L350 225" fill="none" stroke="#2a2f3d" stroke-width="2" transform="scale(2)"/>
+  <path id="non-scaling-stroke" d="M250 250 L350 250" fill="none" stroke="#2a2f3d" stroke-width="2" vector-effect="non-scaling-stroke" transform="scale(2)"/>
+  <circle id="closed-no-fill" cx="600" cy="700" r="80" fill="none" stroke="#2a2f3d" stroke-width="2.5"/>
+</svg>

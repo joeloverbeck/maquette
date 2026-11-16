@@ -1,0 +1,47 @@
+# Read-back of design/svg-contract/in/p3-transforms.svg
+# Hand-written input imported with open_file.
+# VectorCraft 0.24.1, MCP server (headless), run on 2026-11-16. Numbers are as the server printed them.
+# open_file reply: {"format":"svg","restored":false,"warnings":[]}
+#
+# 1. inspect_document: id, kind, name (a name in angle brackets is VectorCraft's label for an unnamed object), visibility, bounds [x,y WxH], paint
+# units Pixels; artboard 0.0,0.0 1000.0x1000.0; objects 19
+1 Layer name="Layer 1" visible bounds=[100.0,100.0 800.0x770.0]
+  2 Path name="t-none" visible bounds=[100.0,100.0 100.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  3 Path name="t-translate" visible bounds=[200.0,300.0 100.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  4 Path name="t-rotate" visible bounds=[600.0,499.99999999999994 100.0x0.0] fill=None stroke=#2a2f3d width=2.0
+  5 Path name="t-scale" visible bounds=[200.0,100.0 100.0x0.0] fill=None stroke=#2a2f3d width=4.0
+  6 Path name="t-matrix" visible bounds=[770.0,110.0 20.0x10.0] fill=None stroke=#2a2f3d width=2.0
+  7 Path name="t-mirror" visible bounds=[750.0,700.0 150.0x20.0] fill=None stroke=#2a2f3d width=2.0
+  8 Path name="t-curve-mirror" visible bounds=[540.0,318.96216920415657 75.0x15.037830795843433] fill=None stroke=#2a2f3d width=2.0
+  9 Path name="t-circle-translate" visible bounds=[680.0,680.0 40.0x40.0] fill=None stroke=#2a2f3d width=2.0
+  10 Path name="t-ellipse-rotate" visible bounds=[247.07518700448398,765.3531864599171 105.8496245605206x69.29360037728463] fill=None stroke=#2a2f3d width=1.9999999730776528
+  11 Path name="t-ellipse-skew" visible bounds=[559.33596703734,830.0 81.32806592532029x40.0] fill=None stroke=#2a2f3d width=2.0
+  15 Group name="g-translate" visible bounds=[100.0,100.0 70.0x50.0]
+    12 Path name="in-g-translate" visible bounds=[100.0,100.0 50.0x0.0] fill=None stroke=#2a2f3d width=2.0
+    14 Group name="g-nested-scale" visible bounds=[130.0,150.0 40.0x0.0]
+      13 Path name="in-g-nested" visible bounds=[130.0,150.0 40.0x0.0] fill=None stroke=#2a2f3d width=4.0
+  17 Group name="g-mirror-right" visible bounds=[315.0,420.0 15.0x60.0]
+    16 Path name="ear-right" visible bounds=[315.0,420.0 15.0x60.0] fill=None stroke=#2a2f3d width=2.0
+  19 Group name="use-of-t-none" visible bounds=[100.0,150.0 100.0x0.0]
+    18 Path name="<Path>" visible bounds=[100.0,150.0 100.0x0.0] fill=None stroke=#2a2f3d width=2.0
+#
+# 2. run_command document.node on each layer: path of names [type], then each subpath's anchors (in= and out= are Bezier handles)
+/Layer 1 [layer]
+/Layer 1/t-none [path] open 100.0,100.0 | 200.0,100.0
+/Layer 1/t-translate [path] open 200.0,300.0 | 300.0,300.0
+/Layer 1/t-rotate [path] open 600.0,499.99999999999994 | 700.0,499.99999999999994
+/Layer 1/t-scale [path] open 200.0,100.0 | 300.0,100.0
+/Layer 1/t-matrix [path] open 790.0,110.0 | 770.0,120.0
+/Layer 1/t-mirror [path] open 900.0,700.0 | 750.0,720.0
+/Layer 1/t-curve-mirror [path] open 615.0,323.0 out=593.0,315.0 | 540.0,334.0 in=563.0,319.0
+/Layer 1/t-circle-translate [path] closed 720.0,700.0 in=720.0,688.9543050033841 out=720.0,711.0456949966159 | 700.0,720.0 in=711.0456949966159,720.0 out=688.9543050033841,720.0 | 680.0,700.0 in=680.0,711.0456949966159 out=680.0,688.9543050033841 | 700.0,680.0 in=688.9543050033841,680.0 out=711.0456949966159,680.0
+/Layer 1/t-ellipse-rotate [path] closed 351.9615225791931,829.9999866485596 in=357.48437007750107,820.4341343507257 out=346.43867508088516,839.5658389463935 | 289.99999928474426,817.3204944133759 in=318.6975561782459,833.8890369082997 out=261.3024423912426,800.751951918452 | 248.0384759902954,769.9999866485596 in=242.51562849198746,779.5658389463935 out=253.56132348860336,760.4341343507257 | 309.99999928474426,782.6794788837433 in=281.3024423912426,766.1109363888195 out=338.6975561782459,799.2480213786671
+/Layer 1/t-ellipse-skew [path] closed 640.0,850.0 in=635.9796959610462,838.9543050033841 out=644.0203040389538,861.0456949966159 | 607.2794044017792,870.0 in=629.3707943950109,870.0 out=585.1880144085475,870.0 | 560.0,850.0 in=564.0203040389538,861.0456949966159 out=555.9796959610462,838.9543050033841 | 592.7205955982208,830.0 in=570.6292056049891,830.0 out=614.8119855914525,830.0
+/Layer 1/g-translate [group]
+/Layer 1/g-translate/in-g-translate [path] open 100.0,100.0 | 150.0,100.0
+/Layer 1/g-translate/g-nested-scale [group]
+/Layer 1/g-translate/g-nested-scale/in-g-nested [path] open 130.0,150.0 | 170.0,150.0
+/Layer 1/g-mirror-right [group]
+/Layer 1/g-mirror-right/ear-right [path] open 330.0,420.0 out=310.0,430.0 | 330.0,480.0 in=310.0,470.0
+/Layer 1/use-of-t-none [group]
+/Layer 1/use-of-t-none/(unnamed) [path] open 100.0,150.0 | 200.0,150.0
