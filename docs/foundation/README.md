@@ -77,6 +77,17 @@ The revision read the complete core and the five adopted modules. No module's tr
 2. The removal of the sentence about AniCraft's importer. It was read and never run, and the contract covers VectorCraft only.
 3. The sentence in `04-evidence-and-references.md` that says Saffi's hand-made views are committed as numbers, in `data/saffi/`.
 
+## SVG contract wording, 2026-11-16
+
+Running the oracle in Rust on the generator's own output for #5 found three sentences of the accepted contract that could not be run as written, and one observation the new runs made false.
+
+**Proposed by the agent and awaiting Jon's acceptance** in the pull request for issue #5, all in `02-first-table.md`:
+
+1. The names the oracle compares are the landmark file's layer, groups and guides, not its guides alone.
+2. The oracle compares every point a guide passes through. A position no guide passes through is not in the SVG, so the read-back names it and does not compare it.
+3. In the hard case, left and right pairs differ in place, and in shape wherever the head model draws the two sides differently. The two irises are the same ellipse in two places.
+4. Coordinates came back at most 0.00005 unit off in the generated views, not 0.00004.
+
 ## The GOV-1 count
 
 Five foundations and this index. The count was about 4,100 words at founding, about 5,500 after the reorientation and is about 6,700 with the SVG contract, over the 5,000 at which `GOV-1` asks for a recheck. The recheck: every addition records a ruling Jon made on 2026-11-16 or a fact the first increment needs, and none describes work beyond that increment except in `03-direction.md`, which authorizes nothing. The contract's consumer is issue #5, which builds the generator's output on it, and its detail stays in `design/svg-contract/`. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.
