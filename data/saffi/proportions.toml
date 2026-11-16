@@ -1,0 +1,123 @@
+# A set of proportions worked out from the record of a hand-made armature's views,
+# by `maquette proportions-from-hand-made-views`. It was not typed in by hand: the tests check
+# that this file is what the command writes from the record.
+#
+# These are the proportions of a comparison case. They never enter a proportion table.
+#
+# `maquette list-proportions` defines each proportion. `maquette draw` reads this file as it
+# reads any set of proportions.
+
+[source]
+record = "data/saffi/hand-made-views.toml"
+what = "Two hand-made grey underdrawings of Saffi's bust, a front view and a three-quarter view, drawn in mudsong's portrait study on 2026-11-15."
+front_sha256 = "34ee7b92a8422031a20f7d2f195d6952d16e1099de3002f5fffcb6697a57f76f"
+three_quarter_sha256 = "c50bb0529f254fe12ac0af7b3f6175ae175df14b61d24f16bfec54afcc2efb02"
+turn_degrees = 29.0
+taken_by = "The head model's inverse direction: landmark positions read from the two views, back into proportions."
+# How the record's positions were read as the landmarks the list of proportions asks for.
+reading_rules = [
+  "A landmark the list of proportions asks for under the record's own name is that position, with hyphens for underscores.",
+  "A lid line is the middle of the drawn lid band: its inner end is midway between `inner_lower` and `inner_upper`, its crest midway between `lower_mid` and `upper_mid`, its outer end midway between `outer_lower` and `outer_tip`.",
+  "A brow line is the middle of the drawn brow band: each end is midway between the band's top and bottom corner there.",
+  "The face outline's top end is the record's first node of that side, and its jaw point is the node next to the chin: `node_3` in the front view and, in the three-quarter view, `node_5` on the far side and `node_3` on the near side.",
+  "Where the record gives a crossing of the face outline with a drawn level line, it stands for the crossing at the eye line, the nose level or the mouth level. The drawn lines are 4 units, half a unit and nothing away from those, and the outline moves sideways by less than half a unit between them.",
+  "In the front view a point of the face outline is both the cheek point and the jaw-line point of its level. In the three-quarter view it is the cheek point on the far side, the character's left, and the jaw-line point on the near side.",
+  "A position that the head itself covers in the three-quarter drawing is left out, because it cannot be seen there: the far ear's two base points and its inner extent. Hair that covers a position is ignored, because an armature has no hair. The skull is kept: it is a construction, drawn under everything.",
+  "The three-quarter view is taken as turned by the pinned turn, toward the viewer's right.",
+  "Not read: pupils, the line under the nose mark, the nose mark's top, the nodes of an outline that mark no landmark of the list, the ends of the drawn level lines and the drawn centre line. The armature builds its level lines and its centre line by rule.",
+]
+# What was done where the two views disagree, or one does not show a point.
+disagreement_rules = [
+  "A height is taken from the three-quarter view. For a left and right pair it is the mean of the two heights there.",
+  "An offset is taken from the three-quarter view when it shows both points of the pair: half their spacing over the cosine of the turn.",
+  "A depth is taken from the three-quarter view: from the pair's midpoint, or, when it shows one point of the pair, from that point and the offset.",
+  "What the three-quarter view does not show is taken from the front view: a point's height, a pair's offset when one of its points is missing, and the half-width of a silhouette.",
+  "The neck and the shoulder line take their widths from the front view. A neck is a column, whose width does not narrow as it turns, and the widest span of the figure is read where nothing foreshortens it.",
+]
+
+# Where each hand-made view puts the unit, the eye line and the upright axis the head turns about,
+# in the record's own units. `maquette draw` with these lays a generated view over the hand-made one.
+[source.front]
+unit = 197.0
+eye_line_y = 370.0
+turn_axis_x = 500.0
+
+[source.three_quarter]
+unit = 196.973
+eye_line_y = 370.027
+turn_axis_x = 495.0
+
+[proportions]
+hair_top_rise = 1.44399
+hair_half_width = 1.09838
+hair_half_depth = 1.088
+hair_centre_depth = -0.77847
+skull_radius = 0.97221
+skull_centre_rise = 0.3479
+skull_centre_depth = -0.68067
+chin_depth = 0.16755
+face_top_rise = 0.16767
+face_top_half_width = 0.70051
+face_top_depth = -0.04902
+face_half_width_at_eye_level = 0.70212
+face_depth_at_eye_level = -0.14547
+face_half_width_at_nose_level = 0.64368
+face_depth_at_nose_level = -0.05659
+face_half_width_at_mouth_level = 0.52244
+face_depth_at_mouth_level = -0.03343
+jaw_drop = 0.94669
+jaw_half_width = 0.16833
+jaw_depth = 0.19896
+jaw_line_depth_at_nose_level = -0.5771
+jaw_line_depth_at_mouth_level = -0.42143
+eye_inner_corner_offset = 0.20897
+eye_inner_corner_drop = 0.02017
+eye_outer_corner_offset = 0.58627
+eye_outer_corner_drop = -0.01283
+eye_wrap_depth = 0.12566
+eye_opening_height = 0.20335
+eye_opening_top_offset = 0.38311
+eye_opening_bottom_offset = 0.39307
+iris_centre_offset = 0.39471
+iris_centre_drop = 0.00178
+iris_depth = -0.0387
+iris_width = 0.21705
+iris_height = 0.19925
+lid_line_inner_end_offset = 0.17849
+lid_line_inner_end_drop = 0.02271
+lid_line_crest_offset = 0.38311
+lid_line_crest_rise = 0.14229
+lid_line_outer_end_offset = 0.62109
+lid_line_outer_end_rise = 0.03314
+brow_inner_end_offset = 0.21332
+brow_inner_end_rise = 0.18036
+brow_outer_end_offset = 0.58772
+brow_outer_end_rise = 0.24763
+nose_mark_corner_offset = 0.08707
+nose_mark_corner_drop = 0.36032
+nose_mark_corner_depth = 0.32463
+nose_mark_bottom_drop = 0.44662
+nose_mark_bottom_depth = 0.32463
+mouth_end_offset = 0.13931
+mouth_end_drop = 0.65478
+mouth_end_depth = 0.20944
+mouth_centre_drop = 0.65985
+mouth_centre_depth = 0.31415
+ear_base_outer_offset = 0.86294
+ear_base_outer_rise = 0.98504
+ear_base_outer_depth = -0.78889
+ear_base_inner_offset = 0.41624
+ear_base_inner_rise = 1.02566
+ear_base_inner_depth = -0.61041
+ear_top_offset = 0.6364
+ear_top_rise = 1.55257
+ear_outer_extent_offset = 0.87686
+ear_outer_extent_rise = 1.24434
+ear_inner_extent_offset = 0.36767
+ear_inner_extent_rise = 1.23926
+neck_half_width = 0.45685
+neck_depth = -0.95294
+neck_base_drop = 1.05585
+shoulder_half_width = 1.88832
+shoulder_drop = 1.8986
+shoulder_depth = -0.97388
