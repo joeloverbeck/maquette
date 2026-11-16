@@ -2,12 +2,15 @@
 //! function and writes files.
 
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use maquette::head_model::{self, Reading};
 use maquette::views::Placement;
-use maquette::{Error, Result, armature, differences, hand_made_views, proportions};
+use maquette::{
+    Error, Result, armature, differences, hand_made_views, hard_case, proportions, read_back,
+    vectorcraft,
+};
 
 const USAGE: &str = "\
 maquette: armatures for anime-style characters, from a set of proportions.
@@ -38,12 +41,55 @@ Usage:
       landmark, as a share of head height. Every difference above 1% is numbered. The file
       states how the views are laid over each other and what has no counterpart. With
       --out the file is written there and the numbered list is printed.
+
+  maquette read-back --landmarks <file> [--svg <file>] [--record <file>]
+  maquette read-back --landmarks <file> --replies <file>
+      The oracle of the SVG contract, for one view. Open the view's SVG in VectorCraft, read
+      back what VectorCraft holds, and compare it with the landmark file: no import warning;
+      the landmark file's names, each once; every anchor of every guide within 0.001 unit;
+      every guide visible, stroked and unfilled. Expected values come from the landmark
+      file, never from the SVG. The SVG is the one the landmark file names, beside it,
+      unless --svg gives another. The read-back is printed, with the VectorCraft version it
+      ran against, which is whichever is installed.
+      It starts `vectorcraft-cli mcp` itself, allowed to read the SVG's folder and to write
+      nothing. --record also writes VectorCraft's replies to a file; --replies compares
+      such a recording instead of starting VectorCraft, and says so.
+      Exit status: 0 when it passes, 1 when it fails, 2 when vectorcraft-cli is not
+      installed and nothing was checked.
+
+  maquette read-back-hard-case --landmarks <file> [--svg <file>] [--record <folder>]
+      The hard case of the SVG contract, on a three-quarter view, in VectorCraft: every
+      guide at once in nested groups with one name contained in another; left and right
+      pairs that differ in shape and place; closed guides arriving unfilled; one member of a
+      pair hidden by its name, and only it; and two spoiled copies the oracle must fail,
+      one with a guide given visibility=\"hidden\" and one with a pair's names exchanged.
+      The spoiled copies are made in a temporary folder and removed. Each line and what was
+      found is printed. --record writes VectorCraft's replies for the view and for each
+      spoiled copy into a folder. Exit status as for read-back.
 ";
+
+/// How a command ended, when nothing went wrong in running it.
+enum Ended {
+    /// It did what it was asked, and a check it made passed.
+    Well,
+    /// A check it made failed.
+    CheckFailed,
+    /// It could not make its check, because VectorCraft is not installed.
+    NotRun,
+}
+
+/// The exit status when a check could not be made: neither a pass nor a failure.
+const NOT_RUN: u8 = 2;
 
 fn main() -> ExitCode {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     match run(&arguments) {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(Ended::Well) => ExitCode::SUCCESS,
+        Ok(Ended::CheckFailed) => ExitCode::FAILURE,
+        Ok(Ended::NotRun) => {
+            eprintln!("maquette: {}", vectorcraft::NOT_INSTALLED);
+            ExitCode::from(NOT_RUN)
+        }
         Err(error) => {
             eprintln!("maquette: {error}");
             ExitCode::FAILURE
@@ -51,29 +97,108 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(arguments: &[String]) -> Result<()> {
+fn run(arguments: &[String]) -> Result<Ended> {
     let Some((command, rest)) = arguments.split_first() else {
         print!("{USAGE}");
-        return Ok(());
+        return Ok(Ended::Well);
     };
     match command.as_str() {
-        "help" | "--help" | "-h" => {
-            print!("{USAGE}");
-            Ok(())
-        }
+        "help" | "--help" | "-h" => print!("{USAGE}"),
         "list-proportions" => {
             options(rest, &[])?;
             print!("{}", proportions::list()?.describe());
-            Ok(())
         }
-        "draw" => draw(rest),
-        "proportions-from-landmarks" => proportions_from_landmarks(rest),
-        "proportions-from-hand-made-views" => proportions_from_hand_made_views(rest),
-        "differences-from-hand-made-views" => differences_from_hand_made_views(rest),
-        other => Err(Error::new(format!(
-            "there is no command `{other}`. Run `maquette help` for the commands."
-        ))),
+        "draw" => draw(rest)?,
+        "proportions-from-landmarks" => proportions_from_landmarks(rest)?,
+        "proportions-from-hand-made-views" => proportions_from_hand_made_views(rest)?,
+        "differences-from-hand-made-views" => differences_from_hand_made_views(rest)?,
+        "read-back" => return read_back_command(rest),
+        "read-back-hard-case" => return read_back_hard_case(rest),
+        other => {
+            return Err(Error::new(format!(
+                "there is no command `{other}`. Run `maquette help` for the commands."
+            )));
+        }
     }
+    Ok(Ended::Well)
+}
+
+/// A file's whole path, so that VectorCraft can be given its folder to read.
+fn whole_path(path: &Path) -> Result<PathBuf> {
+    path.canonicalize()
+        .map_err(|error| Error::new(format!("cannot read {}: {error}", path.display())))
+}
+
+fn read_back_hard_case(arguments: &[String]) -> Result<Ended> {
+    let found = options(arguments, &["--landmarks", "--svg", "--record"])?;
+    let landmark_path = required(&found, "--landmarks")?;
+    let landmark_text = read(landmark_path)?;
+    let svg = match found.get("--svg") {
+        Some(svg) => PathBuf::from(svg),
+        None => read_back::svg_beside(Path::new(landmark_path), &landmark_text)?,
+    };
+    let svg = whole_path(&svg)?;
+    let Some(ran) = hard_case::run(landmark_path, &landmark_text, &svg)? else {
+        return Ok(Ended::NotRun);
+    };
+    if let Some(folder) = found.get("--record") {
+        let folder = Path::new(folder);
+        std::fs::create_dir_all(folder)
+            .map_err(|error| Error::new(format!("cannot make {}: {error}", folder.display())))?;
+        for (name, replies) in &ran.replies {
+            write(&folder.join(name), &replies.recording())?;
+        }
+    }
+    print!("{}", ran.text);
+    Ok(if ran.held() {
+        Ended::Well
+    } else {
+        Ended::CheckFailed
+    })
+}
+
+fn read_back_command(arguments: &[String]) -> Result<Ended> {
+    let found = options(
+        arguments,
+        &["--landmarks", "--svg", "--replies", "--record"],
+    )?;
+    let landmark_path = required(&found, "--landmarks")?;
+    let landmark_text = read(landmark_path)?;
+    let replies = match found.get("--replies") {
+        Some(recording) => {
+            for live_only in ["--svg", "--record"] {
+                if found.contains_key(live_only) {
+                    return Err(Error::new(format!(
+                        "`{live_only}` is for a live run, and `--replies` reads a recording instead"
+                    )));
+                }
+            }
+            read_back::Replies::from_recording(&read(recording)?)
+                .map_err(|error| Error::new(format!("{recording}: {error}")))?
+        }
+        None => {
+            let svg = match found.get("--svg") {
+                Some(svg) => PathBuf::from(svg),
+                None => read_back::svg_beside(Path::new(landmark_path), &landmark_text)?,
+            };
+            let svg = whole_path(&svg)?;
+            let folder = svg.parent().unwrap_or(Path::new("/"));
+            let Some(mut server) = vectorcraft::Server::start(folder)? else {
+                return Ok(Ended::NotRun);
+            };
+            read_back::Replies::read(&mut server, &svg)?
+        }
+    };
+    if let Some(recording) = found.get("--record") {
+        write(Path::new(recording), &replies.recording())?;
+    }
+    let outcome = read_back::check(landmark_path, &landmark_text, &replies)?;
+    print!("{}", outcome.text);
+    Ok(if outcome.passed() {
+        Ended::Well
+    } else {
+        Ended::CheckFailed
+    })
 }
 
 /// Reads `--name value` pairs, refusing a name the command does not take.

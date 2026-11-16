@@ -9,6 +9,9 @@ repository = "https://github.com/joeloverbeck/maquette"
 publish = false
 
 [dependencies]
+# VectorCraft's MCP server speaks JSON: the read-back writes its requests and reads its
+# replies and recordings of them with this.
+serde_json = { version = "1.0", default-features = false, features = ["std"] }
 # Reads every text file a person edits or a consumer reads back: the list of proportions,
 # a set of proportions, a landmark file and the record of the hand-made views.
 toml = { version = "1.2", default-features = false, features = ["std", "parse", "serde"] }

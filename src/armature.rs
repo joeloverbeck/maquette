@@ -384,3 +384,165 @@ pub fn read_placement(text: &str) -> Result<Placed> {
     }
     Ok(placed)
 }
+
+/// A circle or an ellipse as a landmark file gives it: its centre and its two radii.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Round {
+    pub centre: [f64; 2],
+    pub rx: f64,
+    pub ry: f64,
+}
+
+/// One guide as a landmark file gives it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DrawnGuide {
+    pub name: String,
+    /// The group it sits in, when it is not directly in the layer.
+    pub group: Option<String>,
+    /// The SVG element it is drawn as.
+    pub element: String,
+    /// A closed path, a circle or an ellipse.
+    pub closed: bool,
+    /// The points its outline passes through, in order, each with its position.
+    pub anchors: Vec<(String, [f64; 2])>,
+    /// Set for a circle or an ellipse.
+    pub round: Option<Round>,
+}
+
+/// What a landmark file says its view's SVG holds: the layer, the groups and the guides.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Drawn {
+    pub view: String,
+    /// The SVG's file name, which stands beside the landmark file.
+    pub svg: String,
+    pub turn_degrees: f64,
+    pub layer: String,
+    /// The groups in drawing order.
+    pub groups: Vec<String>,
+    /// The guides in drawing order.
+    pub guides: Vec<DrawnGuide>,
+}
+
+/// Reads the structure and the guides of a landmark file, each anchor with its position.
+pub fn read_drawn(text: &str) -> Result<Drawn> {
+    let table = parsed(text)?;
+    let positions = read_landmark_file(text)?;
+    let word = |table: &toml::Table, key: &str, of: &str| -> Result<String> {
+        table
+            .get(key)
+            .and_then(toml::Value::as_str)
+            .map(str::to_string)
+            .ok_or_else(|| Error::new(format!("the landmark file's {of} has no text `{key}`")))
+    };
+    let names = |value: Option<&toml::Value>, of: &str| -> Result<Vec<String>> {
+        value
+            .and_then(toml::Value::as_array)
+            .and_then(|list| {
+                list.iter()
+                    .map(|name| name.as_str().map(str::to_string))
+                    .collect::<Option<Vec<String>>>()
+            })
+            .ok_or_else(|| Error::new(format!("the landmark file's {of} is not a list of names")))
+    };
+    let structure = table
+        .get("structure")
+        .and_then(toml::Value::as_table)
+        .ok_or_else(|| Error::new("the landmark file has no [structure] table"))?;
+    let no_groups = toml::Table::new();
+    let group_table = structure
+        .get("groups")
+        .and_then(toml::Value::as_table)
+        .unwrap_or(&no_groups);
+    let guide_table = table
+        .get("guides")
+        .and_then(toml::Value::as_table)
+        .ok_or_else(|| Error::new("the landmark file has no [guides] table"))?;
+
+    // The layer's children in drawing order: a guide, or a group with its guides.
+    let mut groups = Vec::new();
+    let mut placed: Vec<(String, Option<String>)> = Vec::new();
+    for child in names(structure.get("children"), "`children`")? {
+        if group_table.contains_key(&child) {
+            for member in names(group_table.get(&child), &format!("group `{child}`"))? {
+                placed.push((member, Some(child.clone())));
+            }
+            groups.push(child);
+        } else {
+            placed.push((child, None));
+        }
+    }
+    for name in guide_table.keys() {
+        if !placed.iter().any(|(placed, _)| placed == name) {
+            return Err(Error::new(format!(
+                "the landmark file gives a guide `{name}` that its [structure] does not place"
+            )));
+        }
+    }
+
+    let mut guides = Vec::new();
+    for (name, group) in placed {
+        let entry = guide_table
+            .get(&name)
+            .and_then(toml::Value::as_table)
+            .ok_or_else(|| {
+                Error::new(format!(
+                    "the landmark file's [structure] places `{name}`, and there is no [guides.{name}]"
+                ))
+            })?;
+        let of = format!("[guides.{name}]");
+        let element = word(entry, "element", &of)?;
+        let point = |point: &str| -> Result<[f64; 2]> {
+            positions.points.get(point).copied().ok_or_else(|| {
+                Error::new(format!(
+                    "the landmark file's {of} names `{point}`, which has no position"
+                ))
+            })
+        };
+        let mut anchors = Vec::new();
+        for anchor in names(entry.get("anchors"), &format!("{of} `anchors`"))? {
+            let position = point(&anchor)?;
+            anchors.push((anchor, position));
+        }
+        let number = |key: &str| -> Result<f64> {
+            match entry.get(key) {
+                Some(toml::Value::Float(number)) => Ok(*number),
+                Some(toml::Value::Integer(number)) => Ok(*number as f64),
+                _ => Err(Error::new(format!(
+                    "the landmark file's {of} has no number `{key}`"
+                ))),
+            }
+        };
+        let round = match element.as_str() {
+            "circle" => Some(Round {
+                centre: point(&word(entry, "centre", &of)?)?,
+                rx: number("r")?,
+                ry: number("r")?,
+            }),
+            "ellipse" => Some(Round {
+                centre: point(&word(entry, "centre", &of)?)?,
+                rx: number("rx")?,
+                ry: number("ry")?,
+            }),
+            _ => None,
+        };
+        let closed =
+            round.is_some() || entry.get("closed").and_then(toml::Value::as_bool) == Some(true);
+        guides.push(DrawnGuide {
+            name,
+            group,
+            element,
+            closed,
+            anchors,
+            round,
+        });
+    }
+
+    Ok(Drawn {
+        view: word(&table, "view", "top")?,
+        svg: word(&table, "svg", "top")?,
+        turn_degrees: positions.turn_degrees,
+        layer: word(structure, "layer", "[structure]")?,
+        groups,
+        guides,
+    })
+}
