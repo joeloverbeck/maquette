@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Hard case, hand-written: a stand-in head in a three-quarter view with made-up numbers that are not round.
-     It is not generator output, not measured on anything and not a character. It uses only the subset the contract allows. -->
+<!-- Hard case for the SVG contract, written by hand: a head in a three-quarter view whose numbers are not round.
+     It is not generator output. It uses only the subset the contract allows.
+     The numbers are not made up. They are those of design/first-table-sheets/stand-in-armature-three-quarter.svg,
+     each moved by less than 1 unit so that it has decimals. That stand-in follows the hand-made three-quarter view
+     of Saffi, Jon's own character, moved 5 units toward the viewer's right. Her record is data/saffi/, not this file.
+     design/svg-contract/README.md, "The hard case", gives the counts. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
   <g id="armature" fill="none" stroke="#2a2f3d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
     <path id="hair-volume" d="M275.12 545.4 L275.12 300.333 C275.12 180.71 371.34 84.06 490.25 84.06 C608.69 84.06 705.4 180.71 705.4 300.333 L705.4 545.4" stroke="#8d93a6" stroke-dasharray="10 7"/>

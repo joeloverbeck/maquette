@@ -24,7 +24,7 @@ The names in the probes are neutral guide names. They are not the generator's na
 | `in/p5-hidden.svg` | Each way of hiding an element |
 | `in/p6-curves.svg` | Path commands, basic shapes, number precision, degenerate shapes |
 | `in/p7a` to `p7e-units-*.svg` | Sizes in mm, px and pt, with and without a `viewBox` |
-| `in/hard-case.svg` | The hard case: a stand-in head in a three-quarter view. Its numbers are those of `design/first-table-sheets/stand-in-armature-three-quarter.svg` with decimals added by hand. It is not generator output, not measured and not a character |
+| `in/hard-case.svg` | The hard case: a head in a three-quarter view. It is not generator output. Its numbers are those of `design/first-table-sheets/stand-in-armature-three-quarter.svg` with decimals added by hand, and that stand-in follows Saffi's hand-made three-quarter view. "The hard case" below says how closely |
 | `out/<probe>.readback.txt` | What the server read back after `open_file`: the tree from `inspect_document`, then the anchors from `document.node` |
 | `out/<probe>.export.svg` | VectorCraft's default SVG export of the imported probe |
 | `out/<probe>.export-hidden-7dp.svg` | The same with `hiddenLayers: true` and `decimals: 7` |
@@ -148,6 +148,14 @@ Observed behaviour wins in both. The documentation agrees with the behaviour on 
 ## The hard case
 
 Chosen from what the tables above show to be fragile, before any generator exists: names that survive only in one form, elements dropped without a warning, coordinates that come back rounded, and a tree whose shape depends on what sits at the top level. A front view with round numbers would pass an exact comparison of coordinates, which real proportions will not. The hard case is a three-quarter view with positions that are not round, every guide at once in nested groups, left and right pairs that differ, one name inside another (`neck`, `neck-left`), and closed guides.
+
+**Where its numbers came from.** They are not made up.
+
+- Every geometry number of `in/hard-case.svg` is the matching number of `design/first-table-sheets/stand-in-armature-three-quarter.svg` moved by at most 0.9 unit, so that none is round: 285 numbers in 20 elements. The shoulder line keeps only the long stroke of the stand-in's three. The stand-in's level lines for the nose and the mouth are left out.
+- That stand-in follows the hand-made three-quarter view of Saffi, Jon's own character, moved 5 units toward the viewer's right. Of its 66 distinct points (path nodes, line ends, and the centres of the circle and the two ellipses), 34 are landmarks of `data/saffi/hand-made-views.toml` once 5 is added to x. The skull's radius is hers, and the three level lines are at her three levels. No other whole shift from −30 to 30 matches more than 3 points.
+- The 32 points that do not match are the hair volume, the ends of the level lines, the brows, the nose mark, the centres of the irises, the neck, the shoulder line, the top of the face outline's near side and the bottom of the far eye's opening.
+
+The hard case is a test input for the importer. It is not a record of Saffi and not a measurement, and it never enters a proportion table. Her record is `data/saffi/`. These counts come from a one-off comparison of the three committed files, run outside the repository.
 
 `in/hard-case.svg` was put through it by hand:
 
