@@ -109,7 +109,7 @@ Each line is a share of the front view's head height. The full list, with the 20
 It shows what the two drawings' coordinates say, and nothing more.
 
 - It does not say the armature looks right. Jon's eyes decide that.
-- It does not say which view is the correct one where they differ. A misfit in spacing belongs to the pair, not to one eye or one ear.
+- It does not say which view is the correct one where they differ. A misfit in spacing belongs to the pair, not to one eye or one ear. The record gives the three-quarter view more standing: Jon accepted it, and the front view was on the same sheet without being the question put to him (`docs/foundation/01-mission.md`).
 - The turn assumes a flat drawing of a level head turning about an upright axis. If the drawing was made with another idea of a three-quarter view, the figure describes the drawing and not that idea.
 - A landmark of kind `node` is where the drawer put a path node. That a node is the same point of the head in both views is an assumption, firm for an eye corner and loose for the base of an ear.
 
@@ -119,7 +119,7 @@ Three checks, none of which shares code with the derivation:
 
 1. **A second walk of the drawings.** An `awk` script reads each SVG as text, steps along every path 2000 times a segment, and checks every recorded landmark of that view against the walk: a node must be a node of the stated element, a top or an extent must equal the extreme the walk finds, a crossing must lie on the outline and meet what it claims to cross, a centre must be the mean its `how` names. All 118 and all 122 agree. With three positions changed on purpose it reported them.
 2. **A recomputation from the committed files alone.** A separate Rust program parses both TOML files and recomputes the turn, every misfit, the level differences, the centre-line offsets and the shoulders from `hand-made-views.toml`. All agree. So `views-compared.toml` can be checked on a clean clone, with no private input.
-3. **By hand.** The hair's top, an ear's top, the nose mark's top, an iris's outer extent, the face outline's widest point and the pupil and outer-corner ratios were worked from the raw attributes with `bc`, in the front view. Left and right were confirmed as the character's own: in both views every `left` landmark is toward the viewer's right of its `right` twin, and in the front view they sit on either side of x = 500.
+3. **By hand.** The hair's top, an ear's top, the nose mark's top, an iris's outer extent, and the face outline's widest point in the front view were worked from the raw attributes with `bc`, as were the pupil and outer-corner ratios. Left and right were confirmed as the character's own: in both views every `left` landmark is toward the viewer's right of its `right` twin, and in the front view they sit on either side of x = 500.
 
 ## Rerunning it
 
