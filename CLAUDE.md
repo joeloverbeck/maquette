@@ -50,7 +50,7 @@ If required text cannot be located or read, substantive work is unauthorized. Pr
 ## Project entry points
 
 - **Selecting, scoping or merging work, or continuing near a limit:** `docs/foundation/01-mission.md`.
-- **The current increment, what it is checked against and how it reaches mudsong:** `docs/foundation/02-first-armature.md`.
+- **The current increment, what it is checked against and how it reaches mudsong:** `docs/foundation/02-first-table.md`.
 - **Anything Jon wants later (controls, part types, non-human characters, more views, bodies, an interface):** `docs/foundation/03-direction.md`. It records direction and authorizes nothing.
 - **Using a research finding, a reference drawing or a measurement, or committing data:** `docs/foundation/04-evidence-and-references.md`.
 - **Writing code or tooling, or drawing, laying out or mocking up anything with VectorCraft or FigCraft:** `docs/foundation/05-code-and-design-tools.md`.

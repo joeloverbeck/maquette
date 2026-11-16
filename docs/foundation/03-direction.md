@@ -1,16 +1,16 @@
 # 03 · Direction
 
-What Jon said he wants from maquette beyond the first armature, on 2026-11-15 and 2026-11-16, with what is already known about each. It is recorded so that later work neither reinvents it nor contradicts it.
+What Jon said he wants from maquette beyond the first increment, on 2026-11-15 and 2026-11-16, with what is already known about each. It is recorded so that later work neither reinvents it nor contradicts it.
 
 None of it is authorized work or a backlog (`GOV-1`). Each part becomes work only through a ticket Jon selects, when a real character needs it (`EVID-5`, `EVID-6`). Mechanisms named here are candidates, and the architecture in the research is a hypothesis, not a design (`PURP-2`).
 
 ## 1. Controls that cannot make a head look wrong
 
-**Jon.** Head proportions should be adjustable "in a way that wouldn't make them look wrong", grounded in competent anime and manga. Either an "animeness" can be calculated from the measured sources, or there are styles. He prefers one flexible creator that draws on every accepted source.
+**Jon.** Head proportions should be adjustable "in a way that wouldn't make them look wrong", grounded in competent anime and manga. Either an "animeness" can be calculated from the measured sources, or there are styles. He prefers one flexible creator that draws on every accepted source. On 2026-11-16 he added that it should work as the character creators of role-playing games do, with sliders "or maybe a better alternative if there is one", and that it "should prevent me from creating monstrosities, because it would play between the proportions that we have carefully gathered and measured".
 
 **Known.** Mudsong measured four style families and their proportions differ; Jon accepted all four and chose one. In the research, the spread of eye size inside one style was half its average, a pooled average would centre on a teenage girl, and averaging more faces did not make them more attractive.
 
-**Candidate.** One set of controls for every source. Each measured source is a point in that space and a family is a region of it. A setting is plausible when it lies near measured points, not when it lies near the overall average. Controls that vary together in the sources move together.
+**Candidate.** One set of controls for every source. Each measured source is a point in that space and a family is a region of it. A setting is plausible when it lies near measured points, not when it lies near the overall average. Controls that vary together in the sources move together. The first table gives each proportion a valid range by itself, which does not stop a bad combination; the rule for combinations waits for more references.
 
 **Open, and Jon's to judge by eye.** Whether a setting halfway between two families looks right. That is the answer to "one animeness or several styles", and it can only be asked once three families are measured the same way.
 
@@ -34,7 +34,7 @@ A number that gates or ranks settings falls under `EVAL-1` and `SEARCH-5`.
 
 **Two different things.** Parts attached to a human head or body (ears, horns, tails) are placed on the skull or the spine, so they turn with it. A different head (a muzzle, a newt's head) is another head shape altogether.
 
-**Earned.** Saffi's ears put attached parts in the first armature. A different head waits for a character Jon rules to have one.
+**Earned.** Saffi's ears put attached parts in the first increment. A different head waits for a character Jon rules to have one.
 
 ## 4. Views
 
@@ -46,17 +46,20 @@ A number that gates or ranks settings falls under `EVAL-1` and `SEARCH-5`.
 
 ## 5. Measured references
 
-**Jon.** Claude researches valid references, and Jon lends his eyes where they are needed. The rules are in `04-evidence-and-references.md`.
+**Jon.** Claude researches valid references, and Jon lends his eyes where they are needed. He wants as many really good references as can be had, in front, three-quarter and side views. The rules are in `04-evidence-and-references.md`.
 
 **Ruled on 2026-11-16.** No automatic landmark detector. Jon does not trust the ones the research found, and they exist only in Python. References are a wide breadth of competent anime and manga pictures, measured by an agent and checked by Jon's eyes.
 
+**Now the first increment.** A first small batch is measured in `02-first-table.md`. Widening it is direction until Jon selects it. A tool in which he drags an agent's points into place is earned if the first reference check sheet shows points he wants to move more than rarely.
+
 ## 6. Also said
 
-- **Bodies**, for characters of all ages, under the mannequin rule (`01-mission.md`). Mudsong's playable cast runs from 17 to 58, so a child or an elder waits for a real one.
-- **An interface** with controls Jon can move himself. Jon ruled on 2026-11-16 that it is a web app (`05-code-and-design-tools.md`). The first armature needs none.
+- **Bodies**, for characters of all ages, under the mannequin rule (`01-mission.md`). Jon wants the body's armature in the same detail as the head's (2026-11-16). Mudsong's playable cast runs from 17 to 58, so a child or an elder waits for a real one.
+- **An interface** with controls Jon can move himself. Jon ruled on 2026-11-16 that it is a web app (`05-code-and-design-tools.md`). The first increment needs none.
 
 ## Questions nobody has answered
 
 - Which characters come second and third. `EVID-6` asks for three materially different real characters and a held-out fourth before maquette claims to serve characters in general. Mudsong's cast offers real contrasts: a man, a goblin of about 4 ft, an oni of about 7.5 ft, a woman of 58.
 - Whether a saved character must survive changes to the generator.
+- Whether level side views can be had without buying official setting-material books. The survey of 2026-11-16 found them thin on official sites.
 - Whether the patent on 2.5D cartoon models (`04-evidence-and-references.md`) touches the method chosen for views.
