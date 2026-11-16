@@ -11,6 +11,8 @@
 //! - [`hand_made_views`]: how the record of a hand-made armature is read as landmarks.
 //! - [`differences`]: how a generated armature is laid over a hand-made one, and how far
 //!   apart the two put each landmark.
+//! - [`overlay`]: how a hand-made view and its numbered differences are drawn over a
+//!   generated view, for a review sheet.
 //! - [`read_back`]: the oracle of the SVG contract: what VectorCraft holds of a view's SVG,
 //!   compared with its landmark file.
 //! - [`hard_case`]: the hard case the contract lists, run on a three-quarter view, with the
@@ -24,6 +26,7 @@ pub mod hand_made_views;
 pub mod hard_case;
 pub mod head_model;
 pub mod number;
+pub mod overlay;
 pub mod proportions;
 pub mod read_back;
 pub mod vectorcraft;

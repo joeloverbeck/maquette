@@ -50,10 +50,21 @@ pub struct Provenance {
     pub read_from: BTreeMap<String, Vec<String>>,
     /// Every name the record gives the view.
     pub recorded: Vec<String>,
+    /// Where the record puts each of those names, in the drawing's own coordinates, and
+    /// whether the head covers it there.
+    pub positions: BTreeMap<String, RecordedPosition>,
     /// The landmarks the reading leaves out because the head covers them in the drawing, and
     /// where the record puts each. No proportion is taken from them; they can still be laid
     /// beside a generated position.
     pub covered_by_head: BTreeMap<String, [f64; 2]>,
+}
+
+/// One position the record gives a view, under the record's own name.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RecordedPosition {
+    pub at: [f64; 2],
+    /// The head covers it in the turned drawing, so it cannot be seen there.
+    pub covered_by_head: bool,
 }
 
 /// What a hand-made position says about the head, and so what it can be compared in.
@@ -306,6 +317,16 @@ fn read_view(record: &toml::Table, view: &str, turned: bool) -> Result<ViewRead>
     let provenance = Provenance {
         read_from,
         recorded: recorded.keys().map(|name| name.to_string()).collect(),
+        positions: recorded
+            .keys()
+            .map(|name| {
+                let position = RecordedPosition {
+                    at: recorded[name].position,
+                    covered_by_head: covered(name),
+                };
+                (name.to_string(), position)
+            })
+            .collect(),
         covered_by_head: covered_landmarks,
     };
     Ok(ViewRead {

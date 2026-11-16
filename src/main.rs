@@ -8,8 +8,8 @@ use std::process::ExitCode;
 use maquette::head_model::{self, Reading};
 use maquette::views::Placement;
 use maquette::{
-    Error, Result, armature, differences, hand_made_views, hard_case, proportions, read_back,
-    vectorcraft,
+    Error, Result, armature, differences, hand_made_views, hard_case, overlay, proportions,
+    read_back, vectorcraft,
 };
 
 const USAGE: &str = "\
@@ -41,6 +41,16 @@ Usage:
       landmark, as a share of head height. Every difference above 1% is numbered. The file
       states how the views are laid over each other and what has no counterpart. With
       --out the file is written there and the numbered list is printed.
+
+  maquette overlay-hand-made-views --front <file> --three-quarter <file> --record <file>
+                                   --out <folder>
+      For a review sheet: write, for each view, an SVG in the generated view's own units
+      that marks every position the record gives that view, a dashed ring where the head
+      covers it in the drawing, and every difference above 1% as a line from the generated
+      position to the hand-made one with its number. The numbers and positions are the
+      ones differences-from-hand-made-views gives for the same files. Placed at the same
+      place and size as the view's SVG, the overlay lies over it exactly. Writes
+      front.hand-made-overlay.svg and three-quarter.hand-made-overlay.svg.
 
   maquette read-back --landmarks <file> [--svg <file>] [--record <file>]
   maquette read-back --landmarks <file> --replies <file>
@@ -112,6 +122,7 @@ fn run(arguments: &[String]) -> Result<Ended> {
         "proportions-from-landmarks" => proportions_from_landmarks(rest)?,
         "proportions-from-hand-made-views" => proportions_from_hand_made_views(rest)?,
         "differences-from-hand-made-views" => differences_from_hand_made_views(rest)?,
+        "overlay-hand-made-views" => overlay_hand_made_views(rest)?,
         "read-back" => return read_back_command(rest),
         "read-back-hard-case" => return read_back_hard_case(rest),
         other => {
@@ -320,6 +331,31 @@ fn differences_from_hand_made_views(arguments: &[String]) -> Result<()> {
     deliver(&found, &found_differences.file())?;
     if found.contains_key("--out") {
         print!("{}", found_differences.summary());
+    }
+    Ok(())
+}
+
+fn overlay_hand_made_views(arguments: &[String]) -> Result<()> {
+    let found = options(
+        arguments,
+        &["--front", "--three-quarter", "--record", "--out"],
+    )?;
+    let front = required(&found, "--front")?;
+    let three_quarter = required(&found, "--three-quarter")?;
+    let record = required(&found, "--record")?;
+    let folder = Path::new(required(&found, "--out")?);
+    let (front_text, three_quarter_text, record_text) =
+        (read(front)?, read(three_quarter)?, read(record)?);
+    let input = |path, text| differences::Input { path, text };
+    let files = overlay::draw(
+        input(front, &front_text),
+        input(three_quarter, &three_quarter_text),
+        input(record, &record_text),
+    )?;
+    std::fs::create_dir_all(folder)
+        .map_err(|error| Error::new(format!("cannot make {}: {error}", folder.display())))?;
+    for file in files {
+        write(&folder.join(&file.name), &file.text)?;
     }
     Ok(())
 }
