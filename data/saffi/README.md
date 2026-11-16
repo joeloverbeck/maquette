@@ -118,8 +118,10 @@ It shows what the two drawings' coordinates say, and nothing more.
 Three checks, none of which shares code with the derivation:
 
 1. **A second walk of the drawings.** An `awk` script reads each SVG as text, steps along every path 2000 times a segment, and checks every recorded landmark of that view against the walk: a node must be a node of the stated element, a top or an extent must equal the extreme the walk finds, a crossing must lie on the outline and meet what it claims to cross, a centre must be the mean its `how` names. All 118 and all 122 agree. With three positions changed on purpose it reported them.
-2. **A recomputation from the committed files alone.** A separate Rust program parses both TOML files and recomputes the turn, every misfit, the level differences, the centre-line offsets and the shoulders from `hand-made-views.toml`. All agree. So `views-compared.toml` can be checked on a clean clone, with no private input.
+2. **A recomputation from the committed numbers alone.** A separate Rust program parses both TOML files and recomputes the turn, every misfit, the level differences, the centre-line offsets and the shoulders from `hand-made-views.toml`. All agree. So every number in `views-compared.toml` follows from `hand-made-views.toml` alone, with no private input. The program is kept with the private copies and is not committed, so nothing in a clean clone runs this check.
 3. **By hand.** The hair's top, an ear's top, the nose mark's top, an iris's outer extent, and the face outline's widest point in the front view were worked from the raw attributes with `bc`, as were the pupil and outer-corner ratios. Left and right were confirmed as the character's own: in both views every `left` landmark is toward the viewer's right of its `right` twin, and in the front view they sit on either side of x = 500.
+
+The `awk` walk and the `bc` sums were one-off checks run outside the repository: nothing that is not Rust is committed, and the repeatable check belongs to the Rust package the next ticket brings.
 
 ## Rerunning it
 
