@@ -134,8 +134,8 @@ fn her_proportions_follow_from_her_record_by_the_stated_rules() {
         ),
     ];
     for (name, value) in expected {
-        // Her file carries five decimals.
-        assert_close(hers[name], value, 6e-6, name);
+        // Her file carries six decimals.
+        assert_close(hers[name], value, 6e-7, name);
     }
 }
 

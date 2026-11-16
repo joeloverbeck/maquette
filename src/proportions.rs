@@ -357,7 +357,7 @@ impl Set {
             out.push_str(&format!(
                 "{} = {}\n",
                 proportion.name,
-                crate::number::toml(self.values[&proportion.name], 5)
+                crate::number::toml(self.values[&proportion.name], 6)
             ));
         }
         Ok(out)

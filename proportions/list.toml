@@ -25,8 +25,8 @@ definition = "The level midway between the top and the bottom of the eye opening
 why = """
 The opening is drawn in every view and belongs to the lids, which do not move with the gaze. \
 The pupil is the painter's, and the iris is cut by the lid. \
-It is not the level line drawn in Saffi's hand-made views: that line stands 4 units higher (0.84% of head height), \
-0.9% above her pupil centres, on no feature of the eye. The armature draws its eye level line on the eye line."""
+It is not the level line drawn in Saffi's hand-made views: that line stands 4 units higher (0.8% of head height), \
+and 0.9% of head height above her pupil centres, on no feature of the eye. The armature draws its eye level line on the eye line."""
 
 [head_height]
 definition = "From the hair's top down to the chin: hair_top_rise plus 1, in units. Differences between positions are stated as shares of it. It is not the unit, because it depends on the hair."

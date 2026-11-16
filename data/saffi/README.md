@@ -2,10 +2,11 @@
 
 Saffi is the comparison case: the one character whose accepted armature is kept out of every proportion table, so that what a table allows can be tested against her. This folder holds her hand-made front view and three-quarter view as landmark positions, and what the two views say when they are set against each other.
 
-**These numbers never enter a proportion table.** They are also not her set of proportions: the list of proportions is fixed by a later ticket, and her proportions are worked out from these positions then.
+**These numbers never enter a proportion table.** The positions are also not her set of proportions: that is `proportions.toml`, worked out from them once the list of proportions existed ("Her set of proportions" below).
 
 | File | What it holds |
 |---|---|
+| [`proportions.toml`](proportions.toml) | Her set of proportions: one value for each proportion of [`proportions/list.toml`](../../proportions/list.toml), with where it came from and the rules used. Written by the program from `hand-made-views.toml`. It is a set for one head, not a table: it has no ranges and no works behind it. |
 | [`hand-made-views.toml`](hand-made-views.toml) | 118 landmark positions in the front view and 122 in the three-quarter view, each with the element it came from and how it was taken. Also what the views give for each guide, and what was left out. |
 | [`views-compared.toml`](views-compared.toml) | The turn of the three-quarter view, worked out pair by pair, and every place where the two views do not describe one head, as a share of head height. |
 
@@ -103,6 +104,38 @@ Each line is a share of the front view's head height. The full list, with the 20
 **The centre line.** In the front view the skull's top, the nose mark, the mouth's centre and the chin all stand on the centre line. In the three-quarter view the nose mark's top is 1.3 units off it, the mouth's centre 2.0 and the chin 1.0, all under 0.5%. The skull's top is 5.0 units off, in the table above.
 
 **The front view is symmetric.** Of its 50 left and right pairs, 49 mirror each other exactly about x = 500. The one that does not is the hair's side extents, by 0.002 unit sideways and 0.513 in height.
+
+## Her set of proportions
+
+`proportions.toml` holds one value for each proportion of [`proportions/list.toml`](../../proportions/list.toml). It was not typed in by hand. The program wrote it from `hand-made-views.toml`:
+
+```sh
+cargo run -- proportions-from-hand-made-views --record data/saffi/hand-made-views.toml --out data/saffi/proportions.toml
+```
+
+`cargo test` checks that the committed file is what that command writes, and checks eighteen of its numbers against arithmetic done by hand on the positions above. Neither check says her armature looks right.
+
+**How it was taken.** The head model has two directions: from proportions to landmarks, which the generator uses, and from landmark positions in a front view and a three-quarter view back to proportions. The second was run on her two views, with the three-quarter view taken as turned 29°. Every proportion is divided by the unit, eye line to chin: 197.000 units in her front view and 196.973 in her three-quarter view. Depth is taken through the turn, from where a pair's midpoint or a point of the centre line stands in the three-quarter view.
+
+**The rules, where her views disagree or one does not show a point.** The file's `[source]` records them in full, as the list of proportions states them.
+
+1. A height is the three-quarter view's, and for a left and right pair the mean of its two heights there. The record gives that view more standing: Jon accepted it.
+2. An offset from the centre line is the three-quarter view's, when it shows both points of the pair: half their spacing over the cosine of the turn.
+3. A depth is the three-quarter view's.
+4. What the three-quarter view does not show comes from the front view: the far ear's base and inner extent, which the head covers there, and the half-widths of the face outline and the hair.
+5. The neck and the shoulder line take their widths from the front view.
+
+`[source]` also records how the record's positions were read as the landmarks the list asks for: a lid line and a brow line as the middle of the drawn band, and the face outline's crossings with the drawn level lines as its crossings with the eye line and the nose and mouth levels.
+
+**What follows from them.** Each is arithmetic on the positions above.
+
+- Her eye line is at y = 370.027, 4 units below the level line drawn in both views (0.8% of head height).
+- A head drawn from this set shows its shoulder points 650.7 units apart in the three-quarter view, where hers are 742.0 apart: 45.6 units a side (9.5%). Hers hardly turn. Jon decides at the first look whether the shoulder line turns with the head.
+- The neck ends at y = 578.0, the mean of 560.0 and 596.0. That is 18 units from each in her three-quarter view (3.7%) and 12 from her front view's 590.0 (2.5%).
+- The ear's outer extent stands at y = 124.9, the mean of 139.9 on the near ear and 110.0 on the far one: 15 units from each (3.1%), and 21 from the front view's 145.8 (4.4%). Her two ears in the three-quarter view are not one ear seen from two sides.
+- Where a pair's spacing in her two views does not fit the turn, the three-quarter view is kept and the front view moves: the lid lines' crests by 4.5 units a side (0.9%), the inner eye corners by 2.2 (0.4%).
+
+The list of every difference between a head drawn from this set and her hand-made views belongs to the armature review sheet, not to this file.
 
 ## What this is evidence of
 
