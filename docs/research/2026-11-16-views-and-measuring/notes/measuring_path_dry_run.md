@@ -337,7 +337,37 @@ On 2026-11-17 twelve readers read the first batch of published drawings under 20
 
 **One addition outside the side view,** which changes no placement: how a reading records that the person checking overruled a set-aside (`set_aside_overruled`, with who overruled it), and that such a drawing is read with every drawn landmark placed. The reader's own judgement stays in the reading beside it.
 
-**The retest.** The spec retests a reader whenever the instructions change. The only side drawing with known positions is the generator's own: Saffi's accepted side view, `armatures/saffi/side.svg`, whose landmark file says where each landmark is drawn. `score-reading` scores a side reading against that file, at the positions the view draws, which for her mouth and chin are the set-back ones. Two fresh readers read a picture of it under 2026-11-17.3. It has not been run at this commit: its figures are added here when it has.
+**The retest.** The spec retests a reader whenever the instructions change. The only side drawing with known positions is the generator's own: Saffi's accepted side view, `armatures/saffi/side.svg`, whose landmark file says where each landmark is drawn. `score-reading` scores a side reading against that file, at the positions the view draws, which for her mouth and chin are the set-back ones. Two fresh readers read a picture of it under 2026-11-17.3.
+
+**The run.** On 2026-11-17, once. The picture is `side.svg` rendered at one pixel to a unit, 1000 pixels square, with the head 494 pixels high. Each reader was told which guide stands for which feature and nothing of where its points are, and saw nothing else. Both called it a side view facing the viewer's right, turned 90°, and level, and set nothing aside. Both readings passed their check. Each placed 29 landmarks and stated two as not seen: the iris's two side extents, which an iris seen from its edge does not have and the landmark file does not give. Nothing was placed though covered, and nothing was stated as not seen that the drawing shows.
+
+**A reader's error against the positions the view draws,** over the 29 landmarks each placed:
+
+| Reading | Scored | Mean | Median | 90th pct | Worst | Over 1% |
+|---|---|---|---|---|---|---|
+| First reader, side | 29 | 0.17% | 0.17% | 0.27% | 0.60%, the eye opening's top | 0 |
+| Second reader, side | 29 | 0.16% | 0.12% | 0.36% | 0.50%, the eye opening's top | 0 |
+
+**By kind,** as the mean of the first reading and of the second, and the worst of the two:
+
+| Kind | Scored in each | Means | Worst |
+|---|---|---|---|
+| Hair: top, back and front extents | 3 | 0.02%, 0.02% | 0.03%, the top |
+| Chin | 1 | 0.15%, 0.15% | 0.15% |
+| Nose mark: bottom and near corner | 2 | 0.18%, 0.12% | 0.22%, the corner |
+| Mouth line: centre and near end | 2 | 0.13%, 0.13% | 0.23%, the end |
+| Eye opening | 4 | 0.28%, 0.25% | 0.60%, the top |
+| Iris: top and bottom | 2 | 0.23%, 0.25% | 0.26%, the bottom |
+| Lid line | 3 | 0.26%, 0.33% | 0.39%, the crest |
+| Brow line | 2 | 0.18%, 0.12% | 0.18%, the inner end |
+| Ear | 5 | 0.14%, 0.12% | 0.25%, the top |
+| Face outline at the nose and mouth levels | 2 | 0.10%, 0.05% | 0.16%, at the mouth level |
+| Neck: back and front base | 2 | 0.18%, 0.18% | 0.18%, the back |
+| Shoulder point | 1 | 0.01%, 0.02% | 0.02% |
+
+**The agreement between the two readers:** 29 landmarks compared, a mean of 0.09%, the largest 0.88% (the eye opening's top), none over 1%. Neither placed a landmark the other did not.
+
+**What these figures say.** On this drawing of guides, both readers followed the side view's naming (the near side, inner toward the front, the ear's base points, the hair's back and front, the neck's back and front), and placed every point to under 0.61% of head height. That is as close as the features were read on the underdrawings of sections 5 and 5c (means of 0.16% to 0.22%, worsts of 1.08% to 1.66%). The check and the score ran on a side reading. Under the limits below, these figures say nothing of how a painted profile is read, of level, or of human ears; the side readings of the first batch rest on the reading instructions alone.
 
 What it can show:
 
