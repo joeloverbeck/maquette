@@ -143,6 +143,8 @@ A reading is measured only when it passes what check-reading checks: complete, a
 picture still the one that was read. The two readings of a drawing are two files, by two
 readers under two labels, and follow one revision of the reading instructions. A reading
 under an earlier revision is measured, and what is written says which it followed.
+A picture is a PNG or a JPEG. It is read as it was published and never converted: a reading
+records the digest of the file it was read from.
 
   maquette start-reading --image <picture> --view front|three-quarter|side
                          [--faces right|left] --reader <label> --out <reading>
@@ -161,7 +163,7 @@ under an earlier revision is measured, and what is written says which it followe
       Enlarge a part of a picture a whole number of times, at most 16, each pixel as a
       block. --grid draws a line every so many pixels of the picture and labels it with its
       position in the picture. An enlargement with an edge above 1568 pixels is refused: an
-      agent is shown it resized.
+      agent is shown it resized. The enlargement is written as a PNG.
 
   maquette agreement-of-readings --first <reading> --second <reading> [--out <file>]
       Set two readings of one drawing against each other: for every landmark both place,

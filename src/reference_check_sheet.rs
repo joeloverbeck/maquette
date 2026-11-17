@@ -595,9 +595,11 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
         plain3(height)
     ));
     svg.push_str(&format!(
-        "<image width=\"{}\" height=\"{}\" href=\"data:image/png;base64,{}\"/>\n",
+        "<image width=\"{}\" height=\"{}\" href=\"data:{};base64,{}\"/>\n",
         plain3(first.picture.width),
         plain3(first.picture.height),
+        readings::picture_media_type(picture)
+            .map_err(|error| Error::new(format!("{}: {error}", first.picture.file)))?,
         base64::engine::general_purpose::STANDARD.encode(picture)
     ));
 

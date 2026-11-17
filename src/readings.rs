@@ -405,17 +405,30 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
         .collect()
 }
 
+/// What is said of a file that is not a picture maquette reads. A picture is read as it was
+/// published, as a PNG or as a JPEG, and is told by its bytes, not by its name.
+pub fn not_a_picture(error: impl std::fmt::Display) -> Error {
+    Error::new(format!(
+        "the picture cannot be read as a PNG or a JPEG, the two formats maquette reads: {error}"
+    ))
+}
+
+/// What a file that holds a picture whole calls its format: `image/png` or `image/jpeg`.
+pub fn picture_media_type(bytes: &[u8]) -> Result<&'static str> {
+    match image::guess_format(bytes).map_err(not_a_picture)? {
+        image::ImageFormat::Png => Ok("image/png"),
+        image::ImageFormat::Jpeg => Ok("image/jpeg"),
+        other => Err(not_a_picture(format!("it is in the format {other:?}"))),
+    }
+}
+
 /// How wide and how high a picture is, in pixels.
 pub fn picture_size(bytes: &[u8]) -> Result<(u32, u32)> {
     image::ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
-        .map_err(|error| Error::new(format!("the picture cannot be read: {error}")))?
+        .map_err(not_a_picture)?
         .into_dimensions()
-        .map_err(|error| {
-            Error::new(format!(
-                "the picture cannot be read as a PNG, the one format maquette reads: {error}"
-            ))
-        })
+        .map_err(not_a_picture)
 }
 
 /// What a reference is: said by whoever hands over the drawing, except the manner.

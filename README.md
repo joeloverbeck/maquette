@@ -147,6 +147,8 @@ cargo run -- check-reading --reading <reading>
 
 `start-reading` writes a reading to fill in: the picture's SHA-256 digest and size, the questions of the judgement (the view, which way a turned head faces, the turn, whether the head is level, each with its reason), and a line for every landmark the view asks for. A landmark is placed, in pixels of the picture, or stated as not seen with the reason. The skull is never read: it lies under the hair. `enlarge-image` enlarges a part of a picture by a whole factor of at most 16, each pixel as a block, with a grid that is labelled in the picture's own pixels. `check-reading` says what a reading lacks or gets wrong.
 
+A picture is a PNG or a JPEG, the two formats official sites publish heads in, and is told by its bytes, not by its name. It is read as it was published and never converted, because the digest a reading records is of the file itself. An enlargement is written as a PNG, and a reference check sheet holds each picture in the format it has.
+
 A reading says the head is level, or sets the drawing aside. A drawing that is set aside or not called level is not measured by any command.
 
 ### What readings say

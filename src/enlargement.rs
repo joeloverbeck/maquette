@@ -112,11 +112,7 @@ fn write_number(picture: &mut RgbImage, number: u32, x: u32, y: u32) {
 /// Enlarges a part of a picture, given as the bytes of its file.
 pub fn enlarge(picture: &[u8], part: &Part) -> Result<Enlarged> {
     let picture = image::load_from_memory(picture)
-        .map_err(|error| {
-            Error::new(format!(
-                "the picture cannot be read as a PNG, the one format maquette reads: {error}"
-            ))
-        })?
+        .map_err(crate::readings::not_a_picture)?
         .to_rgb8();
     if part.width == 0 || part.height == 0 {
         return Err(Error::new(

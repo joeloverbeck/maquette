@@ -269,6 +269,22 @@ pub fn made_up_image_with_block(path: &Path, width: u32, height: u32, block: [u3
     picture.save(path).expect("the made-up picture is written");
 }
 
+/// The made-up picture as a JPEG, the other format a drawing is published in. A JPEG does
+/// not keep each pixel's value exactly, so a test of one holds a pixel to a tolerance.
+pub fn made_up_jpeg(path: &Path, width: u32, height: u32) {
+    assert!(
+        path.extension().is_some_and(|extension| extension == "jpg"),
+        "a made-up JPEG is named `.jpg`, so that it is written as one"
+    );
+    made_up_image(path, width, height);
+    assert!(
+        std::fs::read(path)
+            .expect("the made-up picture is read")
+            .starts_with(&[0xFF, 0xD8, 0xFF]),
+        "the made-up picture was not written as a JPEG"
+    );
+}
+
 /// The SHA-256 digest of a file, in lower-case hex, worked out by the test itself.
 pub fn sha256_of(path: &Path) -> String {
     sha256_hex(&std::fs::read(path).unwrap_or_else(|error| panic!("{}: {error}", path.display())))

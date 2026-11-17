@@ -256,6 +256,51 @@ fn a_sheet_shows_each_characters_views_with_the_points_read_and_what_was_set_asi
     );
 }
 
+#[test]
+fn a_drawing_published_as_a_jpeg_is_inside_the_sheet_as_the_jpeg_it_is() {
+    let folder = references("reference-check-sheet-jpeg");
+    support::made_up_jpeg(&folder.join("pictures/front.jpg"), 1000, 1000);
+    reading(
+        &folder,
+        MadeUp::front("first", seen(0.0, 500.0)),
+        "pictures/front.jpg",
+        "first/front.toml",
+    );
+    std::fs::write(
+        folder.join("sheet.toml"),
+        r#"# A made-up sheet for a test.
+note = "Made up for a test: the grey picture shows no drawing."
+look = "No look is asked: a made-up sheet"
+
+[[character]]
+label = "Character 1"
+readings = ["first/front.toml"]
+"#,
+    )
+    .expect("the sheet description is written");
+
+    let svg = rendered(&folder);
+    let document = roxmltree::Document::parse(&svg).expect("the sheet is well-formed SVG");
+    let pictures: Vec<roxmltree::Node> = document
+        .descendants()
+        .filter(|node| node.has_tag_name("image"))
+        .collect();
+    assert_eq!(pictures.len(), 1);
+    let embedded = pictures[0]
+        .attribute("href")
+        .expect("an href")
+        .strip_prefix("data:image/jpeg;base64,")
+        .expect("a JPEG is embedded as a JPEG");
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(embedded)
+        .expect("base64");
+    assert_eq!(
+        bytes,
+        std::fs::read(folder.join("pictures/front.jpg")).expect("the picture"),
+        "the sheet holds another picture than the one that was read"
+    );
+}
+
 /// The dots of one drawing of a sheet, by class: `picture` counts the drawings from the top.
 fn dots_of(document: &roxmltree::Document, picture: usize, class: &str) -> usize {
     let pictures: Vec<roxmltree::Node> = document
