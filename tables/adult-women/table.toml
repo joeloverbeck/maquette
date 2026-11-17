@@ -1,0 +1,815 @@
+# A proportion table, by `maquette table-from-readings`: for each proportion of the list, the
+# number of works whose accepted readings give it and, where five or more do, the lowest, the
+# middle and the highest value among them. `maquette list-proportions` defines each proportion.
+#
+# It is a proposal until Jon has accepted it. [rules] says what it is built from, when a
+# proportion has a valid range, and what the table does not say.
+
+[table]
+built_from = "the record of Jon's check at Look 4 of 8, checked on 2026-11-17"
+works = 6
+works_for_a_table = 5
+proportions = 73
+given = 27
+too_thin = 26
+no_work = 17
+conventions = 3
+
+[rules]
+built_from = "A table is built from the record of Jon's check and from nothing else: the readings of each character he accepted, each drawing as the record rules it, with what he marked as off left out. A drawing that is set aside or not called level is left out, and so is a character he rejected."
+a_work = "Each accepted character is one work, and a table counts works. Heights and widths are taken from a work's front view, so a work with no measured front view gives nothing. Depth is taken from its side view where one is measured, and otherwise from its three-quarter view at the turn the readings show."
+values = "For each proportion: the number of works that give it and, where it has a range, the lowest, the middle and the highest value among them. The middle is the median: the middle value in order, or midway between the two middle values of an even number of works. Every value is in units, a length over the height from the eye line down to the chin."
+floor = "A proportion with five works or more behind it is given: its valid range runs from its lowest value to its highest. A proportion with fewer is too thin: the table says how many works stand behind it and why the others do not give it, and states no number, because the values of one to four works are those works' own numbers. It has no range, and nothing is set against it. The floor is held proportion by proportion. In a view that has five works, a proportion that hair or a mark of Jon's leaves with fewer is too thin all the same: the floor is there so that no range is one hand's habit, and a range is backed only by the works that show that feature. A view with fewer than five works is reported as too thin and is not a table."
+conventions = "A convention is built by a stated rule and is never a measurement: it has no valid range, however many works the rule could be run on, and the table states no number for it."
+separate_ranges = "Each range is separate. The table does not rule on which combinations of proportions go together: a head with every proportion inside its range may still be one that no reference shows."
+single_references = "A lowest value and a highest value are each one reference's number. The table does not tie them to a work."
+comparison_case = "No comparison case's numbers are in a table. The command that builds one takes the record of Jon's check and no set of proportions, reads only from the reference folder, and refuses what is not a reader's reading of a drawing."
+
+# The accepted works behind each view, and behind depth, which takes two views of one
+# character. A view with fewer than five is too thin, and is not a table.
+[[view]]
+view = "front"
+works = 6
+standing = "a table"
+[[view]]
+view = "three-quarter"
+works = 0
+standing = "too thin: not a table"
+[[view]]
+view = "side"
+works = 3
+standing = "too thin: not a table"
+[[view]]
+view = "depth, from a front and a side view of one character"
+works = 3
+standing = "too thin: not a table"
+[[view]]
+view = "depth, from a front and a three-quarter view of one character"
+works = 0
+standing = "too thin: not a table"
+
+# The works the table was measured on, as their readings name them. Where each picture
+# was taken from is in its readings, in the reference folder.
+[[work]]
+work = "Frieren: Beyond Journey's End (TV anime, 2023–24)"
+designer = "Reiko Nagasawa"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front", "side"]
+depth_from = "its side view"
+[[work]]
+work = "Wotakoi: Love Is Hard for Otaku (TV anime, 2018)"
+designer = "安田京弘"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front", "side"]
+depth_from = "its side view"
+[[work]]
+work = "Delicious in Dungeon (TV anime, 2024)"
+designer = "Naoki Takeda"
+age_band = "adult"
+sex = "female"
+species = "half-elf: a human face, with long pointed ears at the sides of the head"
+views = ["front", "side"]
+depth_from = "its side view"
+[[work]]
+work = "Erased (TV anime, 2016)"
+designer = "Keigo Sasaki"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front"]
+depth_from = "no view: it gives no depth"
+[[work]]
+work = "Lycoris Recoil (TV anime, 2022)"
+designer = "imigimuru"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front"]
+depth_from = "no view: it gives no depth"
+[[work]]
+work = "Mayonaka Punch (TV anime, 2024)"
+designer = "Ryota Arima; original character design by Tsukasa Kotobuki"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front"]
+depth_from = "no view: it gives no depth"
+
+# Every proportion of the list, in the list's order. Only a proportion whose standing
+# is "given" has a valid range.
+[[proportion]]
+name = "hair_top_rise"
+kind = "measured"
+dimension = "height"
+works = 6
+standing = "given"
+lowest = 1.314593
+middle = 1.482276
+highest = 1.862021
+[[proportion]]
+name = "hair_half_width"
+kind = "measured"
+dimension = "width"
+works = 5
+standing = "given"
+lowest = 0.968204
+middle = 1.039887
+highest = 1.518858
+not_given_by = [
+  "1 work: the front view has no position for `hair-left-extent`",
+]
+[[proportion]]
+name = "hair_half_depth"
+kind = "measured"
+dimension = "depth"
+works = 3
+standing = "too thin"
+not_given_by = [
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "hair_centre_depth"
+kind = "measured"
+dimension = "depth"
+works = 3
+standing = "too thin"
+not_given_by = [
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "skull_radius"
+kind = "convention"
+dimension = "width"
+works = 0
+standing = "convention"
+not_given_by = [
+  "6 works: no view draws the skull, and the rule that builds it from the ears' base points and the temples lacks `ear_base_outer_rise`",
+]
+[[proportion]]
+name = "skull_centre_rise"
+kind = "convention"
+dimension = "height"
+works = 0
+standing = "convention"
+not_given_by = [
+  "6 works: no view draws the skull, and the rule that builds it from the ears' base points and the temples lacks `ear_base_outer_rise`",
+]
+[[proportion]]
+name = "skull_centre_depth"
+kind = "convention"
+dimension = "depth"
+works = 0
+standing = "convention"
+not_given_by = [
+  "6 works: no view draws the skull, and the rule that builds it from the ears' base points and the temples lacks `ear_base_outer_rise`",
+]
+[[proportion]]
+name = "chin_depth"
+kind = "measured"
+dimension = "depth"
+works = 3
+standing = "too thin"
+not_given_by = [
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "face_top_rise"
+kind = "measured"
+dimension = "height"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: neither view has a position for face-outline-left-top and face-outline-right-top, so its height is unknown; a side view does not give it: the reading instructions ask a side view for no temple.",
+  "3 works: the front view does not have a position for face-outline-left-top and face-outline-right-top, so its height is unknown",
+]
+[[proportion]]
+name = "face_top_half_width"
+kind = "measured"
+dimension = "width"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: neither view has positions for both face-outline-left-top and face-outline-right-top, so their offset is unknown",
+  "3 works: the front view does not have positions for both face-outline-left-top and face-outline-right-top, so their offset is unknown",
+]
+[[proportion]]
+name = "face_top_depth"
+kind = "measured"
+dimension = "depth"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: the side view has no position for face-outline-left-top and face-outline-right-top, so their depth is unknown; a side view does not give it: the reading instructions ask a side view for no temple, so a front view and a side view give the temple no depth.",
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "face_half_width_at_eye_level"
+kind = "measured"
+dimension = "width"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: neither view has positions for both face-outline-left-at-eye-level and face-outline-right-at-eye-level, so their offset is unknown",
+  "3 works: the front view does not have positions for both face-outline-left-at-eye-level and face-outline-right-at-eye-level, so their offset is unknown",
+]
+[[proportion]]
+name = "face_depth_at_eye_level"
+kind = "measured"
+dimension = "depth"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: the side view has no position for face-outline-left-at-eye-level and face-outline-right-at-eye-level, so their depth is unknown; a side view does not give it: the cheek point is where the front of the face turns into its side. That is the far outline of a three-quarter view and no outline of a profile, so a side view has no point to place there.",
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "face_half_width_at_nose_level"
+kind = "measured"
+dimension = "width"
+works = 2
+standing = "too thin"
+not_given_by = [
+  "1 work: neither view has positions for both face-outline-left-at-nose-level and face-outline-right-at-nose-level, so their offset is unknown",
+  "3 works: the front view does not have positions for both face-outline-left-at-nose-level and face-outline-right-at-nose-level, so their offset is unknown",
+]
+[[proportion]]
+name = "face_depth_at_nose_level"
+kind = "measured"
+dimension = "depth"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: the side view has no position for face-outline-left-at-nose-level and face-outline-right-at-nose-level, so their depth is unknown; a side view does not give it: the cheek point is where the front of the face turns into its side. That is the far outline of a three-quarter view and no outline of a profile, so a side view has no point to place there.",
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "face_half_width_at_mouth_level"
+kind = "measured"
+dimension = "width"
+works = 4
+standing = "too thin"
+not_given_by = [
+  "1 work: neither view has positions for both face-outline-left-at-mouth-level and face-outline-right-at-mouth-level, so their offset is unknown",
+  "1 work: the front view does not have positions for both face-outline-left-at-mouth-level and face-outline-right-at-mouth-level, so their offset is unknown",
+]
+[[proportion]]
+name = "face_depth_at_mouth_level"
+kind = "measured"
+dimension = "depth"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: the side view has no position for face-outline-left-at-mouth-level and face-outline-right-at-mouth-level, so their depth is unknown; a side view does not give it: the cheek point is where the front of the face turns into its side. That is the far outline of a three-quarter view and no outline of a profile, so a side view has no point to place there.",
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "jaw_drop"
+kind = "measured"
+dimension = "height"
+works = 6
+standing = "given"
+lowest = 0.975784
+middle = 0.989735
+highest = 0.99294
+[[proportion]]
+name = "jaw_half_width"
+kind = "measured"
+dimension = "width"
+works = 6
+standing = "given"
+lowest = 0.052973
+middle = 0.070734
+highest = 0.11813
+[[proportion]]
+name = "jaw_depth"
+kind = "measured"
+dimension = "depth"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: the side view has no position for face-outline-left-jaw and face-outline-right-jaw, so their depth is unknown; a side view does not give it: the reading instructions ask a side view for no jaw point. It lies beside the chin on the front of the face, which a profile draws as one line.",
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "jaw_line_depth_at_nose_level"
+kind = "measured"
+dimension = "depth"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: the side view has no position for jaw-line-left-at-nose-level and jaw-line-right-at-nose-level, so their depth is unknown",
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "jaw_line_depth_at_mouth_level"
+kind = "measured"
+dimension = "depth"
+works = 1
+standing = "too thin"
+not_given_by = [
+  "2 works: the side view has no position for jaw-line-left-at-mouth-level and jaw-line-right-at-mouth-level, so their depth is unknown",
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "eye_inner_corner_offset"
+kind = "measured"
+dimension = "width"
+works = 6
+standing = "given"
+lowest = 0.219003
+middle = 0.230426
+highest = 0.268819
+[[proportion]]
+name = "eye_inner_corner_drop"
+kind = "measured"
+dimension = "height"
+works = 6
+standing = "given"
+lowest = -0.055409
+middle = -0.004066
+highest = 0.016263
+[[proportion]]
+name = "eye_outer_corner_offset"
+kind = "measured"
+dimension = "width"
+works = 5
+standing = "given"
+lowest = 0.556301
+middle = 0.582851
+highest = 0.701847
+not_given_by = [
+  "1 work: neither view has positions for both eye-left-outer-corner and eye-right-outer-corner, so their offset is unknown",
+]
+[[proportion]]
+name = "eye_outer_corner_drop"
+kind = "measured"
+dimension = "height"
+works = 6
+standing = "given"
+lowest = -0.043417
+middle = -0.025493
+highest = -0.000772
+[[proportion]]
+name = "eye_wrap_depth"
+kind = "measured"
+dimension = "depth"
+works = 3
+standing = "too thin"
+not_given_by = [
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "eye_opening_height"
+kind = "measured"
+dimension = "height"
+works = 5
+standing = "given"
+lowest = 0.069698
+middle = 0.202612
+highest = 0.275782
+not_given_by = [
+  "1 work: marked as off by Jon for this character, so it is not given for this work",
+]
+[[proportion]]
+name = "eye_opening_top_offset"
+kind = "measured"
+dimension = "width"
+works = 6
+standing = "given"
+lowest = 0.380684
+middle = 0.439502
+highest = 0.50908
+[[proportion]]
+name = "eye_opening_bottom_offset"
+kind = "measured"
+dimension = "width"
+works = 6
+standing = "given"
+lowest = 0.357451
+middle = 0.388694
+highest = 0.441692
+[[proportion]]
+name = "iris_centre_offset"
+kind = "measured"
+dimension = "width"
+works = 6
+standing = "given"
+lowest = 0.354796
+middle = 0.381871
+highest = 0.446997
+[[proportion]]
+name = "iris_centre_drop"
+kind = "measured"
+dimension = "height"
+works = 6
+standing = "given"
+lowest = -0.03127
+middle = -0.001941
+highest = 0.002704
+[[proportion]]
+name = "iris_depth"
+kind = "measured"
+dimension = "depth"
+works = 3
+standing = "too thin"
+not_given_by = [
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "iris_width"
+kind = "measured"
+dimension = "width"
+works = 6
+standing = "given"
+lowest = 0.080982
+middle = 0.161729
+highest = 0.233681
+[[proportion]]
+name = "iris_height"
+kind = "measured"
+dimension = "height"
+works = 6
+standing = "given"
+lowest = 0.073017
+middle = 0.216839
+highest = 0.264783
+[[proportion]]
+name = "lid_line_inner_end_offset"
+kind = "measured"
+dimension = "width"
+works = 6
+standing = "given"
+lowest = 0.188111
+middle = 0.217699
+highest = 0.253049
+[[proportion]]
+name = "lid_line_inner_end_drop"
+kind = "measured"
+dimension = "height"
+works = 6
+standing = "given"
+lowest = -0.07725
+middle = -0.043406
+highest = 0.018586
+[[proportion]]
+name = "lid_line_crest_offset"
+kind = "measured"
+dimension = "width"
+works = 6
+standing = "given"
+lowest = 0.336874
+middle = 0.440304
+highest = 0.512184
+[[proportion]]
+name = "lid_line_crest_rise"
+kind = "measured"
+dimension = "height"
+works = 6
+standing = "given"
+lowest = 0.061069
+middle = 0.144213
+highest = 0.197305
+[[proportion]]
+name = "lid_line_outer_end_offset"
+kind = "measured"
+dimension = "width"
+works = 4
+standing = "too thin"
+not_given_by = [
+  "1 work: neither view has positions for both lid-line-left-outer-end and lid-line-right-outer-end, so their offset is unknown",
+  "1 work: the front view does not have positions for both lid-line-left-outer-end and lid-line-right-outer-end, so their offset is unknown",
+]
+[[proportion]]
+name = "lid_line_outer_end_rise"
+kind = "measured"
+dimension = "height"
+works = 6
+standing = "given"
+lowest = -0.003319
+middle = 0.038823
+highest = 0.157535
+[[proportion]]
+name = "brow_inner_end_offset"
+kind = "measured"
+dimension = "width"
+works = 2
+standing = "too thin"
+not_given_by = [
+  "2 works: neither view has positions for both brow-line-left-inner-end and brow-line-right-inner-end, so their offset is unknown",
+  "2 works: the front view does not have positions for both brow-line-left-inner-end and brow-line-right-inner-end, so their offset is unknown",
+]
+[[proportion]]
+name = "brow_inner_end_rise"
+kind = "measured"
+dimension = "height"
+works = 5
+standing = "given"
+lowest = 0.14703
+middle = 0.379232
+highest = 0.451526
+not_given_by = [
+  "1 work: the front view does not have a position for brow-line-left-inner-end and brow-line-right-inner-end, so its height is unknown",
+]
+[[proportion]]
+name = "brow_outer_end_offset"
+kind = "measured"
+dimension = "width"
+works = 3
+standing = "too thin"
+not_given_by = [
+  "1 work: neither view has positions for both brow-line-left-outer-end and brow-line-right-outer-end, so their offset is unknown",
+  "2 works: the front view does not have positions for both brow-line-left-outer-end and brow-line-right-outer-end, so their offset is unknown",
+]
+[[proportion]]
+name = "brow_outer_end_rise"
+kind = "measured"
+dimension = "height"
+works = 4
+standing = "too thin"
+not_given_by = [
+  "2 works: the front view does not have a position for brow-line-left-outer-end and brow-line-right-outer-end, so its height is unknown",
+]
+[[proportion]]
+name = "nose_mark_corner_offset"
+kind = "measured"
+dimension = "width"
+works = 5
+standing = "given"
+lowest = 0.036966
+middle = 0.068752
+highest = 0.096581
+not_given_by = [
+  "1 work: the front view does not have positions for both nose-mark-left-corner and nose-mark-right-corner, so their offset is unknown",
+]
+[[proportion]]
+name = "nose_mark_corner_drop"
+kind = "measured"
+dimension = "height"
+works = 5
+standing = "given"
+lowest = 0.28811
+middle = 0.369067
+highest = 0.416377
+not_given_by = [
+  "1 work: the front view does not have a position for nose-mark-left-corner and nose-mark-right-corner, so its height is unknown",
+]
+[[proportion]]
+name = "nose_mark_corner_depth"
+kind = "measured"
+dimension = "depth"
+works = 2
+standing = "too thin"
+not_given_by = [
+  "1 work: the side view has no position for nose-mark-left-corner and nose-mark-right-corner, so their depth is unknown",
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "nose_mark_bottom_drop"
+kind = "measured"
+dimension = "height"
+works = 6
+standing = "given"
+lowest = 0.343163
+middle = 0.429286
+highest = 0.460796
+[[proportion]]
+name = "nose_mark_bottom_depth"
+kind = "measured"
+dimension = "depth"
+works = 3
+standing = "too thin"
+not_given_by = [
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "mouth_end_offset"
+kind = "measured"
+dimension = "width"
+works = 5
+standing = "given"
+lowest = 0.104547
+middle = 0.233232
+highest = 0.377774
+not_given_by = [
+  "1 work: neither view has positions for both mouth-line-left-end and mouth-line-right-end, so their offset is unknown",
+]
+[[proportion]]
+name = "mouth_end_drop"
+kind = "measured"
+dimension = "height"
+works = 6
+standing = "given"
+lowest = 0.525687
+middle = 0.596787
+highest = 0.637134
+[[proportion]]
+name = "mouth_end_depth"
+kind = "measured"
+dimension = "depth"
+works = 3
+standing = "too thin"
+not_given_by = [
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "mouth_centre_drop"
+kind = "measured"
+dimension = "height"
+works = 6
+standing = "given"
+lowest = 0.598301
+middle = 0.610974
+highest = 0.644899
+[[proportion]]
+name = "mouth_centre_depth"
+kind = "measured"
+dimension = "depth"
+works = 3
+standing = "too thin"
+not_given_by = [
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "ear_base_outer_offset"
+kind = "measured"
+dimension = "width"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: neither view has positions for both ear-left-base-outer and ear-right-base-outer, so their offset is unknown",
+  "3 works: the front view does not have positions for both ear-left-base-outer and ear-right-base-outer, so their offset is unknown",
+]
+[[proportion]]
+name = "ear_base_outer_rise"
+kind = "measured"
+dimension = "height"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: neither view has a position for ear-left-base-outer and ear-right-base-outer, so its height is unknown",
+  "3 works: the front view does not have a position for ear-left-base-outer and ear-right-base-outer, so its height is unknown",
+]
+[[proportion]]
+name = "ear_base_outer_depth"
+kind = "measured"
+dimension = "depth"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: the side view has no position for ear-left-base-outer and ear-right-base-outer, so their depth is unknown",
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "ear_base_inner_offset"
+kind = "measured"
+dimension = "width"
+works = 1
+standing = "too thin"
+not_given_by = [
+  "2 works: neither view has positions for both ear-left-base-inner and ear-right-base-inner, so their offset is unknown",
+  "3 works: the front view does not have positions for both ear-left-base-inner and ear-right-base-inner, so their offset is unknown",
+]
+[[proportion]]
+name = "ear_base_inner_rise"
+kind = "measured"
+dimension = "height"
+works = 1
+standing = "too thin"
+not_given_by = [
+  "2 works: neither view has a position for ear-left-base-inner and ear-right-base-inner, so its height is unknown",
+  "3 works: the front view does not have a position for ear-left-base-inner and ear-right-base-inner, so its height is unknown",
+]
+[[proportion]]
+name = "ear_base_inner_depth"
+kind = "measured"
+dimension = "depth"
+works = 1
+standing = "too thin"
+not_given_by = [
+  "2 works: the side view has no position for ear-left-base-inner and ear-right-base-inner, so their depth is unknown",
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "ear_top_offset"
+kind = "measured"
+dimension = "width"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: neither view has positions for both ear-left-top and ear-right-top, so their offset is unknown",
+  "3 works: the front view does not have positions for both ear-left-top and ear-right-top, so their offset is unknown",
+]
+[[proportion]]
+name = "ear_top_rise"
+kind = "measured"
+dimension = "height"
+works = 1
+standing = "too thin"
+not_given_by = [
+  "2 works: neither view has a position for ear-left-top and ear-right-top, so its height is unknown",
+  "3 works: the front view does not have a position for ear-left-top and ear-right-top, so its height is unknown",
+]
+[[proportion]]
+name = "ear_outer_extent_offset"
+kind = "measured"
+dimension = "width"
+works = 2
+standing = "too thin"
+not_given_by = [
+  "2 works: neither view has positions for both ear-left-outer-extent and ear-right-outer-extent, so their offset is unknown",
+  "2 works: the front view does not have positions for both ear-left-outer-extent and ear-right-outer-extent, so their offset is unknown",
+]
+[[proportion]]
+name = "ear_outer_extent_rise"
+kind = "measured"
+dimension = "height"
+works = 2
+standing = "too thin"
+not_given_by = [
+  "2 works: the front view has no position for ear-left-outer-extent and ear-right-outer-extent, and a side view shows another point of the head under that name, so its height is unknown; a side view does not give it: in a profile the ear's extents are toward the back and the front of the head, which are other points of the ear than its extents to the sides.",
+  "2 works: the front view does not have a position for ear-left-outer-extent and ear-right-outer-extent, so its height is unknown",
+]
+[[proportion]]
+name = "ear_inner_extent_offset"
+kind = "measured"
+dimension = "width"
+works = 1
+standing = "too thin"
+not_given_by = [
+  "2 works: neither view has positions for both ear-left-inner-extent and ear-right-inner-extent, so their offset is unknown",
+  "3 works: the front view does not have positions for both ear-left-inner-extent and ear-right-inner-extent, so their offset is unknown",
+]
+[[proportion]]
+name = "ear_inner_extent_rise"
+kind = "measured"
+dimension = "height"
+works = 1
+standing = "too thin"
+not_given_by = [
+  "2 works: the front view has no position for ear-left-inner-extent and ear-right-inner-extent, and a side view shows another point of the head under that name, so its height is unknown; a side view does not give it: in a profile the ear's extents are toward the back and the front of the head, which are other points of the ear than its extents to the sides.",
+  "3 works: the front view does not have a position for ear-left-inner-extent and ear-right-inner-extent, so its height is unknown",
+]
+[[proportion]]
+name = "neck_half_width"
+kind = "measured"
+dimension = "width"
+works = 2
+standing = "too thin"
+not_given_by = [
+  "3 works: the front view does not place both of the points where the neck ends, and a side view shows the neck's back and its front, which end at other heights and are not as far apart; a side view does not give it: the front view's. A drawn neck is not as wide from back to front as from side to side.",
+  "1 work: the front view does not place both of the points where the neck ends",
+]
+[[proportion]]
+name = "neck_depth"
+kind = "measured"
+dimension = "depth"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: the side view has no position for `neck-back-base`",
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "neck_base_drop"
+kind = "measured"
+dimension = "height"
+works = 2
+standing = "too thin"
+not_given_by = [
+  "3 works: the front view does not place both of the points where the neck ends, and a side view shows the neck's back and its front, which end at other heights and are not as far apart; a side view does not give it: the front view's. The neck's back and its front end at other heights than its sides.",
+  "1 work: the front view does not place both of the points where the neck ends",
+]
+[[proportion]]
+name = "shoulder_half_width"
+kind = "measured"
+dimension = "width"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: neither view has positions for both shoulder-left-point and shoulder-right-point, so their offset is unknown",
+  "3 works: the front view does not have positions for both shoulder-left-point and shoulder-right-point, so their offset is unknown",
+]
+[[proportion]]
+name = "shoulder_drop"
+kind = "measured"
+dimension = "height"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: neither view has a position for shoulder-left-point and shoulder-right-point, so its height is unknown",
+  "3 works: the front view does not have a position for shoulder-left-point and shoulder-right-point, so its height is unknown",
+]
+[[proportion]]
+name = "shoulder_depth"
+kind = "measured"
+dimension = "depth"
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: the side view has no position for shoulder-left-point and shoulder-right-point, so their depth is unknown",
+  "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]

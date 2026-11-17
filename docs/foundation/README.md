@@ -108,6 +108,18 @@ Jon was shown the side view at two shares, 0.5 as candidate A and 1 as candidate
 
 **What it does not:** candidate B, her proportions as a standard for another character, or any table. The side view's only check was his look. Looks used: three of eight, two accepted and one not.
 
+## Look 4 and the first batch, 2026-11-17
+
+The first batch of references is one adult woman from each of six works by six character designers, from official sources. No level three-quarter head was found in a free official source, and a side view was found for three of the six. **Decided by Jon:** the batch is read in front and side views, depth is reported as too thin, and no book is bought to fill a view.
+
+At look 4 (of 8) Jon checked the batch on a reference check sheet and accepted all six characters: a front view of each and a side view of three. **What that accepts:** that those heads are level, in the view stated, and that the points sit on the right features as he sees them. **What it does not:** that a published head is read rightly, which nothing in the batch tests, or any table. Issue #9 records it.
+
+## Look 5, pending
+
+The first table is built from that batch and put to Jon at look 5, in `tables/adult-women/`. **Nothing is accepted.** It gives 27 proportions a valid range. Depth has three works and is not a table, no three-quarter view was measured, and no skull is built.
+
+**Decided by Jon** on 2026-11-17: the head drawn for the look is Saffi's own head with the table's values put in where the references give them, and the sheet says so. A proportion that two to four works give is drawn at their average and marked as thin; what one work gives, or none, is borrowed from Saffi and marked as borrowed; and the head carries no side-view correction. The table as published states a number only where a proportion has a range. `design/look-5-first-table/` holds the sheet and says how the head is made.
+
 ## The GOV-1 count
 
-Five foundations and this index. The count was about 4,100 words at founding, about 5,500 after the reorientation, about 6,700 with the SVG contract, about 6,900 after look 1 and is about 7,500 after look 3, over the 5,000 at which `GOV-1` asks for a recheck. The recheck: every addition records a ruling Jon made on 2026-11-16 or 2026-11-17 or a fact the first increment needs, and none describes work beyond that increment except in `03-direction.md`, which authorizes nothing. The contract's consumer is issue #5, which builds the generator's output on it, and its detail stays in `design/svg-contract/`. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.
+Five foundations and this index. The count was about 4,100 words at founding, about 5,500 after the reorientation, about 6,700 with the SVG contract, about 6,900 after look 1, about 7,500 after look 3 and is about 7,800 with looks 4 and 5, over the 5,000 at which `GOV-1` asks for a recheck. The recheck: every addition records a ruling Jon made on 2026-11-16 or 2026-11-17 or a fact the first increment needs, and none describes work beyond that increment except in `03-direction.md`, which authorizes nothing. The contract's consumer is issue #5, which builds the generator's output on it, and its detail stays in `design/svg-contract/`. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.

@@ -272,6 +272,11 @@ impl Known {
     }
 }
 
+/// The reader's name in a record's positions written as a reading by [`as_reading`]: nobody
+/// read them. A proportion table refuses what carries it: positions known beforehand, such as
+/// a comparison case's, are not measured for a table.
+pub const NOT_A_READER: &str = "the record of known positions";
+
 /// The record's own positions written as a reading: every landmark a reader is asked for
 /// that the record gives and nothing covers, placed where the record puts it, and the rest
 /// stated as not seen. It is not a reading. It is what a reader who placed every visible
@@ -298,7 +303,8 @@ pub fn as_reading(
         quoted(crate::readings::instructions_revision()?)
     ));
     out.push_str(&format!(
-        "\n[reader]\nname = \"the record of known positions\"\naids = {}\n",
+        "\n[reader]\nname = {}\naids = {}\n",
+        quoted(NOT_A_READER),
         quoted(&format!("none: copied from {record_path}"))
     ));
     out.push_str("\n[image]\n");
@@ -758,7 +764,7 @@ fn values_of(path: &str, text: &str) -> Result<BTreeMap<String, f64>> {
 }
 
 /// What a proportion is, by its name: a height, a width across the head or a depth.
-fn dimension(name: &str) -> &'static str {
+pub(crate) fn dimension(name: &str) -> &'static str {
     if name.contains("_depth") {
         "depths"
     } else if name.ends_with("_rise") || name.ends_with("_drop") || name.ends_with("_height") {

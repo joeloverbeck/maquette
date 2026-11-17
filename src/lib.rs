@@ -39,6 +39,11 @@
 //!   out on a reference check sheet.
 //! - [`jons_check`]: the record of Jon's check of a reference check sheet: what he accepts,
 //!   marks as off and overrules, and which readings are measured after it.
+//! - [`table`]: the proportion table: what it is built from, when a proportion has a valid
+//!   range, what a set of proportions is told when it is set against one, and how a whole
+//!   set is made from one for a head to be drawn.
+//! - [`sources`]: where the numbers of a drawn head come from, marked on its views for a
+//!   review sheet.
 //! - [`number`] and [`toml_text`]: how numbers and text are written, so that every file
 //!   agrees on them.
 
@@ -61,6 +66,8 @@ pub mod read_back;
 pub mod readings;
 pub mod reference_check_sheet;
 pub mod reference_folder;
+pub mod sources;
+pub mod table;
 pub mod toml_text;
 pub mod vectorcraft;
 pub mod views;
