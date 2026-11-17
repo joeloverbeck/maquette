@@ -121,6 +121,54 @@ fn a_part_of_a_jpeg_is_enlarged_as_a_png_with_its_pixels_in_place() {
 }
 
 #[test]
+fn a_see_through_part_of_a_picture_is_enlarged_as_it_is_shown_on_a_white_page() {
+    // Made up: 30 by 10, in three upright bands. The first is dark and solid. The second is
+    // wholly see-through and holds black underneath, as a published head cut out of its
+    // background does. The third is black and half see-through.
+    let folder = references("enlargement-see-through");
+    let picture = image::RgbaImage::from_fn(30, 10, |x, _| match x / 10 {
+        0 => image::Rgba([40, 40, 40, 255]),
+        1 => image::Rgba([0, 0, 0, 0]),
+        _ => image::Rgba([0, 0, 0, 128]),
+    });
+    picture
+        .save(folder.join("picture.png"))
+        .expect("the made-up picture is written");
+    measure_ok(
+        &folder,
+        &[
+            "enlarge-image",
+            "--image",
+            "picture.png",
+            "--left",
+            "0",
+            "--top",
+            "0",
+            "--width",
+            "30",
+            "--height",
+            "10",
+            "--factor",
+            "2",
+            "--out",
+            "part.png",
+        ],
+    );
+    let enlarged = image::open(folder.join("part.png"))
+        .expect("the enlargement is a picture")
+        .to_rgb8();
+    assert_eq!(pixel(&enlarged, 10, 10), DARK);
+    // What a see-through pixel holds underneath is not shown, and is not enlarged.
+    assert_eq!(pixel(&enlarged, 30, 10), [255, 255, 255]);
+    // Black at 128 parts in 255 over white: 255 × 127 / 255 = 127.
+    let half = pixel(&enlarged, 50, 10);
+    assert!(
+        half.iter().all(|channel| channel.abs_diff(127) <= 1),
+        "{half:?}"
+    );
+}
+
+#[test]
 fn a_grid_marks_the_pictures_own_pixels_and_labels_them() {
     let folder = folder("enlargement-grid");
     let printed = enlarge(

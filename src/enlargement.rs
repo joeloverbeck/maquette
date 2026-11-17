@@ -6,7 +6,8 @@
 //! is smoothed and an edge stays where it was. A grid, when asked for, marks the picture's
 //! own pixels and labels them with their positions in the picture, so that a reader reads a
 //! position off the labels and does no arithmetic. A reading's positions are always in
-//! pixels of the picture itself, whose digest the reading records.
+//! pixels of the picture itself, whose digest the reading records. A picture that is cut out
+//! of its background is enlarged as it is shown on a white page.
 //!
 //! An agent is shown a picture resized when an edge is longer than [`LONGEST_EDGE`], and a
 //! position read off a resized picture is of another picture. So a longer enlargement is
@@ -109,11 +110,25 @@ fn write_number(picture: &mut RgbImage, number: u32, x: u32, y: u32) {
     }
 }
 
+/// A picture as it is shown on a white page. A published head is often cut out of its
+/// background, and what a see-through pixel holds underneath (black, or more of the drawing
+/// than the picture shows) is not part of the picture: a reader must not read it.
+fn as_shown(picture: &image::DynamicImage) -> RgbImage {
+    let picture = picture.to_rgba8();
+    RgbImage::from_fn(picture.width(), picture.height(), |x, y| {
+        let [red, green, blue, solid] = picture.get_pixel(x, y).0;
+        let over_white = |channel: u8| {
+            let (channel, solid) = (u32::from(channel), u32::from(solid));
+            ((channel * solid + 255 * (255 - solid) + 127) / 255) as u8
+        };
+        Rgb([over_white(red), over_white(green), over_white(blue)])
+    })
+}
+
 /// Enlarges a part of a picture, given as the bytes of its file.
 pub fn enlarge(picture: &[u8], part: &Part) -> Result<Enlarged> {
-    let picture = image::load_from_memory(picture)
-        .map_err(crate::readings::not_a_picture)?
-        .to_rgb8();
+    let picture =
+        as_shown(&image::load_from_memory(picture).map_err(crate::readings::not_a_picture)?);
     if part.width == 0 || part.height == 0 {
         return Err(Error::new(
             "the part to enlarge must be at least 1 pixel wide and 1 pixel high",
