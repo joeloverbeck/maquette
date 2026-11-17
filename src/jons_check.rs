@@ -459,10 +459,20 @@ impl DrawingChecked {
                     .iter()
                     .find(|record| record.set_aside || record.level != Some(true))
                 {
+                    // What a reading says of an overruling is the reader's word for it: the
+                    // ruling counts when this record carries it.
                     return Outcome::NotMeasured(format!(
-                        "set aside by {}{}, and Jon gave no ruling on it",
+                        "set aside by {}{}, and this record carries no ruling on it{}",
                         aside.reader,
-                        quote(&aside.set_aside_why)
+                        quote(&aside.set_aside_why),
+                        if aside.set_aside_overruled {
+                            format!(
+                                ". The reading says the set-aside was overruled by {}: write `ruling = \"measure\"` in this record if Jon said so",
+                                aside.set_aside_overruled_by
+                            )
+                        } else {
+                            String::new()
+                        }
                     ));
                 }
                 if let [first, second] = records

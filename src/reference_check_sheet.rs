@@ -261,10 +261,14 @@ impl Shown<'_> {
         {
             return Some(NotMeasured::NotTwoReadings(error.to_string()));
         }
+        // A set-aside that was overruled before the drawing was read is read and shown.
         let aside = self
             .readings
             .iter()
-            .filter(|read| read.record.set_aside || read.record.level != Some(true))
+            .filter(|read| {
+                !read.record.set_aside_overruled
+                    && (read.record.set_aside || read.record.level != Some(true))
+            })
             .count();
         match (aside, self.readings.len()) {
             (0, _) => None,
@@ -1006,7 +1010,12 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
     svg.push_str("</svg>\n");
 
     // The judgement, the agreement and the source.
-    let level = "level";
+    // A drawing read after its set-aside was overruled is shown as measured, and says so.
+    let level = if records.iter().any(|record| record.set_aside_overruled) {
+        "a set-aside was overruled: read as level"
+    } else {
+        "level"
+    };
     match &not_measured {
         None => {
             let judgement = match shown.view {
@@ -1136,6 +1145,17 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
         }
         for text in wrapped(&format!("{} judged {judged}", record.reader), 82) {
             reasons.push((text, INK));
+        }
+        if record.set_aside_overruled {
+            for text in wrapped(
+                &format!(
+                    "{} read it because a set-aside of this drawing was overruled by {}",
+                    record.reader, record.set_aside_overruled_by
+                ),
+                82,
+            ) {
+                reasons.push((text, SET_ASIDE_TEXT));
+            }
         }
         let mut said = vec![format!("view: {}", record.view_why)];
         if record.view != View::Front {

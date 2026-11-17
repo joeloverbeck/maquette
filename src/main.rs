@@ -204,7 +204,10 @@ records the digest of the file it was read from.
       data/saffi/hand-made-views.toml: the reader's error as a share of head height, by
       kind of landmark, with what cannot be seen in the picture kept apart. The record is
       read from where it is named. The reading is scored as it stands: what it leaves out
-      is listed, and its picture is not checked.
+      is listed, and its picture is not checked. The record may also be the landmark file
+      of one view of an armature, such as armatures/saffi/side.landmarks.toml, which is the
+      only side drawing with known positions: a landmark is then known where that view
+      draws it.
 
   maquette known-positions-as-reading --known-positions <record> --view front|three-quarter
                                       --image <picture> --out <reading>
@@ -1222,7 +1225,7 @@ fn check_reading(arguments: &[String]) -> Result<Ended> {
     let picture = folder.read(&record.picture.file).ok();
     let problems = record.problems(picture.as_deref());
     if problems.is_empty() {
-        if record.set_aside {
+        if record.set_aside && !record.set_aside_overruled {
             println!("The reading is complete: the drawing is set aside, and nothing is placed.");
         } else {
             println!(

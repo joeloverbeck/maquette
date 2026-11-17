@@ -306,13 +306,61 @@ What else is drawn, and how near a sphere through it comes to her drawn circle, 
 
 The points nearest her circle are the ones the hair covers. The outer corner of the eye is drawn in every front and three-quarter view, and it gives a skull about 2% of head height smaller in radius than hers. This is evidence for a decision that is Jon's: he set the rule.
 
+## 5d. The side-view part revised, once
+
+On 2026-11-17 twelve readers read the first batch of published drawings under 2026-11-17.2: six front heads and three side heads, each twice. The side-view part of the instructions had never been run. All six side readings reported the same failures, independently, and the part was revised once, to 2026-11-17.3.
+
+**No sentence that governs how a front or a three-quarter view is read was changed.** The front readings of the batch and sections 5 to 5c rest on those sentences as they are. Where a general sentence does not hold in a profile, the side-view part now says so for a profile.
+
+**Each definition was set against how the generator draws its side view.** A depth taken from a reading must be of the point the head model draws. The front of the generated outline runs through the nose mark's bottom, the mouth line's centre and the chin; the eye's inner corner is the one toward the front; the ear stands on its two base points.
+
+| What failed in a profile | Revision | Why this point |
+|---|---|---|
+| `chin`: "the lowest point of the face outline", with the middle-of-a-run rule, landed on the underside of the jaw, 14 to 30 pixels behind the chin's front. Its height was sound and its depth was not | The chin's own lowest point: where the outline, coming down the front of the face, turns to run back under the jaw. On a level underside it is the front end of the run, not its middle | The model's chin is on the centre line, and the generated outline turns back there. Depth is taken from it |
+| `nose-mark-bottom`: "where the underside of the nose meets the face" is a rounded turn, read up to 6 pixels apart, and it is not the point the model draws | Under the tip: where the outline, coming round the tip, turns to run back toward the face. The nose mark in a profile is the nose's underside, and this is its front end | A front or a three-quarter view draws the nose mark at the tip, so the model's point stands furthest forward of the lower face, as it does in Saffi's accepted side view. Where the nose meets the lip lies as far behind as the nose stands out |
+| `nose-mark-<side>-corner`: "furthest toward that side" points at the viewer. Every reader stated it as not seen | The middle of the nostril, or of the curve drawn for the wing of the nose; not seen where neither is drawn. The near corner only | The generator draws the mark from the near corner to the bottom, and the wing is what a front view's corner marks |
+| The nose level: undefined in a profile | Midway in height between that corner and the bottom; the bottom's height where the corner is not seen | The general rule, said for one corner |
+| `mouth-line-centre`: unclear under an overhanging lip, or where the line stops short of the outline. `mouth-line-<side>-end`: not explained | On the outline, at the bottom of the notch between the lips; level with the line's front end where the line stops short. The end is the back end of the drawn line | The generated outline runs through the mouth line's centre |
+| Inner and outer: defined for the eye's corner and the iris only | Inner is toward the front of the face and outer toward the back of the head, in every name | As the generator draws them: the inner ends of the brow line and the lid line stand in front of their outer ends |
+| The profile eye: no lower lid, an opening not closed at the back, the iris at the front edge | The inner corner is the front end of the opening, drawn as a contour or as the iris's edge; the outer corner the back end of what is drawn; the opening's bottom the lowest of the iris or the white; the iris's inner extent and the inner corner may be one point | Depth zero is midway between these two corners. See below |
+| The ear: the base-point sentence describes an ear seen from the front | An ear at the side stands on the head along its front edge: its upper end is `base-outer`, its lower end `base-inner`. On an ear on top of the head the front corner of the foot is `base-inner`. The extents are toward the front (inner) and the back (outer) | The front view's rule kept: the upper one is outer. Saffi's side view has the inner base point in front |
+| What a side view does not ask for was not said | Said: no temple, no jaw point, no crossing with the eye line, no `hair-<side>-extent`, no `neck-<side>-base` | |
+| "The back edge of the jaw": under hair, or only the edge of a shadow | The edge from under the chin back and up toward the ear. A shadow's edge is read where no line is drawn. Not seen under hair | |
+| The signs of level are written for a front view | Signs for a profile: the lid line and the mouth line, the ear's span, the jaw's underside. A lean does not show. Any of the far side showing means the head is not in full profile | The readers' own signs, written down. None is tested |
+| `hair-back-extent`: on long hair it landed on the hanging length | Read at or above the chin's height | The hair volume the generator draws ends at the chin's height |
+| Head height between two points on different uprights | Said: a difference in height only | |
+
+**What the revision does not mend, by what a profile is.**
+
+- *A profile eye is not a projection of the model's eye.* The model's side view shows the opening as wide as the eye wraps round the face, with the iris an upright line toward its back. A drawn profile shows a wedge with the iris at its front. So `eye_wrap_depth` and `iris_depth` taken from a profile are that convention's. Depth zero, midway between the wedge's two ends, may stand a little way from where a front and a three-quarter view would put it, which shifts every depth of that work alike. Nothing in the batch can test this: no character has all three views.
+- *The shoulder and the neck* were not seen in any side reading of the batch: hair, a collar or the picture's edge covers them.
+
+**One addition outside the side view,** which changes no placement: how a reading records that the person checking overruled a set-aside (`set_aside_overruled`, with who overruled it), and that such a drawing is read with every drawn landmark placed. The reader's own judgement stays in the reading beside it.
+
+**The retest.** The spec retests a reader whenever the instructions change. The only side drawing with known positions is the generator's own: Saffi's accepted side view, `armatures/saffi/side.svg`, whose landmark file says where each landmark is drawn. `score-reading` scores a side reading against that file, at the positions the view draws, which for her mouth and chin are the set-back ones. Two fresh readers read a picture of it under 2026-11-17.3. It has not been run at this commit: its figures are added here when it has.
+
+What it can show:
+
+- whether a reader places points on a profile's guides as closely as sections 5 and 5c found on front and three-quarter underdrawings;
+- whether the side view's naming is followed: the near side, inner toward the front, the corners of an ear's foot, the hair's back and front, the neck's back and front;
+- that the check and the score run on a side reading.
+
+What it cannot show:
+
+- *How a painted profile is read.* The armature is guides: an outline with no nose, no lips and no underside of a jaw, a tick for the nose mark, an upright line for the iris. The definitions that were revised for painted profiles (the chin before a level jaw, the tip of the nose, the notch of the lips, the wedge eye, the front edge of a human ear) have nothing in it to be placed on. On its smooth outline the old and the new definition of the chin give one point.
+- *Level.* It is level by construction.
+- *That profiles are drawn as the model draws one.* It is the generator's own profile: agreement with it says a reader can read what the model draws.
+- *A human ear.* Hers are a cat-folk's, on top of the head.
+
+The readers of the retest must be told which guide stands for which feature. The underdrawings of sections 5 and 5c did not need that.
+
 
 ## 6. Limits
 
 - **Clean drawings only.** The pictures are flat grey underdrawings with hard edges, 1000 pixels square, with heads about 480 pixels high. A published drawing has line work, colour and compression. Nothing here says how a reader does on one (`EVAL-2`).
 - **Level is untested.** Both drawings are level, and her ears say nothing about level. The judgement that failed in mudsong is the one this dry run cannot test.
 - **Two drawings, one character.** The dry run tells apart a front view from a three-quarter view, once. It is no test of judging the view.
-- **The side view is untested.** No side drawing with known positions exists. The reading instructions say what a side view asks for; taking depth from one is not built.
+- **The side view is untested on a painted head.** No painted side drawing with known positions exists. Taking depth from a front and a side view is built and has been run on made-up heads only. Section 5d says what a retest on a generated armature's side view can show.
 - **Human ears are untested.** The ear's landmarks were defined on Saffi. How they are read on an ear at the side of the head is stated and has never been run.
 - **The drawer and the readers are the same kind of model.** The underdrawings were made by an agent, and agents read them.
 - **Each reader saw both drawings.** A reader's judgement of one view was made with the other in sight, as it will be for a character's sheet.
