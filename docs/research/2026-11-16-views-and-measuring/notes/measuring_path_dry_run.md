@@ -11,7 +11,7 @@ Every share is of head height, hair top to chin. "The record" is `data/saffi/han
 | Made-up heads: a few landmarks in space, projected at known turns | `cargo test` | That the arithmetic is right: the commands recover what was put in |
 | The record's own positions, written under a reader's names | `cargo test`, and by hand in the reference folder | What the method makes of exact positions of real drawings: the part of any later result that is not a reader's error |
 | The skull rule, on Saffi's set of proportions | `maquette skull-by-rule` | How close the rule comes to a circle that was drawn |
-| Two readers' readings of pictures of the two S2 underdrawings | Section 5 | How far a reader's placement is from the known positions |
+| Two readers' readings of pictures of the two S2 underdrawings, and two more readers' after the instructions were revised | Sections 5 and 5c | How far a reader's placement is from the known positions |
 
 ## 2. Made-up heads
 
@@ -177,14 +177,114 @@ One principle now stands behind four of these rules: a landmark is a point of th
 
 The rules are general, and each was decided on two drawings of one character.
 
-**The retest.** The spec has a reader's reading tested again on drawings with known positions whenever the instructions change. Two new readers read the same two pictures under 2026-11-17.2, once. Not run when this was written; its scores are added here when it has.
+## 5c. The retest under the revised instructions
+
+The spec has a reader's reading tested again on drawings with known positions whenever the instructions change. On 2026-11-17 two new readers, who had seen nothing of the first run, read the same two pictures under 2026-11-17.2, once. Both judged the views as the first two did, and both level; they estimated the turn at 30° and 25°. Every reading passed its check.
+
+**A reader's error against the known positions,** first run beside retest:
+
+| Reading | Scored | Mean | Median | 90th pct | Worst | Over 1% | Over 2% |
+|---|---|---|---|---|---|---|---|
+| First reader, front: first run | 55 | 1.23% | 0.11% | 2.43% | 16.86% | 8 | 6 |
+| First reader, front: retest | 55 | 0.21% | 0.10% | 0.83% | 1.46% | 4 | 0 |
+| Second reader, front: first run | 53 | 0.72% | 0.06% | 1.16% | 10.01% | 6 | 4 |
+| Second reader, front: retest | 53 | 0.19% | 0.12% | 0.42% | 1.25% | 2 | 0 |
+| First reader, three-quarter: first run | 53 | 1.39% | 0.12% | 2.50% | 26.25% | 8 | 6 |
+| First reader, three-quarter: retest | 53 | 0.50% | 0.12% | 1.16% | 7.53% | 7 | 3 |
+| Second reader, three-quarter: first run | 52 | 0.90% | 0.11% | 1.54% | 15.01% | 9 | 5 |
+| Second reader, three-quarter: retest | 53 | 0.52% | 0.16% | 1.25% | 4.55% | 6 | 4 |
+
+The readers of the retest are not those of the first run: "first" and "second" only name the two readers of each.
+
+**By kind,** as the range of the four readings' means and the worst landmark of the four:
+
+| Kind | First run: means | First run: worst | Retest: means | Retest: worst |
+|---|---|---|---|---|
+| Hair | 0.02% to 0.10% | 0.12% | 0.02% to 0.07% | 0.12% |
+| Chin | 0.00% to 0.21% | 0.21% | 0.00% to 0.33% | 0.33% |
+| Nose mark | 0.10% to 0.17% | 0.21% | 0.07% to 0.17% | 0.21% |
+| Mouth line | 0.19% to 0.46% | 0.63% | 0.17% to 0.52% | 0.92% |
+| Eye opening | 0.31% to 0.50% | 1.66% | 0.24% to 0.43% | 1.25% |
+| Iris | 0.02% to 0.06% | 0.17% | 0.05% to 0.09% | 0.21% |
+| Lid line | 0.13% to 0.51% | 1.25% | 0.29% to 0.54% | 1.08% |
+| Brow line | 0.04% to 0.07% | 0.13% | 0.07% to 0.11% | 0.12% |
+| Ear | 0.09% to 0.12% | 0.39% | 0.08% to 0.14% | 0.39% |
+| Face outline | 1.28% to 6.08% | 26.25% | 0.07% to 1.60% | 4.41% |
+| Neck | 10.01% to 11.96% | 15.01% | 0.06% to 4.40% | 7.53% |
+| Shoulder line | 0.34% to 4.12% | 5.75% | 0.28% to 2.57% | 4.55% |
+
+**The three landmarks the revision was for came down.**
+
+| Landmark | First run | Retest |
+|---|---|---|
+| The jaw point, front view | 16.9% and 4.6% | 1.5%; the other reader stated it as not seen, as one even curve |
+| The jaw point, three-quarter view | 26.2% and 8.5%; 1.4% and 4.5% | 3.1% and 4.4%; 3.5% and 4.4% |
+| The neck's base, front view | 10.1% and 10.0% | 0.06% and 0.10% |
+| The neck's base, three-quarter view | 12.5% and 8.6%; 15.0% and 8.9% | 7.5% and 1.3%; 4.0% and 0.1% |
+| The shoulder point, front view | 2.6% and 2.4%; 0.4% | 0.28%; 0.44% |
+| The shoulder point, three-quarter view | 5.7% and 2.5%; 4.5% and 2.7% | 1.2% and 0.2%; 4.6% and 0.6% |
+
+In the front view all three are now read to under 1.5%. In the three-quarter view they are better and still not good: the jaw point is 3% to 4.4% off on both sides for both readers, the near neck base 4% to 7.5%, and one reader's far shoulder point 4.6%. Both readers put the three-quarter view's jaw points within 2 pixels of each other, so the rule is now read one way; it is not the record's way. The record's jaw points there are 26 and 32 pixels from the chin, on an outline with no turn that either reader could find so far out.
+
+**The features held.** Without the jaw points, the neck's bases and the shoulder points, the four readings of the retest score a mean of 0.16% to 0.22%, a median of 0.08% to 0.13% and a worst of 1.08% to 1.59%, with two landmarks over 1% in each and none over 2%. The first run's were 0.17% to 0.21%, 0.06% to 0.09% and 1.22% to 1.66%.
+
+**What the revision changed besides.**
+
+- *The ear's base points.* All four readings now place the inner base point of every ear that shows it, to 0.03% to 0.19%. In the first run one reader of two did.
+- *The far ear's inner extent, which the head covers.* Both readers of the first run placed it at the cut, 1.1% to 1.2% off. Both readers of the retest stated it as not seen.
+- *The temples.* Stated as not seen by all, as in the first run.
+- *Nothing that was rightly not seen is now placed.* The one covered point placed in the retest, the near lid line's outer end in the front view, was placed in the first run too, to 0.13% to 0.47%.
+
+**What the revision made worse.** The mouth line's centre in the three-quarter view: 0.62% in the first run, by eye, and 0.87% and 0.92% in the retest, by the line from the nose mark's bottom to the chin. The two readers now put it 0.2 pixels apart, and 4 pixels from the record's. The rule made the reading repeatable and moved it 1.2 pixels further from this drawing's known position. Its depth, taken through the turn, went from 1.05% to 1.60% against her S2 set. Nothing else is worse beyond what two different pairs of readers differ by.
+
+**What the revision did not mend.** The far side's outline at the eye line in the three-quarter view is still read on the drawn skull circle, 1.5% to 1.6% off, by both readers. The top of the eye opening and the lid line's crest are still 0.5% to 1.25% off sideways, as the middle of a level run must be.
+
+**The agreement between the two readers.**
+
+| Drawing | | Compared | Mean | Largest | Over 1% |
+|---|---|---|---|---|---|
+| Front | First run | 54 | 0.97% | 21.28% | 4 |
+| Front | Retest | 54 | 0.13% | 0.69% | 0 |
+| Three-quarter | First run | 53 | 0.99% | 27.61% | 4 |
+| Three-quarter | Retest | 53 | 0.30% | 3.52% | 3: the two neck bases and the far shoulder point |
+
+**The turn, the fit and the proportions.**
+
+| | First run | Retest | Exact positions |
+|---|---|---|---|
+| The turn, both readers together | 28.24° | 28.30° | 28.15° |
+| The turn, each reader alone | 28.29°, 28.19° | 28.28°, 28.32° | |
+| The fit | 1.30% | 0.95% | 1.25% |
+| Proportions given | 61 of 73 | 64 of 73 | 65 of 73 |
+| Heights against her S2 set: mean, largest | 0.98%, 10.17% | 0.34%, 3.07% | 0.00%, 0.00% |
+| Widths: mean, largest | 0.75%, 6.79% | 0.31%, 3.85% | 0.08%, 0.29% |
+| Depths: mean, largest | 1.32%, 10.72% | 0.59%, 2.34% | 0.40%, 1.10% |
+| Proportions over 1% | 11 | 7 | 2 |
+
+The seven over 1% in the retest are the jaw point's drop and half-width, the neck's base drop and depth, the shoulders' drop and depth, and the mouth centre's depth. The fit is lower than exact positions give because the readers' jaw points agree between the two views better than the record's do; it is not a better reading of her.
+
+**The verdict.** The revision made reading better where it was meant to and made one landmark a little worse. It did not make reading worse overall, so the instructions stand at 2026-11-17.2. Three landmarks are still not read well in a turned view: the jaw point, the neck's base and the shoulder point. Their proportions should not be trusted from a three-quarter drawing until their definitions are settled on more than one character.
+
+**Left open, for the ticket that first reads published drawings.** Both readers of the retest reported these, and the instructions were not changed again: one retest was the limit, and any change calls for another.
+
+- How to tell an ear's foot that shows through a gap in the hair from a separate mark, and which corner of such a patch is the base point.
+- Where within a bend the jaw's turn is, and how much more a curve must bend to count as not one even curve. One reader placed the front view's jaw points and one did not.
+- What "where the two cannot be told apart" means for a construction line that lies exactly on the outline. Both placed the far eye-line crossing there.
+- The shoulder point when the arm's outline keeps running outward to the picture's edge.
+- An extent on an upright run that goes under the hair.
+- The mouth line where a drawn level line lies over it, and "in a turned view the centre line is not drawn" when an underdrawing draws one.
+- No method is given for the turn estimate. The two readers said 30° and 25° of the same drawing.
+- The height of an iris's side extent; a lid line that ends in an oblique cut with a tip beyond it.
+- `enlarge-image` refuses a factor above 16, and the instructions do not say so.
+
+Several of these come from the construction lines of an underdrawing, which a published drawing does not have.
 
 ## 5b. What a reader can give the skull rule
 
 The rule needs the ear's two base points, for the centre, and the temple, for the radius.
 
-- **The ear's base points.** Read to 0.03% to 0.17% where a reader placed them. One reader of two placed both; the other stated the inner one as not seen, under the fringe. From the first reader's readings the rule's centre comes out at a rise of 1.0048 and a depth of −0.7031, where the record's positions give 1.0054 and −0.6997. So where the ear's base shows, the centre is as good as the record's. On her it is still a cat-folk's ear (section 4).
-- **The temple.** No reader placed one, in either drawing, under either reading of the instructions: hair covers both temples in the front view, and the far one in the three-quarter view runs under a lock. The rule's radius has no input from these pictures. A fringe or a side lock covers the temple in most drawings of women.
+- **The ear's base points.** Read to 0.03% to 0.17% where a reader placed them. One reader of two placed both; the other stated the inner one as not seen, under the fringe. From the first reader's readings the rule's centre comes out at a rise of 1.0048 and a depth of −0.7031, where the record's positions give 1.0054 and −0.6997. In the retest both readers placed both, through the fringe, and their readings together give 1.0041 and −0.7013. So where the ear's base shows, the centre is as good as the record's. On her it is still a cat-folk's ear (section 4).
+- **The temple.** None of the four readers placed one, in either drawing, under either revision of the instructions: hair covers both temples in the front view, and the far one in the three-quarter view runs under a lock. The rule's radius has no input from these pictures. A fringe or a side lock covers the temple in most drawings of women.
 
 What else is drawn, and how near a sphere through it comes to her drawn circle, from her drawn centre (worked from `data/saffi/proportions.toml`; her S2 set in brackets):
 
@@ -208,6 +308,7 @@ The points nearest her circle are the ones the hair covers. The outer corner of 
 - **The drawer and the readers are the same kind of model.** The underdrawings were made by an agent, and agents read them.
 - **Each reader saw both drawings.** A reader's judgement of one view was made with the other in sight, as it will be for a character's sheet.
 - **Isolation was by instruction.** Each reader was told to open nothing but its own folder, which held the two pictures. Nothing enforced it.
-- **Two readers, once.** The figures are four readings. They say nothing of how much a reader varies from run to run.
+- **Four readers, once each.** Each run is four readings by two readers, and the retest's readers are not the first run's. The difference between the runs is the revision and the readers together; nothing here says how much a reader varies from run to run.
+- **The revision was made on these two drawings.** Its rules are written generally, and the retest was on the same two pictures they were decided on. It is no test of them on another drawing.
 - **The pictures are taken as renders of the drawings at one pixel to a unit.** An agent's look at the record's positions drawn over the pictures found them on the features. That is a diagnostic, not a check.
 - **The sheet has not been judged.** No look was asked. Whether Jon can check a character on it is unknown until he does.
