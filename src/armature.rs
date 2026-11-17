@@ -413,6 +413,55 @@ pub fn read_placement(text: &str) -> Result<Placed> {
     Ok(placed)
 }
 
+/// Reads the corrections a side view's landmark file says the view carries: for each, by
+/// name, every amount by name, in units. The file gives an amount in the SVG's own units, and
+/// its `[frame]` gives the unit. A file with no `[corrections]` table carries none.
+///
+/// A correction is drawn in the side view only, so this is the one file that states it, and a
+/// file of another view is refused. Whether the names are a correction's and its amounts' is
+/// for the list of proportions to say: [`Set::with_correction`] checks them.
+pub fn read_side_view_corrections(
+    text: &str,
+) -> Result<std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>> {
+    let placed = read_placement(text)?;
+    if placed.view != View::Side.name() {
+        return Err(Error::new(format!(
+            "it is the landmark file of a {} view, not of a side view, and only the side view's states a correction",
+            placed.view
+        )));
+    }
+    let table = parsed(text)?;
+    let mut carried = std::collections::BTreeMap::new();
+    let Some(corrections) = table.get("corrections") else {
+        return Ok(carried);
+    };
+    let corrections = corrections
+        .as_table()
+        .ok_or_else(|| Error::new("the landmark file's `corrections` is not a table"))?;
+    for (name, amounts) in corrections {
+        let amounts = amounts.as_table().ok_or_else(|| {
+            Error::new(format!(
+                "the landmark file's [corrections.{name}] is not a table of its amounts"
+            ))
+        })?;
+        let mut in_units = std::collections::BTreeMap::new();
+        for (amount, entry) in amounts {
+            let length = match entry.get("amount") {
+                Some(toml::Value::Float(number)) => *number,
+                Some(toml::Value::Integer(number)) => *number as f64,
+                _ => {
+                    return Err(Error::new(format!(
+                        "the landmark file's [corrections.{name}] gives `{amount}` no number `amount`"
+                    )));
+                }
+            };
+            in_units.insert(amount.clone(), length / placed.unit);
+        }
+        carried.insert(name.clone(), in_units);
+    }
+    Ok(carried)
+}
+
 /// A circle or an ellipse as a landmark file gives it: its centre and its two radii.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Round {

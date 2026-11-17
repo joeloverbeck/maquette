@@ -136,6 +136,18 @@ fn the_list_defines_the_named_correction_its_view_and_each_amount_with_its_rule(
         correction.contains("front view") && correction.contains("three-quarter view"),
         "it does not say what it leaves alone: {correction}"
     );
+    // It says what it changes above the mouth, where it moves no landmark: the face outline's
+    // bend and the two view points read off it. `tests/armature.rs` holds the drawing to it.
+    for changed in ["face outline", "eye line", "nose level line", "neck"] {
+        assert!(
+            correction.contains(changed),
+            "it does not say what it changes above the mouth ({changed}): {correction}"
+        );
+    }
+    assert!(
+        !correction.contains("Nothing above the mouth is moved"),
+        "{correction}"
+    );
     // It says why it exists and where its amounts come from, and each amount has a rule.
     for label in ["    Why: ", "    Where the amounts come from: "] {
         let line = corrections

@@ -32,8 +32,12 @@ Usage:
       line, and where the upright axis the head turns about stands in each view. The same
       input gives the same bytes.
 
-  maquette proportions-from-landmarks --front <file> --three-quarter <file> [--out <file>]
-      Take two landmark files back into a set of proportions.
+  maquette proportions-from-landmarks --front <file> --three-quarter <file> [--side <file>]
+                                      [--out <file>]
+      Take the landmark files of an armature back into a set of proportions: the proportions
+      from the front view and the three-quarter view, and with --side any named correction
+      from the side view, whose landmark file is the one that states it. Without --side a
+      correction is not taken back, and the set written says so.
 
   maquette proportions-from-hand-made-views --record <file> [--final-record <file>]
                                             [--lower-face-set-back <share>] [--out <file>]
@@ -345,14 +349,38 @@ fn draw(arguments: &[String]) -> Result<()> {
 }
 
 fn proportions_from_landmarks(arguments: &[String]) -> Result<()> {
-    let found = options(arguments, &["--front", "--three-quarter", "--out"])?;
+    let found = options(
+        arguments,
+        &["--front", "--three-quarter", "--side", "--out"],
+    )?;
     let front = armature::read_landmark_file(&read(required(&found, "--front")?)?)?;
     let three_quarter = armature::read_landmark_file(&read(required(&found, "--three-quarter")?)?)?;
-    let set = head_model::proportions_from_views(&front, &three_quarter)?;
-    let opening = "\
+    let mut set = head_model::proportions_from_views(&front, &three_quarter)?;
+    let opening = match found.get("--side") {
+        Some(side) => {
+            let in_side = |error: Error| Error::new(format!("{side}: {error}"));
+            let carried = armature::read_side_view_corrections(&read(side)?).map_err(in_side)?;
+            for (name, amounts) in carried {
+                set = set.with_correction(&name, amounts).map_err(in_side)?;
+            }
+            "\
+# A set of proportions taken back from the landmark files of an armature's three views,
+# by `maquette proportions-from-landmarks`: the proportions from the front view and the
+# three-quarter view, and any correction from the side view, whose landmark file is the one
+# that states it. `maquette list-proportions` defines each proportion and each correction.
+"
+        }
+        None => {
+            "\
 # A set of proportions taken back from two landmark files, a front view and a three-quarter view,
 # by `maquette proportions-from-landmarks`. `maquette list-proportions` defines each proportion.
-";
+#
+# No side view was given, so a correction was not taken back: the side view's landmark file is
+# the one that states it. If the armature carries a correction, this is not the whole set it
+# was drawn from. Give the side view's landmark file with `--side` to take it back as well.
+"
+        }
+    };
     deliver(&found, &set.write(opening)?)
 }
 

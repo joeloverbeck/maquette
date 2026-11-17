@@ -33,6 +33,17 @@ Every landmark is one point in space and each view is a flat projection of the s
 
 A departure from flat projection is a named correction with an amount. The list of proportions defines each, a set of proportions carries it in a `[corrections.<name>]` table, and the review sheet shows it. There is one, `lower_face_set_back`: in the side view only, the mouth and the chin are drawn further back than their depths, and the landmark file gives each moved landmark's depth in space beside the depth it is drawn at. The front and three-quarter views are the same bytes with it and without it, and a set that carries no correction is drawn flat in every view.
 
+It moves no landmark above the mouth. It does change guides there: the face outline is one smooth curve, so it bends differently between the eye line and the nose mark, and behind the mouth up to the nose level, and the two view points read off it there shift. In Saffi's side view, where the nose level line meets the outline's front stands 1.0 unit further forward, and the neck's front line starts 1.1 units higher. The list of proportions says this where it defines the correction.
+
+```sh
+cargo run -- proportions-from-landmarks \
+  --front target/saffi/front.landmarks.toml \
+  --three-quarter target/saffi/three-quarter.landmarks.toml \
+  --side target/saffi/side.landmarks.toml
+```
+
+This takes an armature's landmark files back into the set of proportions it was drawn from: the proportions from the front and three-quarter views, and a correction from the side view, whose landmark file is the only one that states it. Without `--side` no correction is taken back, and the set written says so.
+
 Saffi's set carries it because all her depths come from her three-quarter view, which puts the mouth almost straight below the nose mark and the chin close behind, and a side view drawn from that has a muzzle. Her set is written by:
 
 ```sh
