@@ -8,8 +8,8 @@ use std::process::ExitCode;
 use maquette::head_model;
 use maquette::views::Placement;
 use maquette::{
-    Error, Result, armature, differences, hand_made_views, hard_case, overlay, proportions,
-    read_back, vectorcraft,
+    Error, Result, armature, differences, hand_made_drawings, hand_made_views, hard_case, overlay,
+    proportions, read_back, vectorcraft,
 };
 
 const USAGE: &str = "\
@@ -21,29 +21,49 @@ Usage:
       measured or a convention, and how it is taken in each view.
 
   maquette draw --proportions <file> --out <folder>
-                [--unit <n>] [--eye-line-y <n>] [--front-axis-x <n>] [--three-quarter-axis-x <n>]
-      Write the front view and the three-quarter view of a set of proportions: for each,
-      an SVG of named guides and a landmark file. The options place the head on the page:
-      the length of one unit, the height of the eye line, and where the upright axis the
-      head turns about stands in each view. The same input gives the same bytes.
+                [--unit <n>] [--eye-line-y <n>]
+                [--front-axis-x <n>] [--three-quarter-axis-x <n>] [--side-axis-x <n>]
+      Write the front view, the three-quarter view and the side view of a set of
+      proportions: for each, an SVG of named guides and a landmark file. The side view is
+      the three-quarter view's turn carried to 90 degrees, so it faces the viewer's right.
+      A set that carries a named correction is drawn with it, and the landmark file of the
+      view it changes says so; a set that carries none is drawn as a flat projection.
+      The options place the head on the page: the length of one unit, the height of the eye
+      line, and where the upright axis the head turns about stands in each view. The same
+      input gives the same bytes.
 
-  maquette proportions-from-landmarks --front <file> --three-quarter <file> [--out <file>]
-      Take two landmark files back into a set of proportions.
+  maquette proportions-from-landmarks --front <file> --three-quarter <file> [--side <file>]
+                                      [--out <file>]
+      Take the landmark files of an armature back into a set of proportions: the proportions
+      from the front view and the three-quarter view, and with --side any named correction
+      from the side view, whose landmark file is the one that states it. Without --side a
+      correction is not taken back, and the set written says so.
 
-  maquette proportions-from-hand-made-views --record <file> [--out <file>]
+  maquette proportions-from-hand-made-views --record <file> [--final-record <file>]
+                                            [--lower-face-set-back <share>] [--out <file>]
       Work out a set of proportions from the record of a hand-made armature's views,
-      such as data/saffi/hand-made-views.toml.
+      such as data/saffi/hand-made-views.toml. With --final-record, a record of final
+      drawings such as data/saffi/final-drawings.toml, each of its landmarks replaces the
+      record's landmark of the same name in the same view. With --lower-face-set-back, the
+      set also carries the named correction lower_face_set_back, which draws the mouth and
+      the chin further back in the side view only: its amounts are worked out from the
+      set's own depths, at that share, from 0 to 1, of what draws the chin straight below
+      the iris's centre. `maquette list-proportions` states the rule of each amount.
 
   maquette differences-from-hand-made-views --front <file> --three-quarter <file>
-                                            --record <file> [--out <file>]
+                                            --record <file> [--final-record <file>]
+                                            [--out <file>]
       Lay the landmark files of a generated front view and three-quarter view over the
       record of a hand-made armature's views, and list how far apart the two put each
       landmark, as a share of head height. Every difference above 1% is numbered. The file
       states how the views are laid over each other and what has no counterpart. With
-      --out the file is written there and the numbered list is printed.
+      --final-record the record's landmarks are replaced as above, and each difference
+      against a replaced one is marked. With --out the file is written there and the
+      numbered list is printed. No hand-made side view exists, so a side view has nothing
+      to be compared with.
 
   maquette overlay-hand-made-views --front <file> --three-quarter <file> --record <file>
-                                   --out <folder>
+                                   [--final-record <file>] --out <folder>
       For a review sheet: write, for each view, an SVG in the generated view's own units
       that marks every position the record gives that view, a dashed ring where the head
       covers it in the drawing, and every difference above 1% as a line from the generated
@@ -51,6 +71,23 @@ Usage:
       ones differences-from-hand-made-views gives for the same files. Placed at the same
       place and size as the view's SVG, the overlay lies over it exactly. Writes
       front.hand-made-overlay.svg and three-quarter.hand-made-overlay.svg.
+
+  maquette list-drawing --svg <file>
+      List what a hand-made drawing holds: every group, and every shape under its address
+      (the id of its group, a slash, and its name), with its nodes numbered in path order
+      and how far it reaches. This is what a reading of a new drawing is written from. A
+      drawing is read as written: one that moves its coordinates with a transform, draws
+      a path with anything but the absolute M, L, C and Z, or draws on after Z without a
+      new M, is refused.
+
+  maquette record-hand-made-drawings --underdrawings <folder> --final-drawings <folder>
+                                     --out <folder>
+      Read Saffi's four hand-made drawings and write the records of them that data/saffi/
+      holds: hand-made-views.toml and views-compared.toml from the two S2 underdrawings,
+      and final-drawings.toml, the ears and lids of the two final drawings. The drawings
+      are private; each is read from its folder under its recorded name, and only when its
+      SHA-256 digest is the recorded one. Where a folder or a drawing is absent, or a
+      digest differs, the command says so, writes nothing, and the committed numbers stand.
 
   maquette read-back --landmarks <file> [--svg <file>] [--record <file>]
   maquette read-back --landmarks <file> --replies <file>
@@ -125,6 +162,14 @@ fn run(arguments: &[String]) -> Result<Ended> {
         "proportions-from-hand-made-views" => proportions_from_hand_made_views(rest)?,
         "differences-from-hand-made-views" => differences_from_hand_made_views(rest)?,
         "overlay-hand-made-views" => overlay_hand_made_views(rest)?,
+        "list-drawing" => {
+            let found = options(rest, &["--svg"])?;
+            let path = required(&found, "--svg")?;
+            let listed = hand_made_drawings::list(&read(path)?)
+                .map_err(|error| Error::new(format!("{path}: {error}")))?;
+            print!("{listed}");
+        }
+        "record-hand-made-drawings" => record_hand_made_drawings(rest)?,
         "read-back" => return read_back_command(rest),
         "read-back-hard-case" => return read_back_hard_case(rest),
         other => {
@@ -273,6 +318,7 @@ fn draw(arguments: &[String]) -> Result<()> {
             "--eye-line-y",
             "--front-axis-x",
             "--three-quarter-axis-x",
+            "--side-axis-x",
         ],
     )?;
     let set = proportions::Set::read(&read(required(&found, "--proportions")?)?)?;
@@ -285,6 +331,7 @@ fn draw(arguments: &[String]) -> Result<()> {
             "--three-quarter-axis-x",
             &mut placement.three_quarter_axis_x,
         ),
+        ("--side-axis-x", &mut placement.side_axis_x),
     ] {
         if let Some(value) = found.get(name) {
             *field = value.parse().map_err(|_| {
@@ -303,32 +350,66 @@ fn draw(arguments: &[String]) -> Result<()> {
 }
 
 fn proportions_from_landmarks(arguments: &[String]) -> Result<()> {
-    let found = options(arguments, &["--front", "--three-quarter", "--out"])?;
+    let found = options(
+        arguments,
+        &["--front", "--three-quarter", "--side", "--out"],
+    )?;
     let front = armature::read_landmark_file(&read(required(&found, "--front")?)?)?;
     let three_quarter = armature::read_landmark_file(&read(required(&found, "--three-quarter")?)?)?;
-    let set = head_model::proportions_from_views(&front, &three_quarter)?;
-    let opening = "\
+    let mut set = head_model::proportions_from_views(&front, &three_quarter)?;
+    let opening = match found.get("--side") {
+        Some(side) => {
+            let in_side = |error: Error| Error::new(format!("{side}: {error}"));
+            let carried = armature::read_side_view_corrections(&read(side)?).map_err(in_side)?;
+            for (name, amounts) in carried {
+                set = set.with_correction(&name, amounts).map_err(in_side)?;
+            }
+            "\
+# A set of proportions taken back from the landmark files of an armature's three views,
+# by `maquette proportions-from-landmarks`: the proportions from the front view and the
+# three-quarter view, and any correction from the side view, whose landmark file is the one
+# that states it. `maquette list-proportions` defines each proportion and each correction.
+"
+        }
+        None => {
+            "\
 # A set of proportions taken back from two landmark files, a front view and a three-quarter view,
 # by `maquette proportions-from-landmarks`. `maquette list-proportions` defines each proportion.
-";
+#
+# No side view was given, so a correction was not taken back: the side view's landmark file is
+# the one that states it. If the armature carries a correction, this is not the whole set it
+# was drawn from. Give the side view's landmark file with `--side` to take it back as well.
+"
+        }
+    };
     deliver(&found, &set.write(opening)?)
 }
 
 fn differences_from_hand_made_views(arguments: &[String]) -> Result<()> {
     let found = options(
         arguments,
-        &["--front", "--three-quarter", "--record", "--out"],
+        &[
+            "--front",
+            "--three-quarter",
+            "--record",
+            "--final-record",
+            "--out",
+        ],
     )?;
     let front = required(&found, "--front")?;
     let three_quarter = required(&found, "--three-quarter")?;
     let record = required(&found, "--record")?;
     let (front_text, three_quarter_text, record_text) =
         (read(front)?, read(three_quarter)?, read(record)?);
+    let final_record = final_record(&found)?;
     let input = |path, text| differences::Input { path, text };
     let found_differences = differences::compare(
         input(front, &front_text),
         input(three_quarter, &three_quarter_text),
         input(record, &record_text),
+        final_record
+            .as_ref()
+            .map(|(path, text)| input(path, text.as_str())),
     )?;
     deliver(&found, &found_differences.file())?;
     if found.contains_key("--out") {
@@ -340,7 +421,13 @@ fn differences_from_hand_made_views(arguments: &[String]) -> Result<()> {
 fn overlay_hand_made_views(arguments: &[String]) -> Result<()> {
     let found = options(
         arguments,
-        &["--front", "--three-quarter", "--record", "--out"],
+        &[
+            "--front",
+            "--three-quarter",
+            "--record",
+            "--final-record",
+            "--out",
+        ],
     )?;
     let front = required(&found, "--front")?;
     let three_quarter = required(&found, "--three-quarter")?;
@@ -348,11 +435,15 @@ fn overlay_hand_made_views(arguments: &[String]) -> Result<()> {
     let folder = Path::new(required(&found, "--out")?);
     let (front_text, three_quarter_text, record_text) =
         (read(front)?, read(three_quarter)?, read(record)?);
+    let final_record = final_record(&found)?;
     let input = |path, text| differences::Input { path, text };
     let files = overlay::draw(
         input(front, &front_text),
         input(three_quarter, &three_quarter_text),
         input(record, &record_text),
+        final_record
+            .as_ref()
+            .map(|(path, text)| input(path, text.as_str())),
     )?;
     std::fs::create_dir_all(folder)
         .map_err(|error| Error::new(format!("cannot make {}: {error}", folder.display())))?;
@@ -362,9 +453,62 @@ fn overlay_hand_made_views(arguments: &[String]) -> Result<()> {
     Ok(())
 }
 
+fn record_hand_made_drawings(arguments: &[String]) -> Result<()> {
+    let found = options(arguments, &["--underdrawings", "--final-drawings", "--out"])?;
+    let recorded = hand_made_drawings::record(
+        Path::new(required(&found, "--underdrawings")?),
+        Path::new(required(&found, "--final-drawings")?),
+    )?;
+    let folder = Path::new(required(&found, "--out")?);
+    std::fs::create_dir_all(folder)
+        .map_err(|error| Error::new(format!("cannot make {}: {error}", folder.display())))?;
+    for file in recorded.files {
+        write(&folder.join(&file.name), &file.text)?;
+    }
+    print!("{}", recorded.log);
+    Ok(())
+}
+
 fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
-    let found = options(arguments, &["--record", "--out"])?;
+    const SET_BACK: &str = "--lower-face-set-back";
+    let found = options(
+        arguments,
+        &["--record", "--final-record", SET_BACK, "--out"],
+    )?;
     let record_path = required(&found, "--record")?;
-    let hand_made = hand_made_views::read(&read(record_path)?)?;
-    deliver(&found, &hand_made.proportions_file(record_path)?)
+    let final_record = final_record(&found)?;
+    let lower_face_set_back = match found.get(SET_BACK) {
+        // The head model says what a share is; a value it refuses is named here by its option.
+        Some(value) => match value.parse::<f64>().map(head_model::set_back_share) {
+            Ok(Ok(share)) => Some(share),
+            _ => {
+                return Err(Error::new(format!(
+                    "`{SET_BACK}` needs a share from 0 to 1, and `{value}` is not one"
+                )));
+            }
+        },
+        None => None,
+    };
+    let hand_made = hand_made_views::read(
+        record_path,
+        &read(record_path)?,
+        final_record
+            .as_ref()
+            .map(|(path, text)| hand_made_views::FinalRecord {
+                path,
+                text: text.as_str(),
+            }),
+    )?;
+    deliver(
+        &found,
+        &hand_made.proportions_file(record_path, lower_face_set_back)?,
+    )
+}
+
+/// The record of the final drawings, when `--final-record` names one: its path and its text.
+fn final_record<'a>(found: &BTreeMap<&str, &'a str>) -> Result<Option<(&'a str, String)>> {
+    match found.get("--final-record") {
+        Some(path) => Ok(Some((path, read(path)?))),
+        None => Ok(None),
+    }
 }

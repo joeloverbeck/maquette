@@ -96,6 +96,18 @@ Jon accepted Saffi's generated front and three-quarter views at look 1 (of 8), i
 
 At look 1 Jon could not tell from the sheet whether its percentages came from published references. **Decided by Jon** after the retrospective that followed: a review sheet says what every number on it is measured against (`04-evidence-and-references.md`, "Asking for Jon's eyes").
 
+## Look 2, 2026-11-17
+
+Jon did not accept Saffi's side view at look 2 (of 8), in pull request #14. The sheet showed her three views, with the ears and lids of her final drawings as he had ruled on 2026-11-16. **What Jon said:** the front and three-quarter views read as one head; from the nose down the side view is pushed too far forward; and where did its numbers come from, when her drawings have no side view?
+
+They came only from her hand-made three-quarter view. A depth is a sideways shift there over the sine of 29°, so what that drawing does with the mouth and the chin arrives in the side view doubled. Her three-quarter view stays as accepted, and the repair was the first named correction, `lower_face_set_back`: in the side view only, the chin and the mouth are drawn further back than their depths. `proportions/list.toml` defines it and the rule of each amount. The rules come from drawing lessons, which give no distances, and no rule gives the share of the chin's full amount.
+
+## Look 3, 2026-11-17
+
+Jon was shown the side view at two shares, 0.5 as candidate A and 1 as candidate B, and chose A at look 3 (of 8), in pull request #14. **What that accepts:** Saffi's armature in three views. They are the front and three-quarter views of look 2, and the side view with `lower_face_set_back` drawing the chin 20.9 units back (4.2% of head height) and the mouth 18.2 (3.7%). The six files are in `armatures/saffi/`, a test pins their bytes, and issue #6 records the acceptance with their digests.
+
+**What it does not:** candidate B, her proportions as a standard for another character, or any table. The side view's only check was his look. Looks used: three of eight, two accepted and one not.
+
 ## The GOV-1 count
 
-Five foundations and this index. The count was about 4,100 words at founding, about 5,500 after the reorientation and is about 6,700 with the SVG contract and about 6,900 after look 1, over the 5,000 at which `GOV-1` asks for a recheck. The recheck: every addition records a ruling Jon made on 2026-11-16 or a fact the first increment needs, and none describes work beyond that increment except in `03-direction.md`, which authorizes nothing. The contract's consumer is issue #5, which builds the generator's output on it, and its detail stays in `design/svg-contract/`. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.
+Five foundations and this index. The count was about 4,100 words at founding, about 5,500 after the reorientation, about 6,700 with the SVG contract, about 6,900 after look 1 and is about 7,500 after look 3, over the 5,000 at which `GOV-1` asks for a recheck. The recheck: every addition records a ruling Jon made on 2026-11-16 or 2026-11-17 or a fact the first increment needs, and none describes work beyond that increment except in `03-direction.md`, which authorizes nothing. The contract's consumer is issue #5, which builds the generator's output on it, and its detail stays in `design/svg-contract/`. The research under `docs/research/` is reference-only source evidence and is not counted. A later addition to this directory needs an immediate decision or execution consumer, named in the pull request that adds it.

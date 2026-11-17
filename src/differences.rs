@@ -8,7 +8,7 @@
 //! Jon's look.
 
 use crate::armature::{self, Placed};
-use crate::hand_made_views::{self, MARKS_RULE, Marks, Provenance};
+use crate::hand_made_views::{self, FinalRecord, HandMade, MARKS_RULE, Marks, Provenance};
 use crate::head_model::Reading;
 use crate::number::{plain, round3, toml as toml_number};
 use crate::toml_text::{quoted, quoted_list};
@@ -46,6 +46,10 @@ pub const RULES: &[(&str, &str)] = &[
         "`generated` lists the landmarks and view points of the landmark file that the hand-made view gives no position for. `hand_made` lists the record's landmarks of the view, under the record's own names, that stand behind no compared position: what the reading rules do not read, and what the generated view has no landmark for. A name can stand in both lists: the reading rules do not read the record's centre of an eye opening, which is worked out from positions already compared, nor its drawn centre line, which the armature builds by rule.",
     ),
     (
+        "final_drawings",
+        "When the record of the final drawings is given, each of its landmarks replaces the record's landmark of the same name in the same view, and `final_drawings` names it. A difference whose hand-made position is one of those is marked `from_final_drawings`. Both records are in one frame, so the lay-over is the same.",
+    ),
+    (
         "covered",
         "A hand-made position that the head covers in the drawing is compared all the same, and marked `covered_by_the_head`. The record gives it in the drawing's own coordinates. It cannot be seen in the drawing, and no proportion was taken from it.",
     ),
@@ -74,6 +78,8 @@ pub struct Difference {
     pub hand_made_from: Vec<String>,
     /// The head covers the hand-made position in the drawing.
     pub covered_by_the_head: bool,
+    /// The hand-made position is a final drawing's, which replaced the record's own.
+    pub from_final_drawings: bool,
     /// In the record's units.
     pub distance: f64,
     pub percent_of_head_height: f64,
@@ -111,6 +117,9 @@ pub struct Differences {
     pub record: String,
     /// What the record says the drawings are.
     pub what: String,
+    /// The record of the final drawings, when one was given: its path, and what it says the
+    /// drawings are.
+    pub final_drawings: Option<(String, String)>,
     /// The yardstick, in the record's units.
     pub head_height: f64,
     pub front: ViewDifferences,
@@ -194,6 +203,9 @@ fn compare_view(
             marks,
             generated: laid_over,
             hand_made: theirs,
+            from_final_drawings: from
+                .iter()
+                .any(|name| provenance.from_final_drawings.contains(name)),
             hand_made_from: from,
             covered_by_the_head: seen.is_none(),
             distance,
@@ -234,9 +246,16 @@ fn compare_view(
 
 /// Compares the landmark files of a generated front view and three-quarter view with the
 /// record of a hand-made armature's views.
-pub fn compare(front: Input, three_quarter: Input, record: Input) -> Result<Differences> {
-    let hand_made = hand_made_views::read(record.text)
-        .map_err(|error| Error::new(format!("{}: {error}", record.path)))?;
+///
+/// Given the record of the final drawings as well, each of its landmarks replaces the record's
+/// landmark of the same name in the same view, and the differences against those are marked.
+pub fn compare(
+    front: Input,
+    three_quarter: Input,
+    record: Input,
+    final_drawings: Option<Input>,
+) -> Result<Differences> {
+    let hand_made = read_record(record, final_drawings)?;
     let point = |name: &str| -> Result<[f64; 2]> {
         hand_made.front.points.get(name).copied().ok_or_else(|| {
             Error::new(format!(
@@ -274,10 +293,23 @@ pub fn compare(front: Input, three_quarter: Input, record: Input) -> Result<Diff
     Ok(Differences {
         record: record.path.to_string(),
         what: hand_made.what,
+        final_drawings: hand_made
+            .final_drawings
+            .map(|given| (given.path, given.what)),
         head_height,
         front,
         three_quarter,
     })
+}
+
+/// Reads the record of a hand-made armature's views, with the record of the final drawings
+/// when one is given.
+pub fn read_record(record: Input, final_drawings: Option<Input>) -> Result<HandMade> {
+    let final_record = final_drawings.map(|given| FinalRecord {
+        path: given.path,
+        text: given.text,
+    });
+    hand_made_views::read(record.path, record.text, final_record)
 }
 
 fn position(value: [f64; 2]) -> String {
@@ -373,6 +405,9 @@ impl ViewDifferences {
                 ));
                 if difference.covered_by_the_head {
                     out.push_str("covered_by_the_head = true\n");
+                }
+                if difference.from_final_drawings {
+                    out.push_str("from_final_drawings = true\n");
                 }
                 out.push_str(&format!(
                     "distance = {}\n",
@@ -472,6 +507,10 @@ impl Differences {
         );
         out.push_str(&format!("record = {}\n", quoted(&self.record)));
         out.push_str(&format!("what = {}\n", quoted(&self.what)));
+        if let Some((path, what)) = &self.final_drawings {
+            out.push_str(&format!("final_drawings = {}\n", quoted(path)));
+            out.push_str(&format!("final_drawings_what = {}\n", quoted(what)));
+        }
         out.push_str(&format!(
             "threshold_percent = {}\n",
             toml_number(THRESHOLD_PERCENT, 3)
@@ -509,6 +548,11 @@ impl Differences {
             "Differences between the generated armature and the hand-made views of {}\n",
             self.record
         ));
+        if let Some((path, _)) = &self.final_drawings {
+            out.push_str(&format!(
+                "The landmarks of {path} replace the record's of the same name.\n"
+            ));
+        }
         out.push_str(&format!(
             "Head height {} (the hand-made front view, hair top to chin), so 1% is {} units.\n",
             plain(self.head_height, 3),

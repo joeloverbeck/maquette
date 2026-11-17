@@ -9,12 +9,17 @@
 //! point: a landmark, which is a point in space, or a view point, which belongs to one view
 //! only (a silhouette's extent, a crossing). Each construction is stated for a person in
 //! `proportions/list.toml`.
+//!
+//! The side view shows fewer guides: the head hides the eye, the brow and the ear of the far
+//! side; the centre line is the front of the face outline and is not drawn twice; and the
+//! neck's two lines are its back and its front. It has constructions of its own for the guides
+//! that a plain projection would draw at no width: the iris and the shoulder line.
 
 use std::collections::BTreeMap;
 
 use crate::head_model::{Head, OUTLINE_LEVELS};
 use crate::number::round3;
-use crate::views::Seen;
+use crate::views::{Seen, View};
 
 /// How a guide is stroked. Every guide is a stroke with no fill.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -198,10 +203,18 @@ fn cubic(from: [f64; 2], leave: [f64; 2], arrive: [f64; 2], to: [f64; 2], t: f64
     ]
 }
 
-/// The lowest point where an upright line at `x` crosses a path of curves.
-fn lowest_crossing(points: &[[f64; 2]], stretches: &[Stretch], x: f64) -> Option<f64> {
+/// Where a straight line crosses a path of curves. The line holds one coordinate at `value`:
+/// `along` is 0 for an upright line at an x and 1 for a level line at a y. Of the crossings,
+/// the one whose other coordinate is greatest: the lowest on an upright line, the furthest
+/// toward the viewer's right on a level one.
+fn furthest_crossing(
+    points: &[[f64; 2]],
+    stretches: &[Stretch],
+    along: usize,
+    value: f64,
+) -> Option<f64> {
     const STEPS: usize = 64;
-    let mut lowest: Option<f64> = None;
+    let mut furthest: Option<f64> = None;
     for (index, stretch) in stretches.iter().enumerate() {
         let (from, to) = (points[index], points[index + 1]);
         let (leave, arrive) = match stretch {
@@ -212,26 +225,129 @@ fn lowest_crossing(points: &[[f64; 2]], stretches: &[Stretch], x: f64) -> Option
         for step in 0..STEPS {
             let mut low = step as f64 / STEPS as f64;
             let mut high = (step + 1) as f64 / STEPS as f64;
-            let (start, end) = (at(low)[0] - x, at(high)[0] - x);
+            let (start, end) = (at(low)[along] - value, at(high)[along] - value);
             if start == 0.0 || start * end < 0.0 {
                 for _ in 0..48 {
                     let middle = (low + high) / 2.0;
-                    if (at(low)[0] - x) * (at(middle)[0] - x) <= 0.0 {
+                    if (at(low)[along] - value) * (at(middle)[along] - value) <= 0.0 {
                         high = middle;
                     } else {
                         low = middle;
                     }
                 }
-                let y = at((low + high) / 2.0)[1];
-                lowest = Some(lowest.map_or(y, |known: f64| known.max(y)));
+                let other = at((low + high) / 2.0)[1 - along];
+                furthest = Some(furthest.map_or(other, |known: f64| known.max(other)));
             }
         }
     }
-    lowest
+    furthest
 }
 
-/// Builds every guide of a view.
-pub fn build(head: &Head, seen: &Seen) -> Guides {
+/// The lowest point where an upright line at `x` crosses a path of curves.
+fn lowest_crossing(points: &[[f64; 2]], stretches: &[Stretch], x: f64) -> Option<f64> {
+    furthest_crossing(points, stretches, 0, x)
+}
+
+/// Where a neck line at `x` starts: at the lowest point where it crosses the face outline. A
+/// line that passes outside the face starts where it crosses the lower half of the skull, and
+/// one that misses both starts at the chin's height.
+fn neck_line_start(
+    x: f64,
+    outline: &[[f64; 2]],
+    outline_stretches: &[Stretch],
+    skull: [f64; 2],
+    radius: f64,
+    chin_y: f64,
+) -> f64 {
+    let under_skull = || {
+        let across = x - skull[0];
+        (across.abs() < radius).then(|| skull[1] + (radius * radius - across * across).sqrt())
+    };
+    lowest_crossing(outline, outline_stretches, x)
+        .or_else(under_skull)
+        .unwrap_or(chin_y)
+}
+
+fn names(list: &[&str]) -> Vec<String> {
+    list.iter().map(|name| name.to_string()).collect()
+}
+
+/// The opening and the lid line of one eye, which every view builds alike from the eye's
+/// landmarks as that view shows them.
+fn eye_opening_and_lid_line(guides: &mut Guides, side: &str, group: &'static str) {
+    let point = |name: &str| format!("eye-{side}-{name}");
+    let opening = vec![
+        point("outer-corner"),
+        point("opening-top"),
+        point("inner-corner"),
+        point("opening-bottom"),
+    ];
+    let positions = guides.positions_of(&opening);
+    let mut stretches = smooth(&positions[0..3], &[]);
+    stretches.extend(smooth(&[positions[2], positions[3], positions[0]], &[]));
+    guides.add(
+        &format!("eye-opening-{side}"),
+        Some(group),
+        Paint::Form,
+        Shape::Path {
+            stretches,
+            closed: true,
+        },
+        opening,
+    );
+
+    let lid = vec![
+        format!("lid-line-{side}-inner-end"),
+        format!("lid-line-{side}-crest"),
+        format!("lid-line-{side}-outer-end"),
+    ];
+    let shape = guides.smooth_path(&lid, &[]);
+    guides.add(
+        &format!("lid-line-{side}"),
+        Some(group),
+        Paint::Heavy,
+        shape,
+        lid,
+    );
+}
+
+/// The brow line of one side: straight between its two ends.
+fn brow_line(guides: &mut Guides, side: &str) {
+    let anchors = vec![
+        format!("brow-line-{side}-inner-end"),
+        format!("brow-line-{side}-outer-end"),
+    ];
+    guides.add(
+        &format!("brow-line-{side}"),
+        None,
+        Paint::Form,
+        Shape::Line,
+        anchors,
+    );
+}
+
+/// The ear of one side: a lobe on its two base points, upright at its extents and level at
+/// its top.
+fn ear(guides: &mut Guides, side: &str) {
+    let anchors: Vec<String> = [
+        "base-outer",
+        "outer-extent",
+        "top",
+        "inner-extent",
+        "base-inner",
+    ]
+    .iter()
+    .map(|point| format!("ear-{side}-{point}"))
+    .collect();
+    let shape = guides.smooth_path(&anchors, &[None, UPRIGHT, LEVEL, UPRIGHT, None]);
+    guides.add(&format!("ear-{side}"), None, Paint::Form, shape, anchors);
+}
+
+/// The side every guide of the side view is named for: the near one, the character's right.
+const NEAR: &str = "right";
+
+/// Builds every guide of the side view. `proportions/list.toml` states each construction.
+fn build_side(head: &Head, seen: &Seen) -> Guides {
     let mut guides = Guides {
         guides: Vec::new(),
         view_points: Vec::new(),
@@ -241,8 +357,230 @@ pub fn build(head: &Head, seen: &Seen) -> Guides {
             .map(|landmark| (landmark.name.clone(), [landmark.x, landmark.y]))
             .collect(),
     };
-    let names =
-        |list: &[&str]| -> Vec<String> { list.iter().map(|name| name.to_string()).collect() };
+
+    // Hair volume: the same dome, as deep as the hair. Behind the head its side runs straight
+    // down to the height of the chin; in front it stops at the dome's base, where a side would
+    // cross the face.
+    {
+        let top = guides.position("hair-top");
+        let base_y = guides.position("skull-centre")[1];
+        let end_y = guides.position("chin")[1];
+        let half = seen.round_half_width(head.hair_half_width, head.hair_half_depth);
+        let (back, front) = (top[0] - half, top[0] + half);
+        let anchors = vec![
+            guides.view_point("hair-back-end".to_string(), back, end_y),
+            guides.view_point("hair-back-extent".to_string(), back, base_y),
+            "hair-top".to_string(),
+            guides.view_point("hair-front-extent".to_string(), front, base_y),
+        ];
+        let dome = base_y - top[1];
+        let stretches = vec![
+            Stretch::Straight,
+            Stretch::Curve {
+                leave: [back, round3(base_y - QUARTER * dome)],
+                arrive: [round3(top[0] - QUARTER * half), top[1]],
+            },
+            Stretch::Curve {
+                leave: [round3(top[0] + QUARTER * half), top[1]],
+                arrive: [front, round3(base_y - QUARTER * dome)],
+            },
+        ];
+        guides.add(
+            "hair-volume",
+            None,
+            Paint::Envelope,
+            Shape::Path {
+                stretches,
+                closed: false,
+            },
+            anchors,
+        );
+    }
+
+    // Skull: the same circle. Its point toward the viewer's right is the landmark the centre
+    // line passes through at the height of the skull's centre.
+    {
+        let centre = guides.position("skull-centre");
+        let r = seen.length(head.skull_radius);
+        let anchors = vec![
+            "skull-front".to_string(),
+            guides.view_point("skull-bottom".to_string(), centre[0], centre[1] + r),
+            guides.view_point("skull-back".to_string(), centre[0] - r, centre[1]),
+            guides.view_point("skull-top".to_string(), centre[0], centre[1] - r),
+        ];
+        guides.add(
+            "skull",
+            None,
+            Paint::Construction,
+            Shape::Circle {
+                centre: "skull-centre".to_string(),
+                r,
+            },
+            anchors,
+        );
+    }
+
+    // Face outline: down the centre line's landmarks from the skull's front to the chin, then
+    // back and up through the jaw-line points.
+    let mut outline_anchors = names(&[
+        "skull-front",
+        "centre-line-at-eye-level",
+        "nose-mark-bottom",
+        "mouth-line-centre",
+        "chin",
+    ]);
+    for level in OUTLINE_LEVELS.iter().rev() {
+        outline_anchors.push(format!("jaw-line-{NEAR}-{level}"));
+    }
+    let outline = guides.positions_of(&outline_anchors);
+    let outline_stretches = smooth(&outline, &[]);
+    guides.add(
+        "face-outline",
+        None,
+        Paint::Form,
+        Shape::Path {
+            stretches: outline_stretches.clone(),
+            closed: false,
+        },
+        outline_anchors,
+    );
+
+    // Level lines: each spans the face outline at its height, from the jaw line to the front.
+    {
+        let nose_y = guides.position(&format!("jaw-line-{NEAR}-at-nose-level"))[1];
+        // The front of the outline is its first four stretches, down to the chin.
+        let front_x = furthest_crossing(&outline[..5], &outline_stretches[..4], 1, nose_y)
+            .unwrap_or_else(|| guides.position("nose-mark-bottom")[0]);
+        let nose_front = guides.view_point(
+            "face-outline-front-at-nose-level".to_string(),
+            front_x,
+            nose_y,
+        );
+        for (name, level, front) in [
+            (
+                "eye-level-line",
+                "at-eye-level",
+                "centre-line-at-eye-level".to_string(),
+            ),
+            ("nose-level-line", "at-nose-level", nose_front),
+            (
+                "mouth-level-line",
+                "at-mouth-level",
+                "mouth-line-centre".to_string(),
+            ),
+        ] {
+            let anchors = vec![format!("jaw-line-{NEAR}-{level}"), front];
+            guides.add(name, None, Paint::Construction, Shape::Line, anchors);
+        }
+    }
+
+    // The near eye: the same opening and lid line at their depths. The iris is a flat disc
+    // that faces forward, so it is seen edge on: an upright line from its top to its bottom.
+    {
+        let group = "eye-right";
+        eye_opening_and_lid_line(&mut guides, NEAR, group);
+        let centre = guides.position(&format!("iris-{NEAR}-centre"));
+        let ry = seen.length(head.iris_height / 2.0);
+        let anchors = vec![
+            guides.view_point(format!("iris-{NEAR}-top"), centre[0], centre[1] - ry),
+            guides.view_point(format!("iris-{NEAR}-bottom"), centre[0], centre[1] + ry),
+        ];
+        guides.add(
+            &format!("iris-{NEAR}"),
+            Some(group),
+            Paint::Form,
+            Shape::Line,
+            anchors,
+        );
+    }
+
+    brow_line(&mut guides, NEAR);
+
+    // The nose mark and the mouth line: the near half of each, from its end to the centre line.
+    guides.add(
+        "nose-mark",
+        None,
+        Paint::Form,
+        Shape::Line,
+        vec![
+            format!("nose-mark-{NEAR}-corner"),
+            "nose-mark-bottom".to_string(),
+        ],
+    );
+    guides.add(
+        "mouth-line",
+        None,
+        Paint::Form,
+        Shape::Line,
+        vec![
+            format!("mouth-line-{NEAR}-end"),
+            "mouth-line-centre".to_string(),
+        ],
+    );
+
+    ear(&mut guides, NEAR);
+
+    // Neck: the same upright round column. Its two lines are its back and its front.
+    {
+        let middle = seen.x_at(head.neck_depth);
+        let half = seen.length(head.neck_half_width);
+        let base_y = seen.y_at(head.neck_base_drop);
+        let chin_y = guides.position("chin")[1];
+        let skull = guides.position("skull-centre");
+        let radius = seen.length(head.skull_radius);
+        for (end, x) in [("back", middle - half), ("front", middle + half)] {
+            let start_y = neck_line_start(x, &outline, &outline_stretches, skull, radius, chin_y);
+            let anchors = vec![
+                guides.view_point(format!("neck-{end}-top"), x, start_y),
+                guides.view_point(format!("neck-{end}-base"), x, base_y),
+            ];
+            guides.add(
+                &format!("neck-{end}"),
+                Some("neck"),
+                Paint::Form,
+                Shape::Line,
+                anchors,
+            );
+        }
+    }
+
+    // Shoulder line: seen end on, both shoulder points stand at one place. So that it shows,
+    // it is drawn as a level tick through that place, half the neck's width to each side.
+    {
+        let point = guides.position(&format!("shoulder-{NEAR}-point"));
+        let half = seen.length(head.neck_half_width);
+        let anchors = vec![
+            guides.view_point(
+                "shoulder-line-back-end".to_string(),
+                point[0] - half,
+                point[1],
+            ),
+            guides.view_point(
+                "shoulder-line-front-end".to_string(),
+                point[0] + half,
+                point[1],
+            ),
+        ];
+        guides.add("shoulder-line", None, Paint::Form, Shape::Line, anchors);
+    }
+
+    guides
+}
+
+/// Builds every guide of a view.
+pub fn build(head: &Head, seen: &Seen) -> Guides {
+    if seen.view == View::Side {
+        return build_side(head, seen);
+    }
+    let mut guides = Guides {
+        guides: Vec::new(),
+        view_points: Vec::new(),
+        positions: seen
+            .landmarks
+            .iter()
+            .map(|landmark| (landmark.name.clone(), [landmark.x, landmark.y]))
+            .collect(),
+    };
 
     // Hair volume: a half-ellipse dome from the hair's top to the height of the skull's
     // centre, then straight sides to the height of the chin.
@@ -393,40 +731,7 @@ pub fn build(head: &Head, seen: &Seen) -> Guides {
 
     // Eyes: the opening, the lid line and the iris of each.
     for (side, group) in [("right", "eye-right"), ("left", "eye-left")] {
-        let point = |name: &str| format!("eye-{side}-{name}");
-        let opening = vec![
-            point("outer-corner"),
-            point("opening-top"),
-            point("inner-corner"),
-            point("opening-bottom"),
-        ];
-        let positions = guides.positions_of(&opening);
-        let mut stretches = smooth(&positions[0..3], &[]);
-        stretches.extend(smooth(&[positions[2], positions[3], positions[0]], &[]));
-        guides.add(
-            &format!("eye-opening-{side}"),
-            Some(group),
-            Paint::Form,
-            Shape::Path {
-                stretches,
-                closed: true,
-            },
-            opening,
-        );
-
-        let lid = vec![
-            format!("lid-line-{side}-inner-end"),
-            format!("lid-line-{side}-crest"),
-            format!("lid-line-{side}-outer-end"),
-        ];
-        let shape = guides.smooth_path(&lid, &[]);
-        guides.add(
-            &format!("lid-line-{side}"),
-            Some(group),
-            Paint::Heavy,
-            shape,
-            lid,
-        );
+        eye_opening_and_lid_line(&mut guides, side, group);
 
         // The iris is a flat disc that faces forward: its width narrows with the turn.
         let centre_name = format!("iris-{side}-centre");
@@ -465,17 +770,7 @@ pub fn build(head: &Head, seen: &Seen) -> Guides {
     }
 
     for side in ["right", "left"] {
-        let anchors = vec![
-            format!("brow-line-{side}-inner-end"),
-            format!("brow-line-{side}-outer-end"),
-        ];
-        guides.add(
-            &format!("brow-line-{side}"),
-            None,
-            Paint::Form,
-            Shape::Line,
-            anchors,
-        );
+        brow_line(&mut guides, side);
     }
 
     guides.add(
@@ -501,26 +796,11 @@ pub fn build(head: &Head, seen: &Seen) -> Guides {
         ]),
     );
 
-    // Ears: a lobe on its two base points, upright at its extents and level at its top.
     for side in ["right", "left"] {
-        let anchors: Vec<String> = [
-            "base-outer",
-            "outer-extent",
-            "top",
-            "inner-extent",
-            "base-inner",
-        ]
-        .iter()
-        .map(|point| format!("ear-{side}-{point}"))
-        .collect();
-        let shape = guides.smooth_path(&anchors, &[None, UPRIGHT, LEVEL, UPRIGHT, None]);
-        guides.add(&format!("ear-{side}"), None, Paint::Form, shape, anchors);
+        ear(&mut guides, side);
     }
 
-    // Neck: an upright round column, as wide in every view. Each line starts at the lowest
-    // point where it crosses the face outline. A line that passes outside the face starts
-    // where it crosses the lower half of the skull, and one that misses both starts at the
-    // chin's height.
+    // Neck: an upright round column, as wide in every view.
     {
         let middle = seen.x_at(head.neck_depth);
         let half = seen.length(head.neck_half_width);
@@ -530,14 +810,7 @@ pub fn build(head: &Head, seen: &Seen) -> Guides {
         let skull = guides.position("skull-centre");
         let radius = seen.length(head.skull_radius);
         for (side, x) in [("right", middle - half), ("left", middle + half)] {
-            let under_skull = || {
-                let across = x - skull[0];
-                (across.abs() < radius)
-                    .then(|| skull[1] + (radius * radius - across * across).sqrt())
-            };
-            let start_y = lowest_crossing(&outline, &outline_stretches, x)
-                .or_else(under_skull)
-                .unwrap_or(chin_y);
+            let start_y = neck_line_start(x, &outline, &outline_stretches, skull, radius, chin_y);
             let anchors = vec![
                 guides.view_point(format!("neck-{side}-top"), x, start_y),
                 guides.view_point(format!("neck-{side}-base"), x, base_y),

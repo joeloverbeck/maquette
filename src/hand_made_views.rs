@@ -11,6 +11,7 @@
 
 use std::collections::BTreeMap;
 
+use crate::hand_made_drawings::SKULL;
 use crate::head_model::{self, Reading};
 use crate::number::toml as toml_number;
 use crate::proportions;
@@ -25,7 +26,7 @@ pub const RULES: &[&str] = &[
     "A lid line is the middle of the drawn lid band: its inner end is midway between `inner_lower` and `inner_upper`, its crest midway between `lower_mid` and `upper_mid`, its outer end midway between `outer_lower` and `outer_tip`.",
     "A brow line is the middle of the drawn brow band: each end is midway between the band's top and bottom corner there.",
     "The face outline's top end is the record's first node of that side, and its jaw point is the node next to the chin: `node_3` in the front view and, in the three-quarter view, `node_5` on the far side and `node_3` on the near side.",
-    "Where the record gives a crossing of the face outline with a drawn level line, it stands for the crossing at the eye line, the nose level or the mouth level. The drawn lines are 4 units, half a unit and nothing away from those, and the outline moves sideways by less than half a unit between them.",
+    "Where the record gives a crossing of the face outline with a drawn level line, it stands for the crossing at the eye line, the nose level or the mouth level. The drawn lines are 4 units, half a unit and nothing away from those with the S2 underdrawings' lids, and the first is about 6 units away with the final drawings' lids, which lower the eye line. The outline moves sideways by less than half a unit between them.",
     "In the front view a point of the face outline is both the cheek point and the jaw-line point of its level. In the three-quarter view it is the cheek point on the far side, the character's left, and the jaw-line point on the near side.",
     "A position that the head itself covers in the three-quarter drawing is left out, because it cannot be seen there: the far ear's two base points and its inner extent. Hair that covers a position is ignored, because an armature has no hair. The skull is kept: it is a construction, drawn under everything.",
     "The three-quarter view is taken as turned by the pinned turn, toward the viewer's right.",
@@ -45,6 +46,22 @@ pub struct HandMade {
     pub front_record: Provenance,
     /// Where the three-quarter view's landmarks stand in the record.
     pub three_quarter_record: Provenance,
+    /// The record of the final drawings, when one was given: its landmarks replace the
+    /// record's landmarks of the same name in the same view.
+    pub final_drawings: Option<FinalDrawings>,
+}
+
+/// What a record of final drawings says of itself.
+#[derive(Debug, Clone)]
+pub struct FinalDrawings {
+    /// The path the record was named by.
+    pub path: String,
+    /// What it says the drawings are.
+    pub what: String,
+    /// The rule by which its landmarks replace the other record's.
+    pub rule: String,
+    pub front_sha256: String,
+    pub three_quarter_sha256: String,
 }
 
 /// How one view's landmarks stand in the record, under the record's own names.
@@ -55,6 +72,8 @@ pub struct Provenance {
     pub read_from: BTreeMap<String, Vec<String>>,
     /// Every name the record gives the view.
     pub recorded: Vec<String>,
+    /// The names among those whose position is the final drawing's, not the record's own.
+    pub from_final_drawings: Vec<String>,
     /// Where the record puts each of those names, in the drawing's own coordinates, and
     /// whether the head covers it there.
     pub positions: BTreeMap<String, RecordedPosition>,
@@ -84,14 +103,20 @@ pub enum Marks {
 }
 
 /// The rule behind [`marks`], in words.
-pub const MARKS_RULE: &str = "The top, the bottom and the side extents of the skull, of an iris and of the hair say how far a round form or an envelope reaches, not where a feature is. The record takes each where the drawn outline is level or upright, and along the outline that place marks nothing: the hair's is a hairstyle's, and an iris is cut by the lid. So a top or a bottom of those three is compared in height only, and a side extent sideways only. Every other landmark is compared as a position, by the straight distance.";
+pub const MARKS_RULE: &str = "The top, the bottom and the side extents of the skull, of an iris and of the hair say how far a round form or an envelope reaches, not where a feature is. The record takes each where the drawn outline is level or upright, and along the outline that place marks nothing: the hair's is a hairstyle's, and an iris is cut by the lid. So a top or a bottom of those three is compared in height only, and a side extent sideways only. Where the face outline crosses the eye line, the nose level or the mouth level, the record takes the crossing at the height of the drawn level line, which need not be that level's: the height says where the line was drawn and nothing of the outline, so such a crossing is compared sideways only. Every other landmark is compared as a position, by the straight distance.";
 
 /// What the hand-made position of a landmark marks.
 pub fn marks(landmark: &str) -> Marks {
     let round_form = ["skull-", "iris-", "hair-"]
         .iter()
         .any(|form| landmark.starts_with(form));
-    if !round_form {
+    let outline_at_a_level = ["face-outline-", "jaw-line-"]
+        .iter()
+        .any(|outline| landmark.starts_with(outline))
+        && landmark.ends_with("-level");
+    if outline_at_a_level {
+        Marks::Sideways
+    } else if !round_form {
         Marks::Position
     } else if landmark.ends_with("-top") || landmark.ends_with("-bottom") {
         Marks::Height
@@ -159,6 +184,8 @@ fn hyphens(name: &str) -> String {
 struct ViewRead {
     reading: Reading,
     sha256: String,
+    /// The digest of the view's final drawing, when a record of the final drawings is given.
+    final_sha256: Option<String>,
     provenance: Provenance,
 }
 
@@ -167,47 +194,108 @@ fn record_key(view: View) -> &'static str {
     match view {
         View::Front => "front",
         View::ThreeQuarter => "three_quarter",
+        // No hand-made side view exists; a record that had one would name it so.
+        View::Side => "side",
     }
 }
 
-fn read_view(record: &toml::Table, view: View) -> Result<ViewRead> {
+/// One of the two files a reading is made from, as it was parsed: the path it was named by,
+/// what a message calls it, and its tables. A fault is reported under the path of the file
+/// it is in.
+struct RecordFile<'a> {
+    path: &'a str,
+    what: &'static str,
+    table: toml::Table,
+}
+
+impl<'a> RecordFile<'a> {
+    fn parse(path: &'a str, what: &'static str, text: &str) -> Result<RecordFile<'a>> {
+        let table = text
+            .parse()
+            .map_err(|error| Error::new(format!("{path}: {what} is not valid TOML: {error}")))?;
+        Ok(RecordFile { path, what, table })
+    }
+
+    /// A fault in this file, in words that follow what a message calls it.
+    fn fault(&self, found: impl std::fmt::Display) -> Error {
+        Error::new(format!("{}: {}{found}", self.path, self.what))
+    }
+
+    /// A text the file gives under a key of one of its tables.
+    fn said(&self, section: &str, key: &str) -> Result<String> {
+        self.table
+            .get(section)
+            .and_then(|section| section.get(key))
+            .and_then(toml::Value::as_str)
+            .map(str::to_string)
+            .ok_or_else(|| self.fault(format!(" has no text `{key}` in [{section}]")))
+    }
+
+    /// A view's table, with its digest and its landmarks.
+    fn view_section(&self, view: &str) -> Result<(String, &toml::Table)> {
+        let section = self
+            .table
+            .get("views")
+            .and_then(|views| views.get(view))
+            .and_then(toml::Value::as_table)
+            .ok_or_else(|| self.fault(format!(" has no [views.{view}]")))?;
+        let sha256 = section
+            .get("sha256")
+            .and_then(toml::Value::as_str)
+            .ok_or_else(|| self.fault(format!(" has no sha256 in [views.{view}]")))?
+            .to_string();
+        let landmarks = section
+            .get("landmarks")
+            .and_then(toml::Value::as_table)
+            .ok_or_else(|| self.fault(format!(" has no [views.{view}.landmarks]")))?;
+        Ok((sha256, landmarks))
+    }
+}
+
+fn read_view(
+    record: &RecordFile,
+    final_drawings: Option<&RecordFile>,
+    view: View,
+) -> Result<ViewRead> {
     let (turned, turn_degrees) = (view != View::Front, view.turn_degrees());
     // The messages below name the view as the record does.
     let view = record_key(view);
-    let section = record
-        .get("views")
-        .and_then(|views| views.get(view))
-        .and_then(toml::Value::as_table)
-        .ok_or_else(|| Error::new(format!("the record has no [views.{view}]")))?;
-    let sha256 = section
-        .get("sha256")
-        .and_then(toml::Value::as_str)
-        .ok_or_else(|| Error::new(format!("the record's [views.{view}] has no sha256")))?
-        .to_string();
-    let landmarks = section
-        .get("landmarks")
-        .and_then(toml::Value::as_table)
-        .ok_or_else(|| Error::new(format!("the record has no [views.{view}.landmarks]")))?;
+    let (sha256, landmarks) = record.view_section(view)?;
+    let final_landmarks = match final_drawings {
+        Some(final_drawings) => Some(final_drawings.view_section(view)?),
+        None => None,
+    };
 
+    // A landmark of the final drawing replaces the record's landmark of the same name.
     let mut recorded: BTreeMap<&str, Recorded> = BTreeMap::new();
-    for (name, entry) in landmarks {
+    let mut from_final_drawings: Vec<String> = Vec::new();
+    let both = landmarks.iter().map(|entry| (entry, false)).chain(
+        final_landmarks
+            .iter()
+            .flat_map(|(_, landmarks)| landmarks.iter().map(|entry| (entry, true))),
+    );
+    for ((name, entry), is_final) in both {
+        // The file the entry stands in: the one a fault in it is reported under.
+        let file = match final_drawings {
+            Some(final_drawings) if is_final => final_drawings,
+            _ => record,
+        };
         let coordinate = |key: &str| -> Result<f64> {
             match entry.get(key) {
                 Some(toml::Value::Float(number)) => Ok(*number),
                 Some(toml::Value::Integer(number)) => Ok(*number as f64),
-                _ => Err(Error::new(format!(
-                    "the record's {view} view gives `{name}` no number `{key}`"
+                _ => Err(file.fault(format!(
+                    " gives `{name}` no number `{key}` in its {view} view"
                 ))),
             }
         };
         let covered_by_head = entry
             .get("under")
             .and_then(toml::Value::as_array)
-            .is_some_and(|shapes| {
-                shapes
-                    .iter()
-                    .any(|shape| shape.as_str() == Some("face/cranium"))
-            });
+            .is_some_and(|shapes| shapes.iter().any(|shape| shape.as_str() == Some(SKULL)));
+        if is_final {
+            from_final_drawings.push(name.clone());
+        }
         recorded.insert(
             name.as_str(),
             Recorded {
@@ -329,6 +417,7 @@ fn read_view(record: &toml::Table, view: View) -> Result<ViewRead> {
     let provenance = Provenance {
         read_from,
         recorded: recorded.keys().map(|name| name.to_string()).collect(),
+        from_final_drawings,
         positions: recorded
             .keys()
             .map(|name| {
@@ -344,23 +433,45 @@ fn read_view(record: &toml::Table, view: View) -> Result<ViewRead> {
     Ok(ViewRead {
         reading,
         sha256,
+        final_sha256: final_landmarks.map(|(sha256, _)| sha256),
         provenance,
     })
 }
 
-/// Reads the text of a record of hand-made views.
-pub fn read(text: &str) -> Result<HandMade> {
-    let record: toml::Table = text
-        .parse()
-        .map_err(|error| Error::new(format!("the record is not valid TOML: {error}")))?;
-    let what = record
-        .get("source")
-        .and_then(|source| source.get("what"))
-        .and_then(toml::Value::as_str)
-        .ok_or_else(|| Error::new("the record's [source] does not say what the drawings are"))?
-        .to_string();
-    let front = read_view(&record, View::Front)?;
-    let three_quarter = read_view(&record, View::ThreeQuarter)?;
+/// The record of the final drawings, as it is given beside a record of hand-made views: the
+/// path it was named by, and its text.
+#[derive(Debug, Clone, Copy)]
+pub struct FinalRecord<'a> {
+    pub path: &'a str,
+    pub text: &'a str,
+}
+
+/// Reads the text of a record of hand-made views, which `path` names. Given the record of
+/// the final drawings as well, each of its landmarks replaces the record's landmark of the
+/// same name in the same view. A fault is reported under the path of the record it is in.
+pub fn read(path: &str, text: &str, final_record: Option<FinalRecord>) -> Result<HandMade> {
+    let record = RecordFile::parse(path, "the record", text)?;
+    let what = record.said("source", "what")?;
+    let final_file = match final_record {
+        Some(given) => Some(RecordFile::parse(
+            given.path,
+            "the record of the final drawings",
+            given.text,
+        )?),
+        None => None,
+    };
+    let front = read_view(&record, final_file.as_ref(), View::Front)?;
+    let three_quarter = read_view(&record, final_file.as_ref(), View::ThreeQuarter)?;
+    let final_drawings = match &final_file {
+        Some(file) => Some(FinalDrawings {
+            path: file.path.to_string(),
+            what: file.said("source", "what")?,
+            rule: file.said("supersedes", "rule")?,
+            front_sha256: front.final_sha256.clone().unwrap_or_default(),
+            three_quarter_sha256: three_quarter.final_sha256.clone().unwrap_or_default(),
+        }),
+        None => None,
+    };
     Ok(HandMade {
         front: front.reading,
         three_quarter: three_quarter.reading,
@@ -369,6 +480,7 @@ pub fn read(text: &str) -> Result<HandMade> {
         three_quarter_sha256: three_quarter.sha256,
         front_record: front.provenance,
         three_quarter_record: three_quarter.provenance,
+        final_drawings,
     })
 }
 
@@ -377,8 +489,18 @@ impl HandMade {
     /// under a `[source]` table that names the record, the rules it was read by, and where
     /// each hand-made view puts the unit, the eye line and the turn axis. `record_path` is the
     /// path the record was named by, which the file gives as it is.
-    pub fn proportions_file(&self, record_path: &str) -> Result<String> {
-        let set = head_model::proportions_from_views(&self.front, &self.three_quarter)?;
+    ///
+    /// Given a share, the set also carries the named correction `lower_face_set_back`, worked
+    /// out from its own depths at that share of the chin's full amount, and the file says so.
+    pub fn proportions_file(
+        &self,
+        record_path: &str,
+        lower_face_set_back: Option<f64>,
+    ) -> Result<String> {
+        let mut set = head_model::proportions_from_views(&self.front, &self.three_quarter)?;
+        if let Some(share) = lower_face_set_back {
+            set = head_model::with_lower_face_set_back(set, share)?;
+        }
         let mut opening = String::from(
             "\
 # A set of proportions worked out from the record of a hand-made armature's views,
@@ -400,6 +522,31 @@ impl HandMade {
             "three_quarter_sha256 = {}\n",
             quoted(&self.three_quarter_sha256)
         ));
+        if let Some(final_drawings) = &self.final_drawings {
+            opening.push_str(
+                "# The record of the final drawings, whose landmarks replace the record's of the same name.\n",
+            );
+            opening.push_str(&format!(
+                "final_drawings = {}\n",
+                quoted(&final_drawings.path)
+            ));
+            opening.push_str(&format!(
+                "final_drawings_what = {}\n",
+                quoted(&final_drawings.what)
+            ));
+            opening.push_str(&format!(
+                "final_drawings_rule = {}\n",
+                quoted(&final_drawings.rule)
+            ));
+            opening.push_str(&format!(
+                "final_front_sha256 = {}\n",
+                quoted(&final_drawings.front_sha256)
+            ));
+            opening.push_str(&format!(
+                "final_three_quarter_sha256 = {}\n",
+                quoted(&final_drawings.three_quarter_sha256)
+            ));
+        }
         opening.push_str(&format!(
             "turn_degrees = {}\n",
             toml_number(self.three_quarter.turn_degrees, 3)
@@ -419,6 +566,15 @@ impl HandMade {
             "disagreement_rules = {}\n",
             quoted_lines(proportions::list()?.disagreement_rules())
         ));
+        if let Some(share) = lower_face_set_back {
+            opening.push_str("# The share of the chin's full amount at which the named correction `lower_face_set_back`, at the\n");
+            opening.push_str("# end of this file, was worked out from this set's own depths. The list of proportions states the\n");
+            opening.push_str("# rule of each amount. The drawings give no side view, so no amount was measured on them.\n");
+            opening.push_str(&format!(
+                "lower_face_set_back_share = {}\n",
+                toml_number(share, 6)
+            ));
+        }
         opening.push_str("\n# Where each hand-made view puts the unit, the eye line and the upright axis the head turns about,\n");
         opening.push_str("# in the record's own units. `maquette draw` with these lays a generated view over the hand-made one.\n");
         opening.push_str(&frame_lines(&self.front, View::Front)?);

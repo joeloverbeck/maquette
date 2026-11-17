@@ -19,6 +19,7 @@ use serde_json::{Value, json};
 use crate::armature::{self, Drawn, DrawnGuide};
 use crate::read_back::{self, Check, Outcome, Replies, TOLERANCE};
 use crate::vectorcraft::Server;
+use crate::views::View;
 use crate::{Error, Result};
 
 /// Every guide an armature's head carries, as issue #3 and the contract list them: the
@@ -206,9 +207,10 @@ fn failures_of(outcome: &Outcome, check: Check) -> Vec<String> {
 pub fn run(landmark_path: &str, landmark_text: &str, svg: &Path) -> Result<Option<HardCase>> {
     let drawn = armature::read_drawn(landmark_text)
         .map_err(|error| Error::new(format!("{landmark_path}: {error}")))?;
-    if drawn.turn_degrees == 0.0 {
+    // A front view is not turned, and a side view draws only the near member of each pair.
+    if drawn.view != View::ThreeQuarter.name() {
         return Err(Error::new(format!(
-            "{landmark_path} is the landmark file of a {} view that is not turned. The hard case is a three-quarter view.",
+            "{landmark_path} is the landmark file of a {} view. The hard case is a three-quarter view.",
             drawn.view
         )));
     }

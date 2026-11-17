@@ -34,9 +34,9 @@ fn in_vectorcraft(arguments: &[&str]) -> String {
 
 #[test]
 #[ignore = "needs vectorcraft-cli; run with -- --ignored where VectorCraft is installed"]
-fn both_of_saffis_views_pass_the_oracle() {
+fn all_three_of_saffis_views_pass_the_oracle() {
     let folder = draw("saffi-read-back", HER_PROPORTIONS, &[]);
-    for view in ["front", "three-quarter"] {
+    for view in ["front", "three-quarter", "side"] {
         let landmarks = folder.join(format!("{view}.landmarks.toml"));
         let printed = in_vectorcraft(&["read-back", "--landmarks", path_text(&landmarks)]);
         assert!(
@@ -68,7 +68,7 @@ fn saffis_three_quarter_view_holds_the_hard_case() {
 #[ignore = "needs vectorcraft-cli; run with -- --ignored where VectorCraft is installed"]
 fn the_made_up_views_pass_the_oracle_and_the_hard_case() {
     let folder = draw("made-up-read-back", support::MADE_UP, &[]);
-    for view in ["front", "three-quarter"] {
+    for view in ["front", "three-quarter", "side"] {
         let landmarks = folder.join(format!("{view}.landmarks.toml"));
         let printed = in_vectorcraft(&["read-back", "--landmarks", path_text(&landmarks)]);
         assert!(printed.contains("PASSED"), "{printed}");

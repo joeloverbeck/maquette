@@ -16,11 +16,25 @@ const MADE_UP_FRONT: &str = "tests/fixtures/differences/made-up-front.landmarks.
 const MADE_UP_THREE_QUARTER: &str =
     "tests/fixtures/differences/made-up-three-quarter.landmarks.toml";
 
+const MADE_UP_FINAL_RECORD: &str = "tests/fixtures/differences/made-up-final-drawings.toml";
+
 /// Runs the comparison and reads the file it writes.
 fn differences(name: &str, front: &str, three_quarter: &str, record: &str) -> toml::Table {
+    differences_with(name, front, three_quarter, record, None)
+}
+
+/// Runs the comparison, with the record of the final drawings when one is given, and reads
+/// the file it writes.
+fn differences_with(
+    name: &str,
+    front: &str,
+    three_quarter: &str,
+    record: &str,
+    final_record: Option<&str>,
+) -> toml::Table {
     let folder = scratch(name);
     let out = folder.join("differences.toml");
-    maquette_ok(&[
+    let mut arguments = vec![
         "differences-from-hand-made-views",
         "--front",
         front,
@@ -30,7 +44,11 @@ fn differences(name: &str, front: &str, three_quarter: &str, record: &str) -> to
         record,
         "--out",
         path_text(&out),
-    ]);
+    ];
+    if let Some(final_record) = final_record {
+        arguments.extend(["--final-record", final_record]);
+    }
+    maquette_ok(&arguments);
     text(&out).parse().expect("the differences file is TOML")
 }
 
@@ -210,6 +228,66 @@ fn each_difference_gives_both_positions_in_the_records_units() {
 }
 
 #[test]
+fn a_record_of_final_drawings_replaces_the_records_landmarks_of_the_same_name() {
+    let find = |table: &toml::Table, view: &str, name: &str| -> toml::Table {
+        ["above_one_percent", "at_or_under_one_percent"]
+            .iter()
+            .flat_map(|list| entries(table, view, list))
+            .find(|entry| entry["landmark"].as_str() == Some(name))
+            .unwrap_or_else(|| panic!("{name} is compared in the {view} view"))
+            .clone()
+    };
+
+    // Without it the generated corner stands on the record's, at 650, 300.
+    let without = made_up("differences-without-final");
+    let corner = find(&without, "front", "eye-left-outer-corner");
+    assert_eq!(number(&corner["distance"]), 0.0);
+    assert!(corner.get("from_final_drawings").is_none());
+    assert!(without.get("final_drawings").is_none());
+
+    let table = differences_with(
+        "differences-with-final",
+        MADE_UP_FRONT,
+        MADE_UP_THREE_QUARTER,
+        MADE_UP_RECORD,
+        Some(MADE_UP_FINAL_RECORD),
+    );
+    assert_eq!(table["final_drawings"].as_str(), Some(MADE_UP_FINAL_RECORD));
+    assert_eq!(
+        table["final_drawings_what"].as_str(),
+        Some("Made-up final positions for the tests. No drawing stands behind them.")
+    );
+
+    // With it the corner is measured against 646, 303: 4 across and 3 down is 5 units, 1.25%
+    // of the head height of 400, so it is now above 1% and has a number.
+    let corner = find(&table, "front", "eye-left-outer-corner");
+    assert_eq!(number(&corner["hand_made"]["x"]), 646.0);
+    assert_eq!(number(&corner["hand_made"]["y"]), 303.0);
+    assert_eq!(number(&corner["distance"]), 5.0);
+    assert_eq!(number(&corner["percent_of_head_height"]), 1.25);
+    assert_eq!(corner["from_final_drawings"].as_bool(), Some(true));
+    assert!(corner.get("number").is_some());
+
+    // The lid line's inner end is midway between the final lower corner at 604, 312 and the
+    // record's own upper corner at 600, 300: 602, 306. The generated end is at 600, 311.
+    let lid = find(&table, "three-quarter", "lid-line-left-inner-end");
+    assert_eq!(number(&lid["hand_made"]["x"]), 602.0);
+    assert_eq!(number(&lid["hand_made"]["y"]), 306.0);
+    assert_close(
+        number(&lid["distance"]),
+        (2.0_f64).hypot(5.0),
+        0.0005,
+        "lid",
+    );
+    assert_eq!(lid["from_final_drawings"].as_bool(), Some(true));
+
+    // A landmark the final record does not give is the record's own, and is not marked.
+    let other = find(&table, "front", "eye-right-outer-corner");
+    assert_eq!(number(&other["hand_made"]["x"]), 350.0);
+    assert!(other.get("from_final_drawings").is_none());
+}
+
+#[test]
 fn the_lay_over_is_stated_and_is_one_rule_for_every_landmark_of_a_view() {
     let table = made_up("differences-lay-over");
     assert!(
@@ -270,6 +348,48 @@ fn shares_are_of_the_hand_made_front_views_head_height() {
     assert!(
         names(&table, "three-quarter", "above_one_percent")
             .contains(&"nose-mark-bottom".to_string())
+    );
+}
+
+#[test]
+fn where_the_face_outline_crosses_a_level_is_compared_sideways_only() {
+    // The record takes such a crossing at the height of the drawn level line, which need not
+    // be the eye line, the nose level or the mouth level. Saffi's drawn eye level line is at
+    // y = 366 in her front view, and with her final drawings' lids her eye line is at
+    // (353.785 + 390) / 2 = 371.893: 5.9 units lower, which is 1.2% of her head height and
+    // says nothing about her face outline.
+    let (_, table) = hers("saffi-differences-crossings", &[]);
+    for (view, name) in [
+        ("front", "face-outline-left-at-eye-level"),
+        ("front", "face-outline-right-at-eye-level"),
+        ("three-quarter", "face-outline-left-at-eye-level"),
+    ] {
+        let crossing = ["above_one_percent", "at_or_under_one_percent"]
+            .iter()
+            .flat_map(|list| entries(&table, view, list))
+            .find(|entry| entry["landmark"].as_str() == Some(name))
+            .unwrap_or_else(|| panic!("{name} is compared in the {view} view"));
+        assert_eq!(crossing["compared"].as_str(), Some("sideways"), "{name}");
+        let (generated, hand_made) = (&crossing["generated"], &crossing["hand_made"]);
+        assert_eq!(number(&hand_made["y"]), 366.0, "{view}: {name}");
+        assert!(
+            number(&generated["y"]) - number(&hand_made["y"]) > 5.0,
+            "{view}: {name} is no test of the rule"
+        );
+        assert_close(
+            number(&crossing["distance"]),
+            (number(&generated["x"]) - number(&hand_made["x"])).abs(),
+            0.00051,
+            name,
+        );
+        assert!(crossing.get("number").is_none(), "{view}: {name}");
+    }
+    assert!(
+        table["rules"]["one_direction"]
+            .as_str()
+            .expect("the rule")
+            .contains("crosses"),
+        "the rule does not speak of the crossings"
     );
 }
 
@@ -440,10 +560,111 @@ fn files_given_for_the_wrong_view_are_refused() {
     );
 }
 
-// Saffi. Nothing below says her list is short, long or empty, and nothing pins its length:
-// what moves after Jon's look moves the list with it.
+#[test]
+fn a_fault_in_a_record_is_reported_under_the_path_of_the_record_it_is_in() {
+    let folder = scratch("differences-fault-in-a-record");
+    let spoiled = |name: &str, from: &str, good: &str, bad: &str| {
+        let original = text(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join(from)
+                .as_path(),
+        );
+        assert!(original.contains(good), "{from} has changed");
+        let path = folder.join(name);
+        std::fs::write(&path, original.replace(good, bad)).expect("written");
+        path
+    };
+    // The final record gives a landmark a word where its x belongs.
+    let final_with_a_word = spoiled(
+        "final-with-a-word.toml",
+        MADE_UP_FINAL_RECORD,
+        "eye_left_outer_corner = { x = 646.0,",
+        "eye_left_outer_corner = { x = \"four\",",
+    );
+    // The final record gives a view no digest.
+    let final_without_a_digest = spoiled(
+        "final-without-a-digest.toml",
+        MADE_UP_FINAL_RECORD,
+        "[views.front]\nsha256 = \"made-up: there is no final drawing\"\n",
+        "[views.front]\n",
+    );
+    // The record itself gives a landmark a word where its x belongs.
+    let record_with_a_word = spoiled(
+        "record-with-a-word.toml",
+        MADE_UP_RECORD,
+        "chin = { x = 500.0,",
+        "chin = { x = \"five hundred\",",
+    );
+
+    let cases = [
+        (
+            MADE_UP_RECORD,
+            path_text(&final_with_a_word),
+            "final-with-a-word.toml",
+            "made-up-hand-made-views.toml",
+            "eye_left_outer_corner",
+        ),
+        (
+            MADE_UP_RECORD,
+            path_text(&final_without_a_digest),
+            "final-without-a-digest.toml",
+            "made-up-hand-made-views.toml",
+            "sha256",
+        ),
+        (
+            path_text(&record_with_a_word),
+            MADE_UP_FINAL_RECORD,
+            "record-with-a-word.toml",
+            "made-up-final-drawings.toml",
+            "chin",
+        ),
+    ];
+    for (record, final_record, at_fault, sound, what) in cases {
+        let commands: [Vec<&str>; 3] = [
+            vec![
+                "differences-from-hand-made-views",
+                "--front",
+                MADE_UP_FRONT,
+                "--three-quarter",
+                MADE_UP_THREE_QUARTER,
+            ],
+            vec![
+                "overlay-hand-made-views",
+                "--front",
+                MADE_UP_FRONT,
+                "--three-quarter",
+                MADE_UP_THREE_QUARTER,
+                "--out",
+                path_text(&folder),
+            ],
+            vec!["proportions-from-hand-made-views"],
+        ];
+        for mut arguments in commands {
+            arguments.extend(["--record", record, "--final-record", final_record]);
+            let output = maquette(&arguments);
+            assert!(!output.status.success(), "{arguments:?} read {at_fault}");
+            let message = String::from_utf8_lossy(&output.stderr);
+            assert!(
+                message.contains(at_fault) && message.contains(what),
+                "{}: the message does not name {at_fault} and `{what}`: {message}",
+                arguments[0]
+            );
+            assert!(
+                !message.contains(sound),
+                "{}: the message names {sound}, which has no fault: {message}",
+                arguments[0]
+            );
+        }
+    }
+}
+
+// Saffi. Nothing below says her list is short, long or empty, and nothing pins its length.
+// Jon accepted her armature at look 3 and `tests/saffi.rs` pins its bytes; the list is not
+// part of what he accepted, and it moves with anything a later look moves.
 
 const HER_RECORD: &str = "data/saffi/hand-made-views.toml";
+/// Her final drawings' ears and lids, which replace her record's (Jon, 2026-11-16).
+const HER_FINAL_RECORD: &str = "data/saffi/final-drawings.toml";
 const HER_PROPORTIONS: &str = "data/saffi/proportions.toml";
 /// Hair top at y = 86.682 and chin at y = 567 in her hand-made front view.
 const HER_HEAD_HEIGHT: f64 = 567.0 - 86.682;
@@ -451,11 +672,12 @@ const HER_HEAD_HEIGHT: f64 = 567.0 - 86.682;
 /// Draws her and compares the drawing with her record.
 fn hers(name: &str, placement: &[&str]) -> (std::path::PathBuf, toml::Table) {
     let folder = support::draw(&format!("{name}-drawn"), HER_PROPORTIONS, placement);
-    let table = differences(
+    let table = differences_with(
         name,
         path_text(&folder.join("front.landmarks.toml")),
         path_text(&folder.join("three-quarter.landmarks.toml")),
         HER_RECORD,
+        Some(HER_FINAL_RECORD),
     );
     (folder, table)
 }
@@ -554,11 +776,29 @@ fn her_hand_made_positions_in_the_list_are_her_records() {
     let brow = find("three-quarter", "brow-line-left-inner-end");
     assert_eq!(number(&brow["hand_made"]["x"]), 602.0);
     assert_eq!(number(&brow["hand_made"]["y"]), 335.5);
-    // The head covers her far ear's outer base, at 622, 160 in the drawing's coordinates.
+    assert!(brow.get("from_final_drawings").is_none());
+    // As data/saffi/final-drawings.toml gives them: her ears and her lids are her final
+    // drawings'. The head covers her far ear's outer base, at 618.903, 167.565 in the final
+    // rig's coordinates; her S2 underdrawing had it at 622, 160.
     let ear = find("three-quarter", "ear-left-base-outer");
     assert_eq!(ear["covered_by_the_head"].as_bool(), Some(true));
-    assert_eq!(number(&ear["hand_made"]["x"]), 622.0);
-    assert_eq!(number(&ear["hand_made"]["y"]), 160.0);
+    assert_eq!(ear["from_final_drawings"].as_bool(), Some(true));
+    assert_eq!(number(&ear["hand_made"]["x"]), 618.903);
+    assert_eq!(number(&ear["hand_made"]["y"]), 167.565);
+    // Her near eye's outer corner is at 384, 368.5 in the front of her S6 model sheet.
+    let corner = find("front", "eye-right-outer-corner");
+    assert_eq!(corner["from_final_drawings"].as_bool(), Some(true));
+    assert_eq!(number(&corner["hand_made"]["x"]), 384.0);
+    assert_eq!(number(&corner["hand_made"]["y"]), 368.5);
+    // Her lid line's crest in the front view is midway between the highest points of the
+    // band's two edges, at 402.346, 358.632 and 405.711, 347.692.
+    let crest = find("front", "lid-line-right-crest");
+    assert_eq!(number(&crest["hand_made"]["x"]), 404.029);
+    assert_eq!(number(&crest["hand_made"]["y"]), 353.162);
+    assert_eq!(
+        table["final_drawings"].as_str(),
+        Some("data/saffi/final-drawings.toml")
+    );
 }
 
 #[test]
@@ -590,7 +830,9 @@ fn drawn_at_her_hand_made_size_and_place_nothing_has_to_be_moved_to_lay_her_over
             ],
         );
         let lay_over = table[view]["lay_over"].as_table().expect("the lay-over");
-        assert_close(number(&lay_over["scale"]), 1.0, 2e-6, "scale");
+        // Her file gives each unit to a thousandth, so it can be half a thousandth off a unit
+        // of about 195: 2.6 parts in a million, and the scale is written to one part more.
+        assert_close(number(&lay_over["scale"]), 1.0, 4e-6, "scale");
         assert_close(number(&lay_over["shift_x"]), 0.0, 0.001, "shift_x");
         assert_close(number(&lay_over["shift_y"]), 0.0, 0.001, "shift_y");
 
@@ -655,10 +897,17 @@ fn where_she_is_drawn_on_the_page_does_not_change_her_differences() {
 fn her_shoulder_points_differ_as_her_record_says_they_must() {
     // Known before any comparison: in her hand-made three-quarter view the shoulder points
     // are 742 apart (96 and 838), and a head drawn from her proportions turns them with the
-    // head. Her front view has them 744 apart at a unit of 197; at the three-quarter view's
-    // unit of 196.973 and a turn of 29 degrees that shows as 744 * 196.973 / 197 * cos 29.
-    // Each side then differs by half of what is left.
-    let shown = 744.0 * 196.973 / 197.0 * 29.0_f64.to_radians().cos();
+    // head. Her front view has them 744 apart at its unit; at the three-quarter view's unit
+    // and a turn of 29 degrees that shows as 744 * that unit / the front unit * cos 29. Each
+    // side then differs by half of what is left.
+    //
+    // The units are eye line to chin, with the eye line midway between the top and the bottom
+    // of her final drawings' eye openings and her chin at y = 567. Front view: both openings
+    // run from 353.785 to 390. Three-quarter view: from 353.785 to 390 on the near eye and
+    // from 355.176 to 390.163 on the far one.
+    let front_unit = 567.0 - (353.785 + 390.0) / 2.0;
+    let turned_unit = 567.0 - (353.785 + 390.0 + 355.176 + 390.163) / 4.0;
+    let shown = 744.0 * turned_unit / front_unit * 29.0_f64.to_radians().cos();
     let expected = (742.0 - shown) / 2.0;
     let (_, table) = hers("saffi-differences-shoulders", &[]);
     let above = entries(&table, "three-quarter", "above_one_percent");

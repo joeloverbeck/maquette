@@ -111,3 +111,106 @@ fn the_unit_the_eye_line_and_the_yardstick_are_stated_with_their_reasons() {
         "the unit's reason does not mention the hair"
     );
 }
+
+#[test]
+fn the_list_defines_the_named_correction_its_view_and_each_amount_with_its_rule() {
+    let printed = maquette_ok(&["list-proportions"]);
+    let corrections: Vec<&str> = printed
+        .lines()
+        .skip_while(|line| !line.starts_with("Corrections, "))
+        .skip(1)
+        .take_while(|line| !line.is_empty())
+        .collect();
+    // One correction: it is named, and it says which view it changes and that no other is.
+    let named: Vec<&&str> = corrections
+        .iter()
+        .filter(|line| line.starts_with("  ") && !line.starts_with("   "))
+        .collect();
+    assert_eq!(named.len(), 1, "{corrections:?}");
+    let correction = named[0];
+    assert!(
+        correction.starts_with("  lower_face_set_back, in the side view: "),
+        "{correction}"
+    );
+    assert!(
+        correction.contains("front view") && correction.contains("three-quarter view"),
+        "it does not say what it leaves alone: {correction}"
+    );
+    // It says what it changes above the mouth, where it moves no landmark: the face outline's
+    // bend and the two view points read off it. `tests/armature.rs` holds the drawing to it.
+    for changed in ["face outline", "eye line", "nose level line", "neck"] {
+        assert!(
+            correction.contains(changed),
+            "it does not say what it changes above the mouth ({changed}): {correction}"
+        );
+    }
+    assert!(
+        !correction.contains("Nothing above the mouth is moved"),
+        "{correction}"
+    );
+    // It says why it exists and where its amounts come from, and each amount has a rule.
+    for label in ["    Why: ", "    Where the amounts come from: "] {
+        let line = corrections
+            .iter()
+            .find(|line| line.starts_with(label))
+            .unwrap_or_else(|| panic!("the correction has no line `{label}`"));
+        assert!(line.len() > label.len() + 40, "`{label}` says too little");
+    }
+    for (amount, about) in [("chin", "iris"), ("mouth", "nose mark")] {
+        let label = format!("    Amount `{amount}`: ");
+        let line = corrections
+            .iter()
+            .find(|line| line.starts_with(&label))
+            .unwrap_or_else(|| panic!("the correction has no amount `{amount}`"));
+        assert!(
+            line.contains(about),
+            "the rule of `{amount}` does not name the {about}: {line}"
+        );
+    }
+    // A correction is not a proportion: the count of proportions does not include it.
+    assert!(!printed.contains("\nlower_face_set_back  ["), "{printed}");
+}
+
+#[test]
+fn the_list_states_how_each_guide_is_built_in_the_side_view() {
+    let printed = maquette_ok(&["list-proportions"]);
+    // Depth is what a side view shows sideways.
+    let depth = printed
+        .lines()
+        .skip_while(|line| !line.starts_with("Depth: "))
+        .take_while(|line| !line.is_empty())
+        .find(|line| line.trim_start().starts_with("Side view: "))
+        .expect("how depth shows in a side view");
+    assert!(depth.contains("90"), "{depth}");
+
+    // Every guide whose construction the side view changes says so: the ones a plain
+    // projection would draw at no width, the ones named for a side, and the outlines.
+    let constructions: Vec<&str> = printed
+        .lines()
+        .skip_while(|line| *line != "How the guides are built in a view:")
+        .skip(1)
+        .take_while(|line| !line.is_empty())
+        .collect();
+    for guide in [
+        "skull",
+        "hair-volume",
+        "face-outline",
+        "centre-line",
+        "level lines",
+        "eye opening, lid line and brow line",
+        "iris",
+        "nose-mark and mouth-line",
+        "ears",
+        "neck",
+        "shoulder-line",
+    ] {
+        let rule = constructions
+            .iter()
+            .find(|line| line.trim_start().starts_with(&format!("{guide}: ")))
+            .unwrap_or_else(|| panic!("the list states no construction for `{guide}`"));
+        assert!(
+            rule.contains("side view"),
+            "the construction of `{guide}` does not say how the side view shows it: {rule}"
+        );
+    }
+}

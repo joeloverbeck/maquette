@@ -5,9 +5,14 @@
 //!
 //! - [`proportions`]: the list of named proportions, and the reading and checking of a set.
 //! - [`head_model`]: how proportions and landmarks relate, in both directions.
-//! - [`views`]: how the landmarks are shown from the front and from the three-quarter turn.
+//! - [`views`]: how the landmarks are shown from the front, from the three-quarter turn and
+//!   from the side.
 //! - [`guides`]: how the named guides of a view are built from its landmarks.
 //! - [`armature`]: the SVG and the landmark file of a view, as text.
+//! - [`drawing`]: how a hand-made drawing's SVG is read as groups and shapes with their
+//!   points, and how a position is taken from a curve.
+//! - [`hand_made_drawings`]: which node of which shape is which landmark in the hand-made
+//!   drawings maquette relies on, and the records written from them.
 //! - [`hand_made_views`]: how the record of a hand-made armature is read as landmarks, and
 //!   the set of proportions worked out from it written.
 //! - [`differences`]: how a generated armature is laid over a hand-made one, and how far
@@ -24,7 +29,9 @@
 
 pub mod armature;
 pub mod differences;
+pub mod drawing;
 pub mod guides;
+pub mod hand_made_drawings;
 pub mod hand_made_views;
 pub mod hard_case;
 pub mod head_model;

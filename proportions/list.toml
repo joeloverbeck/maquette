@@ -4,8 +4,9 @@
 # built into the binary, `maquette list-proportions` prints it, and a set of proportions is
 # checked against it. Nothing else repeats a definition.
 #
-# It is the first list: what Saffi's front view and three-quarter view need. The side view and
-# the reading of published references are later tickets, and they revise it.
+# It is the first list: what Saffi's front view and three-quarter view need, and how the side
+# view is drawn from the same proportions. How a proportion is taken from a side drawing is not
+# stated yet: the reading of published references is a later ticket, and it revises this list.
 
 [unit]
 name = "eye line to chin"
@@ -40,6 +41,11 @@ A level head turned about an upright axis, drawn flat, shows a point at its fron
 plus its depth times the sine of the turn. So a left and right pair's midpoint, or a point of the centre line, \
 measured sideways from the midpoint of the two eye openings' centres and divided by the sine of the turn, is its depth. \
 Depth taken this way at a turn near 30 degrees carries twice the reading error of a position."""
+side = """
+The side view is the same turn carried to 90 degrees, so it faces the viewer's right: the cosine is 0 and the sine is 1, \
+and a point shows at its depth and nothing of its offset. The two points of a left and right pair stand at one place. \
+A landmark that a named correction moves shows at its depth less the correction's amount; the corrections are defined at the end of the list. \
+The generator draws the side view this way; taking a depth from a side drawing is not part of this list yet."""
 
 [words]
 offset = "A sideways distance from the centre line, in the front view. The head is symmetric: the left and the right point share it."
@@ -64,36 +70,47 @@ rule = "What the three-quarter view does not show is taken from the front view: 
 rule = "The neck and the shoulder line take their widths from the front view. A neck is a column, whose width does not narrow as it turns, and the widest span of the figure is read where nothing foreshortens it."
 
 # Guides that are silhouettes or constructions: how each is built in a view from that view's landmarks.
+#
+# The side view is a plain projection like the others, unless the set of proportions carries
+# a named correction: the corrections are defined at the end of this file, and a guide is
+# built on its landmarks where the view draws them. It shows fewer guides. The head hides the eye, the brow and the ear of the
+# character's left there, so only those of her right, the near side, are drawn; the centre line
+# is the front of the face outline and is not drawn a second time; and the neck's two lines
+# are its back and its front. Where a plain projection would draw a guide at no width, the
+# rule below says what is drawn instead.
 [[construction]]
 guide = "skull"
-rule = "A sphere centred on the upright axis the head turns about, so it is the same circle in every view. A convention: its radius and its centre are stated, not measured."
+rule = "A sphere centred on the upright axis the head turns about, so it is the same circle in every view. A convention: its radius and its centre are stated, not measured. In the side view the circle's point toward the viewer's right is the point where the centre line leaves the skull's surface level with its centre."
 [[construction]]
 guide = "hair-volume"
-rule = "A plain envelope, a convention: a half-ellipse dome from the hair's top down to the height of the skull's centre, then straight sides down to the height of the chin. Seen from above the envelope is an ellipse, so its half-width in a view is the root of (half-width times the cosine of the turn) squared plus (half-depth times the sine of the turn) squared."
+rule = "A plain envelope, a convention: a half-ellipse dome from the hair's top down to the height of the skull's centre, then straight sides down to the height of the chin. Seen from above the envelope is an ellipse, so its half-width in a view is the root of (half-width times the cosine of the turn) squared plus (half-depth times the sine of the turn) squared. In the side view that is the hair's half-depth, and the dome stands over the middle of the hair. Behind the head its side runs straight down to the height of the chin. In front it stops where the dome ends, at the height of the skull's centre: a straight side there would run down across the face, and how far the hair comes down over the face is the painter's."
 [[construction]]
 guide = "face-outline"
-rule = "At the top, the eye line, the nose level and the mouth level the head has a cheek point and a jaw-line point on each side, at one half-width and two depths. On each side the outline runs through whichever of the two stands further out in the view, then through the jaw point and the chin: a smooth curve that at each point runs parallel to the line joining its two neighbours. Above the nose level nothing is drawn behind the jaw line, and it keeps its depth at the nose level: a convention."
+rule = "At the top, the eye line, the nose level and the mouth level the head has a cheek point and a jaw-line point on each side, at one half-width and two depths. On each side the outline runs through whichever of the two stands further out in the view, then through the jaw point and the chin: a smooth curve that at each point runs parallel to the line joining its two neighbours. Above the nose level nothing is drawn behind the jaw line, and it keeps its depth at the nose level: a convention. In the side view the outline's front is the centre line: it runs from the skull's front, level with the skull's centre, through the centre line's point at the eye line, the nose mark's bottom and the mouth line's centre to the chin, and then back and up through the jaw-line points at the mouth level, the nose level, the eye line and the top. The jaw point beside the chin belongs to the front of the face and is not on it. Nothing in the list says how far the nose, the lips or the brow stand out from that line, so the side view draws none of them."
 [[construction]]
 guide = "centre-line"
-rule = "From the skull's top it follows the skull's surface forward and down to the eye line: a convention, because nothing is drawn there. Below the eye line it runs smoothly through the nose mark's bottom, the mouth line's centre and the chin."
+rule = "From the skull's top it follows the skull's surface forward and down to the eye line: a convention, because nothing is drawn there. Below the eye line it runs smoothly through the nose mark's bottom, the mouth line's centre and the chin. In the side view it is not drawn: above the skull's front it is the skull's circle, and below it is the front of the face outline."
 [[construction]]
 guide = "level lines"
-rule = "The eye level line is drawn on the eye line, the nose level line midway between the nose mark's corners and its bottom, and the mouth level line at the mouth line's centre. Each spans the face outline at its height."
+rule = "The eye level line is drawn on the eye line, the nose level line midway between the nose mark's corners and its bottom, and the mouth level line at the mouth line's centre. Each spans the face outline at its height. In the side view that is from the jaw-line point at that level to the front of the outline; at the nose level the front is where the outline crosses that height."
 [[construction]]
 guide = "eye opening, lid line and brow line"
-rule = "The opening's top and bottom, the lid line's three points and the brow line's two ends take the depth of the straight line through the eye's two corners at their offset: a convention. The opening is two smooth arcs between its corners, over its top and under its bottom. The lid line is the middle of the drawn lid band, a smooth curve from its inner end over its crest to its outer end. The brow line is the middle of the drawn brow band, a straight line between its two ends."
+rule = "The opening's top and bottom, the lid line's three points and the brow line's two ends take the depth of the straight line through the eye's two corners at their offset: a convention. The opening is two smooth arcs between its corners, over its top and under its bottom. The lid line is the middle of the drawn lid band, a smooth curve from its inner end over its crest to its outer end. The brow line is the middle of the drawn brow band, a straight line between its two ends. In the side view each is the same construction on the same points at their depths, for the near eye only: the opening is as high as in the front view and as wide as the eye wraps round the face, with the inner corner toward the viewer's right."
 [[construction]]
 guide = "iris"
-rule = "A flat disc facing forward, as drawn, where the lid may already cut it: an ellipse whose width narrows by the cosine of the turn."
+rule = "A flat disc facing forward, as drawn, where the lid may already cut it: an ellipse whose width narrows by the cosine of the turn. In the side view the disc is seen edge on and has no width, so it is drawn as an upright line from its top to its bottom, at the iris's depth."
+[[construction]]
+guide = "nose-mark and mouth-line"
+rule = "The nose mark runs straight from one corner through its bottom to the other corner, and the mouth line from one end through its centre to the other end. In the side view the two corners stand at one place and so do the two ends, so each is drawn as its near half: from the near corner to the bottom, and from the near end to the centre."
 [[construction]]
 guide = "ears"
-rule = "A flat upright lobe standing on its two base points: the top and the two side extents take the depth of the straight line through the base points at their offset, a convention. The outline is a smooth curve from the outer base point round the outer extent, the top and the inner extent to the inner base point, upright at the extents and level at the top."
+rule = "A flat upright lobe standing on its two base points: the top and the two side extents take the depth of the straight line through the base points at their offset, a convention. The outline is a smooth curve from the outer base point round the outer extent, the top and the inner extent to the inner base point, upright at the extents and level at the top. In the side view it is the same curve through the same points at their depths, for the near ear only: the lobe is seen as far round as its two base points differ in depth, and edge on if they do not."
 [[construction]]
 guide = "neck"
-rule = "An upright round column, as wide in every view. Each of its two lines starts at the lowest point where it crosses the face outline and ends at the neck's base. A line that passes outside the face starts where it crosses the lower half of the skull, and one that misses both starts at the chin's height."
+rule = "An upright round column, as wide in every view. Each of its two lines starts at the lowest point where it crosses the face outline and ends at the neck's base. A line that passes outside the face starts where it crosses the lower half of the skull, and one that misses both starts at the chin's height. In the side view the two lines are the neck's back and its front, and they are named so: left and right in a name are the character's own, and these are neither."
 [[construction]]
 guide = "shoulder-line"
-rule = "A straight line between the two shoulder points, which turn with the head."
+rule = "A straight line between the two shoulder points, which turn with the head. In the side view it is seen end on: the two shoulder points stand at one place, and a line between them has no length. So that it shows, it is drawn as a level tick through that place, half the neck's width to each side: a convention. The tick marks the shoulders' height and depth and says nothing of their width."
 
 # ---------------------------------------------------------------- Hair and skull
 
@@ -690,3 +707,51 @@ sign = "any"
 what = "The depth of the shoulder points."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the two shoulder points."
+
+# ---------------------------------------------------------------- Corrections
+#
+# A correction is a named departure from flat projection, with an amount. A set of proportions
+# carries one in a `[corrections.<name>]` table, with a number for each of its amounts, in
+# units. A set without that table carries none, and every view of it is a flat projection.
+# The landmark file of a view that a correction changes names it, with its amounts and the
+# landmarks it moves, and gives each moved landmark's depth in space beside where it is drawn.
+
+[[correction]]
+name = "lower_face_set_back"
+view = "side"
+what = """
+In the side view only, the mouth and the chin are drawn further back than their depths. \
+A landmark it moves keeps its depth in space and its height, and stands in the side view at its depth less the amount. \
+No landmark above the mouth is moved: the nose mark, the eyes, the brow and the skull stand where a flat projection puts them. \
+That holds for landmarks and not for every guide. A guide is built on its landmarks where the view draws them, so the mouth line, the mouth level line and the lower face outline go back with the mouth and the chin. \
+The face outline is one smooth curve whose direction at a point follows that point's two neighbours, so it also bends differently on the stretch beyond each moved point, where no landmark moves: \
+in front between the eye line and the nose mark's bottom, and behind between the jaw-line points at the mouth level and at the nose level. \
+Two view points read off the outline there shift with it: where the nose level line meets the outline's front, and where the neck's front line starts. \
+The front view and the three-quarter view are not changed at all."""
+why = """
+A depth taken from a three-quarter drawing is a point's sideways shift there over the sine of the turn. \
+A three-quarter view drawn by hand commonly puts the mouth almost straight below the nose mark and the chin close behind it, \
+which is not where a rigid head turned that far shows them, and at a turn near 30 degrees the shift arrives in the side view doubled: \
+the face from the nose down stands out like a muzzle. Jon's look of 2026-11-17 found this in Saffi's side view. \
+Her three-quarter view is accepted as it is, so the depths stay as measured and the side view alone departs from them."""
+amounts_from = """
+No drawing lesson gives a distance for a side view, so each amount comes from where the lessons put the chin and the lips \
+(`docs/research/2026-11-16-views-and-measuring/notes/head_construction_in_three_views.md`, section 1, lessons A to H). \
+`maquette proportions-from-hand-made-views --lower-face-set-back <share>` works both out from a set's own depths. \
+How large a share looks right is Jon's to say: no lesson gives it. For Saffi's set he accepted a share of 0.5 at look 3, on 2026-11-17."""
+
+[[correction.amount]]
+name = "chin"
+what = "How far behind its depth the side view draws the chin. The jaw point beside the chin, on each side, is drawn back by the same amount."
+rule = """
+A share, from 0 to 1, of chin_depth minus iris_depth, which is what draws the chin straight below the iris's centre; nothing if the chin is not in front of it. \
+Lesson B puts the chin's tip straight below the pupil, and it is the only lesson that places the chin against a point this list has, so a share of 1 is lesson B's chin and nothing supports more. \
+The pupil is the painter's and not in this list, so the iris's centre stands for it."""
+
+[[correction.amount]]
+name = "mouth"
+what = "How far behind its depth the side view draws the mouth line's centre. The mouth line's two ends are drawn back by the same amount."
+rule = """
+What brings the mouth line's centre onto the straight line from the nose mark's bottom to the chin as the side view draws it; nothing if it is already on that line or behind it. \
+Lessons A, C, F and H put the lips on the line from the nose tip to the chin or just behind it; G draws that line and names a chin that juts as a mistake; B alone lets the lips pass it. \
+It follows from the chin's amount, whatever the share, and is not itself a share of anything."""
