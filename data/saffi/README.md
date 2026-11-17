@@ -2,39 +2,55 @@
 
 Saffi is the comparison case: the one character whose accepted armature is kept out of every proportion table, so that what a table allows can be tested against her. This folder holds her hand-made front view and three-quarter view as landmark positions, and what the two views say when they are set against each other.
 
+Her comparison case is her two grey S2 underdrawings with the ears and the lids of her two final drawings in their place. Jon ruled so on 2026-11-16: the larger ears and the hooded upper lids of her final drawings, and everything else as recorded from S2 ("The final drawings' ears and lids" below).
+
 **These numbers never enter a proportion table.** The positions are also not her set of proportions: that is `proportions.toml`, worked out from them once the list of proportions existed ("Her set of proportions" below).
 
 | File | What it holds |
 |---|---|
-| [`proportions.toml`](proportions.toml) | Her set of proportions: one value for each proportion of [`proportions/list.toml`](../../proportions/list.toml), with where it came from and the rules used. Written by the program from `hand-made-views.toml`. It is a set for one head, not a table: it has no ranges and no works behind it. |
-| [`hand-made-views.toml`](hand-made-views.toml) | 118 landmark positions in the front view and 122 in the three-quarter view, each with the element it came from and how it was taken. Also what the views give for each guide, and what was left out. |
-| [`views-compared.toml`](views-compared.toml) | The turn of the three-quarter view, worked out pair by pair, and every place where the two views do not describe one head, as a share of head height. |
+| [`proportions.toml`](proportions.toml) | Her set of proportions: one value for each proportion of [`proportions/list.toml`](../../proportions/list.toml), with where it came from and the rules used. Written by the program from `hand-made-views.toml` and `final-drawings.toml`. It is a set for one head, not a table: it has no ranges and no works behind it. |
+| [`hand-made-views.toml`](hand-made-views.toml) | The S2 underdrawings: 118 landmark positions in the front view and 122 in the three-quarter view, each with the element it came from and how it was taken. Also what the views give for each guide, and what was left out. |
+| [`views-compared.toml`](views-compared.toml) | The S2 underdrawings set against each other: the turn of the three-quarter view, worked out pair by pair, and every place where the two views do not describe one head, as a share of head height. |
+| [`final-drawings.toml`](final-drawings.toml) | The final drawings: the 36 landmark positions of the ears and the lids in each view, each with the element it came from and how it was taken, how far each stands from the S2 landmark it replaces, and where the two final views do not agree. |
 
 No image, tracing, crop, path data or copy of the drawings is here. The repository is public.
 
+## Her drawings in mudsong
+
+Every drawing of Saffi that maquette relies on is in mudsong's portrait study folder, `art/studies/saffi-portrait/work/`. Git ignores that folder in mudsong, so no commit names a drawing: the SHA-256 digest of its SVG file is its only identity. Mudsong is private, and nothing here needs it to be present.
+
+| Drawing | SHA-256 | Stage | Standing |
+|---|---|---|---|
+| `s2-base-underdrawing-A-front.svg` | `34ee7b92a8422031a20f7d2f195d6952d16e1099de3002f5fffcb6697a57f76f` | S2: grey underdrawing, front view, made on 2026-11-15 | It was on the sheet Jon accepted in mudsong on 2026-11-15, without being the question put to him. Read on 2026-11-16. It gives every front-view number here but the ears and the lids, for which `s6-front.svg` superseded it on 2026-11-16. |
+| `s2-base-underdrawing-A.svg` | `c50bb0529f254fe12ac0af7b3f6175ae175df14b61d24f16bfec54afcc2efb02` | S2: grey underdrawing, three-quarter view, made on 2026-11-15 | The armature Jon accepted in mudsong on 2026-11-15. Read on 2026-11-16. It gives every three-quarter number here but the ears and the lids, for which `s8-final-rig.svg` superseded it on 2026-11-16. The turn was pinned from it. |
+| `s6-front.svg` | `15d6fe02177427db7b0ae956411b97295f250d3328554f598134bb8e91c8136e` | S6: the model sheet's front, made on 2026-11-16 over the S2 construction | Pointed to by Jon on 2026-11-16 as the front view of her final drawings. Read on 2026-11-17. It gives the front view's ears and lids and nothing else. |
+| `s8-final-rig.svg` | `23251a2e5c196738514f324cec1c25c171fb0785112044d45168541d060d304a` | S8: the final rig, a three-quarter view turned about 30°, made on 2026-11-16 over the S2 construction | Pointed to by Jon on 2026-11-16 as the three-quarter view of her final drawings. Read on 2026-11-17. It gives the three-quarter view's ears and lids and nothing else. |
+
+A later drawing of her in that folder does not change these numbers until Jon points to it and it is read under its own digest. If one of these four is replaced there, its digest no longer matches and the reading command refuses it.
+
 ## Where the numbers came from
 
-- **The drawings.** Two grey underdrawings of Saffi's bust, made by hand in mudsong's portrait study on 2026-11-15: a front view and a three-quarter view. She is Jon's own character.
-- **Their identity.** They sit in mudsong's study folder, which Git ignores there, so no commit names them. The SHA-256 digest of each SVG file is its only identity:
-  - front: `34ee7b92a8422031a20f7d2f195d6952d16e1099de3002f5fffcb6697a57f76f`
-  - three-quarter: `c50bb0529f254fe12ac0af7b3f6175ae175df14b61d24f16bfec54afcc2efb02`
-- **The read.** Jon approved one read of them on 2026-11-16 (`docs/foundation/02-first-table.md`, "The handoff"). They were read that day, and both digests matched before anything was used.
-- **Custody.** Private copies are kept in maquette's reference folder, which is outside every repository, with a note of the source, the date, the digests and the approval. The three other drawings of the accuracy test of 2026-11-16 are kept there too, for later tests of an agent's reading on drawings with known positions. They were not measured.
-- **The derivation.** A throwaway Rust program, kept beside the private copies and not in this repository, wrote both files. Its SHA-256 digest is `7e81dcdeeb6b5e1ef32f7531adde180e4864e047f89b1467677d517ea8bd51cd`. Nothing in either file was edited by hand.
+- **The S2 underdrawings.** Two grey underdrawings of Saffi's bust, made by hand in mudsong's portrait study on 2026-11-15: a front view and a three-quarter view. She is Jon's own character.
+- **The read.** Jon approved one read of them on 2026-11-16 (`docs/foundation/02-first-table.md`, "The handoff"). They were read that day, and both digests matched before anything was used. His ruling of 2026-11-16 on her ears and lids named the two final drawings, which were read on 2026-11-17 under the digests above.
+- **Custody.** Private copies of the S2 underdrawings are kept in maquette's reference folder, which is outside every repository, with a note of the source, the date, the digests and the approval. The three other drawings of the accuracy test of 2026-11-16 are kept there too, for later tests of an agent's reading on drawings with known positions. They were not measured. The final drawings are recorded where they stay, in mudsong's study folder: no copy of them is kept.
+- **The derivation.** `maquette record-hand-made-drawings` writes `hand-made-views.toml`, `views-compared.toml` and `final-drawings.toml` from the four drawings ("Rerunning it" below). Nothing in them was edited by hand. The first two were written on 2026-11-16 by a throwaway Rust program kept beside the private copies, whose SHA-256 digest is `7e81dcdeeb6b5e1ef32f7531adde180e4864e047f89b1467677d517ea8bd51cd`; that program was moved into the package on 2026-11-17 as this command, and the command writes both files again byte for byte.
 
-Positions were taken by arithmetic on the files' own coordinates and never estimated from a rendered picture. The two renders were looked at once, only to tell which element is which.
+Positions were taken by arithmetic on the files' own coordinates and never estimated from a rendered picture. The renders of the S2 underdrawings were looked at once, only to tell which element is which. No render of the final drawings was looked at: which shape is which was read from the files' own groups and names, as `maquette list-drawing` lists them.
 
 ## How to read the positions
 
-- **Units.** SVG user units of the source files. Both are 1000 by 1000 with no transform on any element, so one unit is one pixel of their renders. x grows toward the viewer's right and y grows downward.
+- **Units.** SVG user units of the source files. All four are 1000 by 1000 with no transform on any element, so one unit is one pixel of their renders. x grows toward the viewer's right and y grows downward.
+- **One frame for a view.** Each final drawing was made over its S2 underdrawing's construction: its skull circle and its chin are the underdrawing's exactly, which the command checks before it writes. So a position of `final-drawings.toml` and a position of `hand-made-views.toml` in the same view stand in one frame.
 - **Left and right** are the character's own. Her right is toward the viewer's left in both views. In the three-quarter view her right is the near side.
-- **Head height** is `chin.y` minus `hair_top.y`: 480.318 units in the front view and 481.400 in the three-quarter view. Every share in `views-compared.toml` is of the front view's figure, so 1% is 4.803 units.
+- **Head height** is `chin.y` minus `hair_top.y`: 480.318 units in the S2 front view and 481.400 in the S2 three-quarter view. Every share in `views-compared.toml` and in `final-drawings.toml` is of the front view's figure, so 1% is 4.803 units.
 - **Each landmark** has a `kind` that says how far it can be trusted across views. A `node` is a point the drawing's own path data gives exactly, and it marks a feature. A `highest` or `lowest` is the top or bottom of an outline, found where a curve's slope is zero. A `side_extent`, a `crossing` and an `outline_node` are points on a silhouette or a guide line; the other view shows a different point of the head there, so they are never compared between views. The file defines every kind.
 - **`under`** lists the shapes painted over a point. A landmark with `under` is in the file's coordinates and cannot be seen in the drawing.
 
 The accuracy test of 2026-11-16 used 479 units as the head's height, which is the chin minus the first node of the hair's outline (y = 88). The outline rises 1.3 units above that node, to y = 86.682. The difference is 0.3% of the yardstick and moves no figure here across the 1% line.
 
 ## What the views give for each guide
+
+This section, "The turn" and "Where the two views do not describe one head" are about the S2 underdrawings, as `hand-made-views.toml` and `views-compared.toml` record them. "The final drawings' ears and lids" says what changed.
 
 The armature's guides are listed in issue #3. `[guides]` in `hand-made-views.toml` says what stands behind each. In short:
 
@@ -105,17 +121,45 @@ Each line is a share of the front view's head height. The full list, with the 20
 
 **The front view is symmetric.** Of its 50 left and right pairs, 49 mirror each other exactly about x = 500. The one that does not is the hair's side extents, by 0.002 unit sideways and 0.513 in height.
 
+## The final drawings' ears and lids
+
+**Jon's ruling, 2026-11-16.** Saffi's comparison case takes the larger ears and the hooded upper lids of her final drawings in mudsong, not those of the grey S2 underdrawing. Everything else stays as recorded from S2. Each view's ears and lids come from its own drawing, so nothing is worked out through the turn.
+
+**What is taken.** `final-drawings.toml` holds, for each view, 36 landmarks under the names `hand-made-views.toml` gives them, and each replaces the landmark of the same name in the same view:
+
+- **Each ear whole:** the `back` shape's two base points, its top, its two side extents and its two other nodes.
+- **Each eye's lids:** the opening they leave, which is the `white` shape (its two corners, its top, its bottom and its centre), and the lid line. The S2 underdrawings draw the lid line as the `lid_upper` band. In the final drawings that shape is a blink lid with no opacity, and the dark band along the upper lid is `lashes`: its inner and outer ends are nodes, and its crest is midway between the highest points of its lower and its upper edge.
+
+**What is not.** The iris and the pupil stay S2's (Jon left this to the agent, 2026-11-16). The final front view sets its pupils 3 units further out on each side than the S2 front view, and the final three-quarter view keeps the S2 pupils; taking the front view's would make the two final views disagree by about 1% of head height. So an S2 iris stands 3 to 4.4 units above the top of a final opening: the hooded lid covers that much of it. The skull, the jaw, the nose, the mouth, the brows, the neck, the shoulders and the hair's extents are S2's too.
+
+**What changed,** as `[views.….moved_from_s2]` gives it for every landmark:
+
+- **The ears are larger and stand differently on the head.** In the front view and on the near ear of the three-quarter view the outer base point is 15 to 16 units lower than in S2 and the inner base point as much higher; on the far ear it is 7.6. The base is tilted about its middle, which has not moved. The outline reaches 12 to 18 units further out, and its top stands 21 to 26 units further out and within 7 units of its S2 height.
+- **The upper lids are hooded.** The top of each opening is 3.8 units lower in the front view and on the near eye, and 5.2 lower on the far eye, and it has moved toward the outer corner by 13 to 23 units. The lid line's crest is 11 to 13 units lower.
+- **The eye line is lower,** because it is midway between the top and the bottom of the opening: y = 371.893 in the front view and 372.281 in the three-quarter view, where S2 gives 370.000 and 370.027. The unit, eye line to chin, is 195.107 and 194.719 where S2 gives 197.000 and 196.973. Every proportion is divided by the unit, so every value in `proportions.toml` changed, while the positions those values draw changed only for the ears, the lids and what is built on the eye line.
+
+**Where the two final views do not agree.** `final-drawings.toml` lists it under `[levels]` and `[[spacing.pair]]`, as `views-compared.toml` does for S2. It is reported and not corrected.
+
+| What | Front | Three-quarter | Difference | Share |
+|---|---|---|---|---|
+| Level of `ear_left_base_outer` (far ear, covered in the three-quarter view) | y = 186.989 | y = 167.565 | 19.424 higher | **4.04%** |
+| Level of `ear_left_base_inner` (far ear, covered in the three-quarter view) | y = 155.011 | y = 142.435 | 12.576 higher | **2.62%** |
+| Level of `ear_left_upper_node` (far ear) | y = 78.827 | y = 72.393 | 6.434 higher | **1.34%** |
+| Level of `ear_right_base_outer` (near ear) | y = 186.989 | y = 191.834 | 4.845 lower | **1.01%** |
+
+Of 30 landmarks comparable in height, 14 are at exactly one height in both views and 16 are not; the 12 others differ by under 1%. The near eye is the same shape in both final drawings. The spacing of the outer eye corners narrows from 232.0 to 203.0, which is a turn of 28.96°, and the outer tips of the lid lines give the same; the ears' outer bases give 33.45°, as the far one is covered. The pinned turn of 29° stands.
+
 ## Her set of proportions
 
-`proportions.toml` holds one value for each proportion of [`proportions/list.toml`](../../proportions/list.toml). It was not typed in by hand. The program wrote it from `hand-made-views.toml`:
+`proportions.toml` holds one value for each proportion of [`proportions/list.toml`](../../proportions/list.toml). It was not typed in by hand. The program wrote it from the two records:
 
 ```sh
-cargo run -- proportions-from-hand-made-views --record data/saffi/hand-made-views.toml --out data/saffi/proportions.toml
+cargo run -- proportions-from-hand-made-views --record data/saffi/hand-made-views.toml --final-record data/saffi/final-drawings.toml --out data/saffi/proportions.toml
 ```
 
-`cargo test` checks that the committed file is what that command writes, and checks eighteen of its numbers against arithmetic done by hand on the positions above. Neither check says her armature looks right.
+`cargo test` checks that the committed file is what that command writes, and checks twenty-one of its numbers against arithmetic done by hand on the positions the two records give. It also checks that the command without `--final-record` still gives her S2 proportions. None of these checks says her armature looks right.
 
-**How it was taken.** The head model has two directions: from proportions to landmarks, which the generator uses, and from landmark positions in a front view and a three-quarter view back to proportions. The second was run on her two views, with the three-quarter view taken as turned 29°. Every proportion is divided by the unit, eye line to chin: 197.000 units in her front view and 196.973 in her three-quarter view. Depth is taken through the turn, from where a pair's midpoint or a point of the centre line stands in the three-quarter view.
+**How it was taken.** The head model has two directions: from proportions to landmarks, which the generator uses, and from landmark positions in a front view and a three-quarter view back to proportions. The second was run on her two views, with the three-quarter view taken as turned 29°. Every proportion is divided by the unit, eye line to chin: 195.107 units in her front view and 194.719 in her three-quarter view. Depth is taken through the turn, from where a pair's midpoint or a point of the centre line stands in the three-quarter view.
 
 **The rules, where her views disagree or one does not show a point.** The file's `[source]` records them in full, as the list of proportions states them.
 
@@ -129,24 +173,26 @@ cargo run -- proportions-from-hand-made-views --record data/saffi/hand-made-view
 
 **What follows from them.** Each is arithmetic on the positions above.
 
-- Her eye line is at y = 370.027, 4 units below the level line drawn in both views (0.8% of head height).
-- A head drawn from this set shows its shoulder points 650.7 units apart in the three-quarter view, where hers are 742.0 apart: 45.6 units a side (9.5%). Hers hardly turn. Jon ruled at look 1 (2026-11-16) that the shoulder line turns with the head, so this difference is a flaw of the hand-made drawing, not of the generator.
+- Her eye line is at y = 372.281 in the three-quarter view, 6.3 units below the level line drawn in both views (1.3% of head height). With the S2 lids it was at 370.027, 4 units below.
+- A head drawn from this set shows its shoulder points 649.4 units apart in the three-quarter view, where hers are 742.0 apart: 46.3 units a side (9.6%). Hers hardly turn. Jon ruled at look 1 (2026-11-16) that the shoulder line turns with the head, so this difference is a flaw of the hand-made drawing, not of the generator.
 - The neck ends at y = 578.0, the mean of 560.0 and 596.0. That is 18 units from each in her three-quarter view (3.7%) and 12 from her front view's 590.0 (2.5%).
-- The ear's outer extent stands at y = 124.9, the mean of 139.9 on the near ear and 110.0 on the far one: 15 units from each (3.1%), and 21 from the front view's 145.8 (4.4%). Her two ears in the three-quarter view are not one ear seen from two sides.
-- Where a pair's spacing in her two views does not fit the turn, the three-quarter view is kept and the front view moves: the lid lines' crests by 4.5 units a side (0.9%), the inner eye corners by 2.2 (0.4%).
+- The ear's outer extent stands at y = 112.5, the mean of 126.1 on the near ear and 98.9 on the far one: 13.6 units from each (2.8%), and 16.0 from the front view's 127.6 (3.3%). Her two ears in the three-quarter view are not one ear seen from two sides, in her final drawings as in her S2 underdrawings.
+- Where a pair's spacing in her two views does not fit the turn, the three-quarter view is kept and the front view moves: the lid lines' crests by 2.5 units a side (0.5%), the inner eye corners by 2.4 (0.5%).
 
-The list of every difference between a head drawn from this set and her hand-made views belongs to the armature review sheet, not to this file. The program writes it from this folder's record and the generator's landmark files:
+The list of every difference between a head drawn from this set and her hand-made views belongs to the armature review sheet, not to this file. The program writes it from this folder's records and the generator's landmark files:
 
 ```sh
 cargo run -- draw --proportions data/saffi/proportions.toml --out target/saffi
-cargo run -- differences-from-hand-made-views --front target/saffi/front.landmarks.toml --three-quarter target/saffi/three-quarter.landmarks.toml --record data/saffi/hand-made-views.toml --out target/saffi/differences.toml
+cargo run -- differences-from-hand-made-views --front target/saffi/front.landmarks.toml --three-quarter target/saffi/three-quarter.landmarks.toml --record data/saffi/hand-made-views.toml --final-record data/saffi/final-drawings.toml --out target/saffi/differences.toml
 ```
 
 The file it writes states how each generated view is laid over its hand-made view: the unit, the eye line and the upright axis the head turns about are made to coincide, by one scale and one shift for the whole view. It is not committed, because it changes whenever the generator does and nothing in it is accepted.
 
+She has no hand-made side view. The generator draws one from this set, and nothing in this folder says anything about it: Jon's look is its only check.
+
 ## What this is evidence of
 
-It shows what the two drawings' coordinates say, and nothing more.
+It shows what the four drawings' coordinates say, and nothing more.
 
 - It does not say the armature looks right. Jon's eyes decide that.
 - It does not say which view is the correct one where they differ. A misfit in spacing belongs to the pair, not to one eye or one ear. The record gives the three-quarter view more standing: Jon accepted it, and the front view was on the same sheet without being the question put to him (`docs/foundation/01-mission.md`).
@@ -161,12 +207,31 @@ Three checks, none of which shares code with the derivation:
 2. **A recomputation from the committed numbers alone.** A separate Rust program parses both TOML files and recomputes the turn, every misfit, the level differences, the centre-line offsets and the shoulders from `hand-made-views.toml`. All agree. So every number in `views-compared.toml` follows from `hand-made-views.toml` alone, with no private input. The program is kept with the private copies and is not committed, so nothing in a clean clone runs this check.
 3. **By hand.** The hair's top, an ear's top, the nose mark's top, an iris's outer extent, and the face outline's widest point in the front view were worked from the raw attributes with `bc`, as were the pupil and outer-corner ratios. Left and right were confirmed as the character's own: in both views every `left` landmark is toward the viewer's right of its `right` twin, and in the front view they sit on either side of x = 500.
 
-The `awk` walk and the `bc` sums were one-off checks run outside the repository: nothing that is not Rust is committed, and the repeatable check belongs to the Rust package the next ticket brings.
+The `awk` walk and the `bc` sums were one-off checks run outside the repository on 2026-11-16, on the S2 underdrawings: nothing that is not Rust is committed.
+
+Since 2026-11-17 the checks that can be repeated are in the package:
+
+4. **The move of the derivation.** With the drawings present, `maquette record-hand-made-drawings` writes `hand-made-views.toml` and `views-compared.toml` byte for byte as the throwaway program wrote them on 2026-11-16, so the command is that program and the S2 numbers did not change in the move.
+5. **The final record against the S2 record,** in `cargo test`, with no private input: every landmark of `final-drawings.toml` replaces one the S2 record has; each `moved_from_s2` is the one position minus the other; each view's skull circle and chin are the S2 record's; every level difference, share, spacing and turn of the final record follows from its own positions; and only ears and lids are in it.
+6. **Her set of proportions by hand,** in `cargo test`: twenty-one of its numbers are worked from the positions the two records give, by arithmetic the test states.
+
+The final drawings' landmarks have had no second walk like check 1. What stands behind them is the reading in `src/hand_made_drawings.rs`, which states for each landmark the node or the edge it is, the checks the command makes while it reads (each corner of an opening is the opening's sideways extreme, each lid band has eight nodes and its ends lie the right way round, every `left` landmark is toward the viewer's right of its `right` twin), and checks 5 and 6.
 
 ## Rerunning it
 
-The derivation needs the private copies, and a clean clone does not have them. Without them these files stand as recorded numbers under the digests above; nothing else in the repository depends on the private folder.
+The derivation needs the four drawings, and a clean clone does not have them. Without them these files stand as recorded numbers under the digests above; nothing else in the repository depends on them.
 
-Where the reference folder exists, its `known-positions/README.md` gives the commands: compile `derivation/saffi_numbers.rs` with `rustc`, run it on the folder, and `diff` its two output files against the two files here. The program refuses to run if a drawing's digest differs, and says so plainly if the folder is absent.
+Where the drawings are, the command reads each from its folder under the name in "Her drawings in mudsong", and refuses one whose digest differs:
 
-If the private copies are ever lost, these numbers can no longer be rederived, and this file must say so.
+```sh
+cargo run -- record-hand-made-drawings --underdrawings <the folder of the S2 underdrawings> --final-drawings <the folder of the final drawings> --out data/saffi
+cargo run -- proportions-from-hand-made-views --record data/saffi/hand-made-views.toml --final-record data/saffi/final-drawings.toml --out data/saffi/proportions.toml
+```
+
+Mudsong's study folder holds all four. The private copies of the S2 underdrawings are in the reference folder's `known-positions/`. With both folders named in the environment, a test checks that the three committed records are what the command writes:
+
+```sh
+MAQUETTE_UNDERDRAWINGS=<folder> MAQUETTE_FINAL_DRAWINGS=<folder> cargo test --test hand_made_drawings -- --ignored
+```
+
+If the drawings are ever lost, these numbers can no longer be rederived, and this file must say so.

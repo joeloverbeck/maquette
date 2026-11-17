@@ -133,6 +133,33 @@ fn where_vectorcraft_is_not_installed_it_says_so_and_that_is_not_a_failure() {
 }
 
 #[test]
+fn only_a_three_quarter_view_is_taken_as_the_hard_case() {
+    // The contract's hard case is a three-quarter view: left and right pairs that stand in
+    // different places. A front view is not turned, and in a side view the two members of a
+    // pair stand at one place and only the near one is drawn. Each is refused before
+    // VectorCraft is asked anything, so this needs no VectorCraft.
+    let folder = draw("read-back-hard-case-views", support::MADE_UP, &[]);
+    for view in ["front", "side"] {
+        let landmarks = folder.join(format!("{view}.landmarks.toml"));
+        let ran = maquette_without_vectorcraft(&[
+            "read-back-hard-case",
+            "--landmarks",
+            path_text(&landmarks),
+        ]);
+        assert_eq!(ran.status, Some(1), "{view}");
+        assert!(
+            ran.message
+                .contains(&format!("is the landmark file of a {view} view"))
+                && ran
+                    .message
+                    .contains("The hard case is a three-quarter view"),
+            "{view}: {}",
+            ran.message
+        );
+    }
+}
+
+#[test]
 fn a_recording_of_the_view_as_generated_passes_and_is_reported_as_a_recording() {
     let ran = read_back(LANDMARKS, AS_GENERATED);
     assert_eq!(ran.status, Some(0), "{}{}", ran.printed, ran.message);

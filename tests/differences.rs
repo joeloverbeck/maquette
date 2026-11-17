@@ -352,6 +352,48 @@ fn shares_are_of_the_hand_made_front_views_head_height() {
 }
 
 #[test]
+fn where_the_face_outline_crosses_a_level_is_compared_sideways_only() {
+    // The record takes such a crossing at the height of the drawn level line, which need not
+    // be the eye line, the nose level or the mouth level. Saffi's drawn eye level line is at
+    // y = 366 in her front view, and with her final drawings' lids her eye line is at
+    // (353.785 + 390) / 2 = 371.893: 5.9 units lower, which is 1.2% of her head height and
+    // says nothing about her face outline.
+    let (_, table) = hers("saffi-differences-crossings", &[]);
+    for (view, name) in [
+        ("front", "face-outline-left-at-eye-level"),
+        ("front", "face-outline-right-at-eye-level"),
+        ("three-quarter", "face-outline-left-at-eye-level"),
+    ] {
+        let crossing = ["above_one_percent", "at_or_under_one_percent"]
+            .iter()
+            .flat_map(|list| entries(&table, view, list))
+            .find(|entry| entry["landmark"].as_str() == Some(name))
+            .unwrap_or_else(|| panic!("{name} is compared in the {view} view"));
+        assert_eq!(crossing["compared"].as_str(), Some("sideways"), "{name}");
+        let (generated, hand_made) = (&crossing["generated"], &crossing["hand_made"]);
+        assert_eq!(number(&hand_made["y"]), 366.0, "{view}: {name}");
+        assert!(
+            number(&generated["y"]) - number(&hand_made["y"]) > 5.0,
+            "{view}: {name} is no test of the rule"
+        );
+        assert_close(
+            number(&crossing["distance"]),
+            (number(&generated["x"]) - number(&hand_made["x"])).abs(),
+            0.00051,
+            name,
+        );
+        assert!(crossing.get("number").is_none(), "{view}: {name}");
+    }
+    assert!(
+        table["rules"]["one_direction"]
+            .as_str()
+            .expect("the rule")
+            .contains("crosses"),
+        "the rule does not speak of the crossings"
+    );
+}
+
+#[test]
 fn the_top_of_the_hair_is_compared_in_height_and_its_sides_sideways() {
     let table = made_up("differences-one-direction");
     let under = entries(&table, "front", "at_or_under_one_percent");

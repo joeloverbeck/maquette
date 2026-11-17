@@ -8,7 +8,7 @@ In an animation studio a maquette is the sculpted reference model that keeps a c
 
 Founded on 2026-11-16, and reoriented by Jon the same day toward measured proportions; [`docs/foundation/README.md`](docs/foundation/README.md) records both. Work starts from the issue tracker.
 
-The generator draws a set of proportions as a head in the front view and the three-quarter view. The program lists how far such a head stands from Saffi's hand-made views, and reads an armature back in VectorCraft. No armature it draws has been accepted yet. The side view, the measuring of references and the proportion tables are not built.
+The generator draws a set of proportions as a head in three views: front, three-quarter and side. The program lists how far such a head stands from Saffi's hand-made views, reads an armature back in VectorCraft, and reads her hand-made drawings into numbers. Jon accepted her front and three-quarter views at look 1; her ears and lids have changed since, by his ruling, and her side view has not been looked at, so no armature is pinned yet. The measuring of references and the proportion tables are not built.
 
 ## Building, checking and drawing
 
@@ -27,7 +27,9 @@ cargo run -- list-proportions
 cargo run -- draw --proportions data/saffi/proportions.toml --out target/saffi
 ```
 
-The first prints the list of proportions: the unit, and each proportion's name, whether it is measured or a convention, and how it is taken in each view. The second writes `front.svg` and `three-quarter.svg`, each with a landmark file beside it, into a folder Git ignores. `cargo run -- help` lists every command. The same input gives the same bytes.
+The first prints the list of proportions: the unit, and each proportion's name, whether it is measured or a convention, and how it is taken in each view. The second writes `front.svg`, `three-quarter.svg` and `side.svg`, each with a landmark file beside it, into a folder Git ignores. `cargo run -- help` lists every command. The same input gives the same bytes.
+
+Every landmark is one point in space and each view is a flat projection of the same points, so a landmark has one height in all three views. The side view is the three-quarter view's turn carried to 90°, facing the viewer's right: a landmark's sideways position there is its depth. It shows the near eye, brow and ear only, its face outline runs through the centre-line landmarks, and the list of proportions states how each of its guides is built. No view carries a correction: a departure from flat projection would be named, given an amount and shown on the review sheet.
 
 ### The differences from the hand-made views
 
@@ -36,10 +38,13 @@ cargo run -- differences-from-hand-made-views \
   --front target/saffi/front.landmarks.toml \
   --three-quarter target/saffi/three-quarter.landmarks.toml \
   --record data/saffi/hand-made-views.toml \
+  --final-record data/saffi/final-drawings.toml \
   --out target/saffi/differences.toml
 ```
 
 This lays the two generated views over Saffi's hand-made ones and writes, for every landmark both give, how far apart they put it as a share of head height. It prints the differences above 1%, numbered; the armature review sheet puts those numbers on the drawing. The file states how the views are laid over each other, which is one scale and one shift for a view and fitted to no landmark, and what has no counterpart on either side. It lists differences and judges none: whether one matters is Jon's look.
+
+`--final-record` names the record of her final drawings: each of its landmarks, which are her ears and her lids, replaces the record's landmark of the same name in the same view, and a difference against one is marked. Without it the comparison is with the S2 underdrawings alone. No hand-made side view exists, so a generated side view has nothing to be laid over.
 
 ### The overlays for a review sheet
 
@@ -48,10 +53,25 @@ cargo run -- overlay-hand-made-views \
   --front target/saffi/front.landmarks.toml \
   --three-quarter target/saffi/three-quarter.landmarks.toml \
   --record data/saffi/hand-made-views.toml \
+  --final-record data/saffi/final-drawings.toml \
   --out target/saffi
 ```
 
-This writes `front.hand-made-overlay.svg` and `three-quarter.hand-made-overlay.svg`: in each view's own units, every position the record gives as an orange dot, a dashed ring where the head covers it in her drawing, and every difference above 1% as a line from the generated position to the hand-made one with the number the differences file gives it. Placed over the view's SVG at the same place and size, an overlay lies over it exactly. `design/look-1-saffi-front-three-quarter/README.md` says how the review sheet is composed from these files in FigCraft.
+This writes `front.hand-made-overlay.svg` and `three-quarter.hand-made-overlay.svg`: in each view's own units, every position the records give as an orange dot, a dashed ring where the head covers it in her drawing, and every difference above 1% as a line from the generated position to the hand-made one with the number the differences file gives it. Placed over the view's SVG at the same place and size, an overlay lies over it exactly. `design/look-2-saffi-three-views/README.md` says how the review sheet is composed from these files in FigCraft.
+
+### Reading a hand-made drawing
+
+```sh
+cargo run -- list-drawing --svg <a drawing's SVG>
+cargo run -- record-hand-made-drawings \
+  --underdrawings <the folder of the S2 underdrawings> \
+  --final-drawings <the folder of the final drawings> \
+  --out <a folder>
+```
+
+`list-drawing` prints what any hand-made drawing holds: every group, and every shape under its address, with its nodes numbered in path order and how far it reaches. It is what a reading of a new drawing is written from, in place of searching the file by hand. A drawing is read as written: one that moves its coordinates with a transform, or draws a path with anything but the absolute `M`, `L`, `C` and `Z`, is refused.
+
+`record-hand-made-drawings` reads Saffi's four hand-made drawings and writes the three records of them in `data/saffi/`. The drawings are private and no clean clone has them: [`data/saffi/README.md`](data/saffi/README.md) lists each with its digest and where it is kept. Each is read only when its SHA-256 digest is the recorded one. Where a folder or a drawing is absent, or a digest differs, the command says so and writes nothing, and the committed numbers stand as recorded. Nothing else in the repository needs the drawings.
 
 ### The read-back in VectorCraft
 
@@ -60,10 +80,11 @@ An armature is put to Jon or exported only after its SVG has been read back in V
 ```sh
 cargo run -- read-back --landmarks target/saffi/front.landmarks.toml
 cargo run -- read-back --landmarks target/saffi/three-quarter.landmarks.toml
+cargo run -- read-back --landmarks target/saffi/side.landmarks.toml
 cargo run -- read-back-hard-case --landmarks target/saffi/three-quarter.landmarks.toml
 ```
 
-`read-back` starts `vectorcraft-cli mcp` itself, allowed to read the SVG's folder and to write nothing, opens the SVG the landmark file names, and compares what VectorCraft holds with the landmark file: no import warning, the same names each once, every anchor within 0.001 unit, every guide visible, stroked and unfilled. It prints the read-back and the VectorCraft version it ran against, which is whichever is installed. It exits 0 on a pass and 1 on a failure. Where `vectorcraft-cli` is not installed it says so and exits 2: nothing was checked, which is neither. A server that stops, or leaves a request unanswered for a minute, also ends the run with 1; the message says which request it was and passes on what the server wrote to its error output. `read-back-hard-case` runs the contract's hard case on a three-quarter view, with the two spoiled copies the oracle must fail.
+`read-back` starts `vectorcraft-cli mcp` itself, allowed to read the SVG's folder and to write nothing, opens the SVG the landmark file names, and compares what VectorCraft holds with the landmark file: no import warning, the same names each once, every anchor within 0.001 unit, every guide visible, stroked and unfilled. It prints the read-back and the VectorCraft version it ran against, which is whichever is installed. It exits 0 on a pass and 1 on a failure. Where `vectorcraft-cli` is not installed it says so and exits 2: nothing was checked, which is neither. A server that stops, or leaves a request unanswered for a minute, also ends the run with 1; the message says which request it was and passes on what the server wrote to its error output. `read-back-hard-case` runs the contract's hard case on a three-quarter view, with the two spoiled copies the oracle must fail. It refuses a front view and a side view: the hard case needs left and right pairs that stand in different places.
 
 A pass says VectorCraft keeps what the landmark file says. It does not say the landmark file is right or that the armature looks right.
 
@@ -86,10 +107,10 @@ cargo test --test read_back_in_vectorcraft -- --ignored
 | `.mcp.json` | Registers the VectorCraft and FigCraft MCP servers for Claude Code |
 | `design/` | Designs made by hand in those two tools; the only folder their servers may write to |
 | `docs/agents/` | How agents use the issue tracker and the triage labels |
-| `data/saffi/` | The hand-made front and three-quarter views of the comparison case, as landmark positions, and her set of proportions worked out from them. Numbers only; they never enter a proportion table |
-| `proportions/list.toml` | The list of proportions: the unit, and every proportion's name, definition for each view, and mark as measured or a convention. The program reads this same file |
-| `Cargo.toml`, `src/` | The Rust package: the list and sets of proportions, the head model, the views, the guides, the armature writer, the differences from a hand-made armature and the read-back in VectorCraft, under a thin command line |
-| `tests/` | Tests that drive the command line, files in and files out. `tests/fixtures/` holds made-up proportions and made-up views that say so, and recordings of VectorCraft's replies that say so |
+| `data/saffi/` | The hand-made front and three-quarter views of the comparison case, as landmark positions: her S2 underdrawings, and the ears and lids of her final drawings that replace theirs. Also her set of proportions worked out from them, and the list of her drawings in mudsong that these numbers rest on. Numbers only; they never enter a proportion table |
+| `proportions/list.toml` | The list of proportions: the unit, and every proportion's name, definition for each view, and mark as measured or a convention, and how each guide is built in each view. The program reads this same file |
+| `Cargo.toml`, `src/` | The Rust package: the list and sets of proportions, the head model, the three views, the guides, the armature writer, the reading of a hand-made drawing, the differences from a hand-made armature and the read-back in VectorCraft, under a thin command line |
+| `tests/` | Tests that drive the command line, files in and files out. `tests/fixtures/` holds made-up proportions, made-up views and a made-up drawing that say so, and recordings of VectorCraft's replies that say so |
 | `.github/workflows/checks.yml` | Formatting, lints and tests on every pull request |
 | `GLOSSARY.md` | The words maquette uses for armatures, views and proportions |
 | `docs/research/` | The research behind the founding and the reorientation. Evidence only |

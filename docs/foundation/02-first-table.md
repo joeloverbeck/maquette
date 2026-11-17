@@ -45,7 +45,7 @@ That an armature improves the drawing made over it is a separate claim. Its evid
 
 ## The handoff (`INT-1`, `FID-1`)
 
-Maquette exports Saffi's accepted armature at a tagged commit. Mudsong copies the files into its own study folder, records the commit and imports them into VectorCraft itself. Maquette does not depend on mudsong's working tree. Jon approved one exception on 2026-11-16: the hand-made drawings in mudsong's study folder are read once, pinned by digest, and only numbers taken from them are committed, with where they came from (`INT-4`).
+Maquette exports Saffi's accepted armature at a tagged commit. Mudsong copies the files into its own study folder, records the commit and imports them into VectorCraft itself. Maquette does not depend on mudsong's working tree. Jon approved one exception on 2026-11-16: the hand-made drawings in mudsong's study folder are read once, pinned by digest, and only numbers taken from them are committed, with where they came from (`INT-4`). He ruled the same day that her comparison case takes the ears and the lids of her two final drawings there in place of the S2 underdrawing's; those are read the same way. `data/saffi/README.md` lists every drawing maquette relies on, with its digest and its standing.
 
 The compatibility promise is narrow: the exported SVG, as read by the VectorCraft version mudsong uses, keeps every guide's name and position. The SVG contract below says what that takes. The handoff is proven only when mudsong has imported the files and read the names and positions back itself.
 

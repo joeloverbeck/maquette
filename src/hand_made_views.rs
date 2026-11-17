@@ -25,7 +25,7 @@ pub const RULES: &[&str] = &[
     "A lid line is the middle of the drawn lid band: its inner end is midway between `inner_lower` and `inner_upper`, its crest midway between `lower_mid` and `upper_mid`, its outer end midway between `outer_lower` and `outer_tip`.",
     "A brow line is the middle of the drawn brow band: each end is midway between the band's top and bottom corner there.",
     "The face outline's top end is the record's first node of that side, and its jaw point is the node next to the chin: `node_3` in the front view and, in the three-quarter view, `node_5` on the far side and `node_3` on the near side.",
-    "Where the record gives a crossing of the face outline with a drawn level line, it stands for the crossing at the eye line, the nose level or the mouth level. The drawn lines are 4 units, half a unit and nothing away from those, and the outline moves sideways by less than half a unit between them.",
+    "Where the record gives a crossing of the face outline with a drawn level line, it stands for the crossing at the eye line, the nose level or the mouth level. The drawn lines are 4 units, half a unit and nothing away from those with the S2 underdrawings' lids, and the first is about 6 units away with the final drawings' lids, which lower the eye line. The outline moves sideways by less than half a unit between them.",
     "In the front view a point of the face outline is both the cheek point and the jaw-line point of its level. In the three-quarter view it is the cheek point on the far side, the character's left, and the jaw-line point on the near side.",
     "A position that the head itself covers in the three-quarter drawing is left out, because it cannot be seen there: the far ear's two base points and its inner extent. Hair that covers a position is ignored, because an armature has no hair. The skull is kept: it is a construction, drawn under everything.",
     "The three-quarter view is taken as turned by the pinned turn, toward the viewer's right.",
@@ -102,14 +102,20 @@ pub enum Marks {
 }
 
 /// The rule behind [`marks`], in words.
-pub const MARKS_RULE: &str = "The top, the bottom and the side extents of the skull, of an iris and of the hair say how far a round form or an envelope reaches, not where a feature is. The record takes each where the drawn outline is level or upright, and along the outline that place marks nothing: the hair's is a hairstyle's, and an iris is cut by the lid. So a top or a bottom of those three is compared in height only, and a side extent sideways only. Every other landmark is compared as a position, by the straight distance.";
+pub const MARKS_RULE: &str = "The top, the bottom and the side extents of the skull, of an iris and of the hair say how far a round form or an envelope reaches, not where a feature is. The record takes each where the drawn outline is level or upright, and along the outline that place marks nothing: the hair's is a hairstyle's, and an iris is cut by the lid. So a top or a bottom of those three is compared in height only, and a side extent sideways only. Where the face outline crosses the eye line, the nose level or the mouth level, the record takes the crossing at the height of the drawn level line, which need not be that level's: the height says where the line was drawn and nothing of the outline, so such a crossing is compared sideways only. Every other landmark is compared as a position, by the straight distance.";
 
 /// What the hand-made position of a landmark marks.
 pub fn marks(landmark: &str) -> Marks {
     let round_form = ["skull-", "iris-", "hair-"]
         .iter()
         .any(|form| landmark.starts_with(form));
-    if !round_form {
+    let outline_at_a_level = ["face-outline-", "jaw-line-"]
+        .iter()
+        .any(|outline| landmark.starts_with(outline))
+        && landmark.ends_with("-level");
+    if outline_at_a_level {
+        Marks::Sideways
+    } else if !round_form {
         Marks::Position
     } else if landmark.ends_with("-top") || landmark.ends_with("-bottom") {
         Marks::Height
