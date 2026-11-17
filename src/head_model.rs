@@ -474,6 +474,90 @@ fn rules(set: &Set, at: &mut BTreeMap<Key, [f64; 3]>) -> Result<()> {
     Ok(())
 }
 
+/// The proportions a landmark's place rests on: those behind its offset from the centre line,
+/// those behind its height, and those behind its depth, in that order. A coordinate that is
+/// zero or the unit by definition rests on none. None when the head has no such landmark.
+///
+/// It says of each coordinate what [`head`] and [`rules`] do to it, for whoever shows where
+/// the numbers of a drawn head come from.
+pub fn rests_on(landmark: &str) -> Option<[Vec<&'static str>; 3]> {
+    let spec = LANDMARKS.iter().find(|spec| match spec.pair {
+        true => spec.left() == landmark || spec.right() == landmark,
+        false => spec.stem == landmark,
+    })?;
+    Some(coordinates_rest_on(spec))
+}
+
+fn coordinates_rest_on(spec: &Spec) -> [Vec<&'static str>; 3] {
+    let direct = |from: Origin| -> Vec<&'static str> {
+        match from {
+            Plus(name) | Rise(name) => vec![name],
+            Zero | Unit | Rule => Vec::new(),
+        }
+    };
+    let mut on = [direct(spec.offset), direct(spec.drop), direct(spec.depth)];
+    // The straight line through the eye's two corners, and the one through the ear's two
+    // base points: a point on either takes its depth from the line's ends and its own offset.
+    let own_offset = on[0].clone();
+    let on_line = |ends: &[&'static str]| -> Vec<&'static str> {
+        ends.iter()
+            .copied()
+            .chain(own_offset.iter().copied())
+            .collect()
+    };
+    const EYE_CORNERS: [&str; 3] = [
+        "eye_inner_corner_offset",
+        "eye_outer_corner_offset",
+        "eye_wrap_depth",
+    ];
+    const EAR_BASE: [&str; 4] = [
+        "ear_base_inner_offset",
+        "ear_base_inner_depth",
+        "ear_base_outer_offset",
+        "ear_base_outer_depth",
+    ];
+    match spec.key() {
+        ("hair-top", "") => on[2] = vec!["hair_centre_depth"],
+        ("skull-front", "") => {
+            on[1] = vec!["skull_centre_rise"];
+            on[2] = vec!["skull_centre_depth", "skull_radius"];
+        }
+        ("centre-line-at-eye-level", "") => {
+            on[2] = vec!["skull_centre_depth", "skull_radius", "skull_centre_rise"];
+        }
+        ("face-outline", "at-nose-level") => {
+            on[1] = vec!["nose_mark_corner_drop", "nose_mark_bottom_drop"];
+        }
+        ("face-outline", "at-mouth-level") => on[1] = vec!["mouth_centre_drop"],
+        ("jaw-line", level) => {
+            // A jaw-line point shares its cheek point's offset and height.
+            if let Some(cheek) = LANDMARKS
+                .iter()
+                .find(|cheek| cheek.key() == ("face-outline", level))
+            {
+                let [offset, drop, _] = coordinates_rest_on(cheek);
+                on[0] = offset;
+                on[1] = drop;
+            }
+            if on[2].is_empty() {
+                on[2] = vec!["jaw_line_depth_at_nose_level"];
+            }
+        }
+        ("eye", "outer-corner" | "inner-corner") => on[2] = vec!["eye_wrap_depth"],
+        ("eye", "opening-top" | "opening-bottom") => {
+            on[1] = vec!["eye_opening_height"];
+            on[2] = on_line(&EYE_CORNERS);
+        }
+        ("eye", "opening-centre") => {
+            on[0] = vec!["eye_inner_corner_offset", "eye_outer_corner_offset"];
+        }
+        ("lid-line" | "brow-line", _) => on[2] = on_line(&EYE_CORNERS),
+        ("ear", "top" | "outer-extent" | "inner-extent") => on[2] = on_line(&EAR_BASE),
+        _ => {}
+    }
+    on
+}
+
 /// Landmark positions read from one view: SVG units, x toward the viewer's right, y downward.
 #[derive(Debug, Clone, Default)]
 pub struct Reading {

@@ -246,6 +246,16 @@ fn assert_values(table: &toml::Table, name: &str, expected: [f64; 3], works: i64
     }
 }
 
+/// A proportion the table lists as too thin: with its count of works, and with no number.
+fn assert_thin(table: &toml::Table, name: &str, works: i64) {
+    let entry = entry(table, name);
+    assert_eq!(entry["works"].as_integer(), Some(works), "{name}: works");
+    assert_eq!(entry["standing"].as_str(), Some("too thin"), "{name}");
+    for key in ["lowest", "middle", "highest"] {
+        assert!(!entry.contains_key(key), "{name} states a {key} value");
+    }
+}
+
 #[test]
 fn a_table_gives_each_proportion_its_lowest_middle_and_highest_value_and_its_count_of_works() {
     let folder = folder("table-values", &six_works());
@@ -328,19 +338,10 @@ fn a_view_or_a_proportion_with_fewer_than_five_works_is_too_thin_and_has_no_rang
         "{printed}"
     );
 
-    // What the two works give for a depth is stated, and is no range: the chin at 0.2 and
-    // at 0.3.
-    assert_values(&table, "chin_depth", [0.2, 0.25, 0.3], 2);
+    // A depth is listed with its two works and no number: what two works give, the chin at
+    // 0.2 and at 0.3, is those two works' own numbers.
+    assert_thin(&table, "chin_depth", 2);
     let chin = entry(&table, "chin_depth");
-    assert_eq!(chin["standing"].as_str(), Some("too thin"));
-    // The file says so where the numbers stand, for whoever reads it.
-    let file = text(&folder.join("results/table.toml"));
-    assert!(
-        file.contains(
-            "standing = \"too thin\"\n# What its 2 works give. It is no range.\nlowest = 0.2\n"
-        ),
-        "{file}"
-    );
     assert_eq!(chin["dimension"].as_str(), Some("depth"));
     let why = chin["not_given_by"]
         .as_array()
@@ -356,11 +357,15 @@ fn a_view_or_a_proportion_with_fewer_than_five_works_is_too_thin_and_has_no_rang
 
     // A proportion with fewer than five works is too thin inside a view that has six: the
     // made-up brows show in four works.
-    assert_values(&table, "brow_inner_end_rise", [0.3, 0.3, 0.3], 4);
-    assert_eq!(
-        entry(&table, "brow_inner_end_rise")["standing"].as_str(),
-        Some("too thin")
-    );
+    assert_thin(&table, "brow_inner_end_rise", 4);
+    // Only a proportion with a range is stated in numbers, anywhere in the file.
+    let numbered = table["proportion"]
+        .as_array()
+        .expect("entries")
+        .iter()
+        .filter(|entry| entry.get("middle").is_some())
+        .count() as i64;
+    assert_eq!(table["table"]["given"].as_integer(), Some(numbered));
     // The made-up head has no jaw point: no work gives it, and the entry has no value.
     let jaw = entry(&table, "jaw_drop");
     assert_eq!(jaw["works"].as_integer(), Some(0));
@@ -410,13 +415,9 @@ fn a_drawing_that_is_set_aside_or_not_level_and_a_rejected_character_are_left_ou
         Some("given")
     );
     // The ears of work 4 went with its front view: four works are left, 1.1 to 1.3.
-    assert_values(&table, "ear_top_rise", [1.1, 1.225, 1.3], 4);
-    assert_eq!(
-        entry(&table, "ear_top_rise")["standing"].as_str(),
-        Some("too thin")
-    );
+    assert_thin(&table, "ear_top_rise", 4);
     // Only work 1's side view is measured, so depth is one work's.
-    assert_values(&table, "chin_depth", [0.2, 0.2, 0.2], 1);
+    assert_thin(&table, "chin_depth", 1);
     // The table lists the five works it was measured on, and says what it left out.
     let listed: Vec<&str> = table["work"]
         .as_array()
@@ -457,11 +458,7 @@ fn a_drawing_that_is_set_aside_or_not_level_and_a_rejected_character_are_left_ou
     let front = view(&table, "front");
     assert_eq!(front["works"].as_integer(), Some(4));
     assert_eq!(front["standing"].as_str(), Some("too thin: not a table"));
-    assert_values(&table, "hair_top_rise", [1.2, 1.35, 1.5], 4);
-    assert_eq!(
-        entry(&table, "hair_top_rise")["standing"].as_str(),
-        Some("too thin")
-    );
+    assert_thin(&table, "hair_top_rise", 4);
     assert_eq!(table["table"]["given"].as_integer(), Some(0));
     assert!(
         printed.contains("  front: 4 works: too thin, a view needs 5\n"),
@@ -557,6 +554,12 @@ fn a_table_states_what_it_does_not_say_and_lists_the_works_it_was_measured_on() 
             );
         }
     }
+    // It says which look it was built from, and not where the record is kept.
+    assert_eq!(
+        table["table"]["built_from"].as_str(),
+        Some("the record of Jon's check at Look 4 of 8, made up, checked on a made-up day")
+    );
+    assert!(!file.contains("checks/check.toml"), "{file}");
     // No reading is named in it, and no picture.
     assert!(
         !file.contains("work-1-front") && !file.contains(".png"),
@@ -810,15 +813,11 @@ fn a_set_of_proportions_is_told_inside_outside_or_no_range_for_each_proportion()
         assert_eq!(entry["why"].as_str(), Some(why), "{name}");
         assert!(!entry.contains_key("side"), "{name}");
     }
-    // What the few works give stands beside a thin one, and is no verdict.
+    // Nothing stands beside a thin one but its count of works: the table states no number
+    // for it.
     let thin = entry(&against, "chin_depth");
-    assert_close(number(&thin["lowest"]), 0.2, 1e-9, "the few works' lowest");
-    assert_close(
-        number(&thin["highest"]),
-        0.3,
-        1e-9,
-        "the few works' highest",
-    );
+    assert_eq!(thin["works"].as_integer(), Some(2));
+    assert!(!thin.contains_key("lowest") && !thin.contains_key("highest"));
 
     // The counts, and what the set does not give.
     let summary = against["summary"].as_table().expect("a summary");
@@ -942,5 +941,274 @@ fn the_help_names_both_commands() {
     assert!(
         help.contains("maquette set-against-table --proportions <file> --table <file>"),
         "{help}"
+    );
+    assert!(
+        help.contains("maquette set-from-table --check <check> --borrow <set>"),
+        "{help}"
+    );
+    assert!(
+        help.contains("maquette overlay-sources --proportions <file> --armature <folder>"),
+        "{help}"
+    );
+}
+
+/// Makes a whole set from the table of a made-up reference folder, borrowing from the
+/// made-up set of proportions, and returns the set's file as text and as TOML.
+fn set_from_table(folder: &Path) -> (String, toml::Table) {
+    measure_ok(
+        folder,
+        &[
+            "set-from-table",
+            "--check",
+            "checks/check.toml",
+            "--borrow",
+            support::MADE_UP,
+            "--out",
+            "results/set.toml",
+        ],
+    );
+    let file = text(&folder.join("results/set.toml"));
+    let table = file.parse().expect("the set is TOML");
+    (file, table)
+}
+
+#[test]
+fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
+    // Made up: a third work has a side view, with the chin at depth 0.7. The three chins
+    // are 0.2, 0.3 and 0.7: their middle is 0.3 and their average 0.4.
+    let mut works = six_works();
+    works[2].chin_depth = Some(0.7);
+    let folder = folder("table-set-from-table", &works);
+    checked(&folder, &[]);
+    let (file, set) = set_from_table(&folder);
+    let borrowed = support::proportions(&support::repository().join(support::MADE_UP));
+    let value = |name: &str| number(&set["proportions"][name]);
+    let source = |name: &str| set["sources"][name].as_str().expect("a source").to_string();
+
+    // A proportion with a range takes the table's middle value.
+    assert_eq!(source("hair_top_rise"), "the table: the middle of 6 works");
+    assert_close(value("hair_top_rise"), 1.45, 1e-6, "the table's middle");
+    // One that two to four works give takes their average, not their middle, and is thin.
+    assert_eq!(source("chin_depth"), "a thin average: of 3 works");
+    assert_close(value("chin_depth"), 0.4, 1e-6, "the average of three works");
+    assert_eq!(source("brow_inner_end_rise"), "a thin average: of 4 works");
+    assert_close(value("brow_inner_end_rise"), 0.3, 1e-6, "the brows");
+    // What no work gives, and a convention, are borrowed as they stand.
+    assert_eq!(source("jaw_drop"), "borrowed: no work gives it");
+    assert_close(value("jaw_drop"), borrowed["jaw_drop"], 1e-9, "borrowed");
+    assert_eq!(
+        source("skull_radius"),
+        "borrowed: a convention, which is never measured"
+    );
+    assert_close(
+        value("skull_radius"),
+        borrowed["skull_radius"],
+        1e-9,
+        "borrowed",
+    );
+    // The ear is taken whole: five works give the height of its top, 1.1 to 1.35, and none
+    // gives its base, so the top is borrowed with the rest of it.
+    assert_eq!(
+        source("ear_top_rise"),
+        "borrowed: the ear is taken whole, and the works do not give all of it"
+    );
+    assert_close(
+        value("ear_top_rise"),
+        borrowed["ear_top_rise"],
+        1e-9,
+        "borrowed",
+    );
+
+    // The counts are those of the sources, and every proportion of the list has one.
+    let sources = set["sources"].as_table().expect("the sources");
+    assert_eq!(sources.len(), 73);
+    let counted = |kind: &str| {
+        sources
+            .values()
+            .filter(|said| said.as_str().is_some_and(|said| said.starts_with(kind)))
+            .count() as i64
+    };
+    let stated = set["source"].as_table().expect("a [source]");
+    assert_eq!(
+        stated["from_the_table"].as_integer(),
+        Some(counted("the table:"))
+    );
+    assert_eq!(
+        stated["thin_averages"].as_integer(),
+        Some(counted("a thin average:"))
+    );
+    assert_eq!(stated["borrowed"].as_integer(), Some(counted("borrowed:")));
+    assert_eq!(
+        counted("the table:") + counted("a thin average:") + counted("borrowed:"),
+        73
+    );
+    assert_eq!(stated["borrowed_from"].as_str(), Some(support::MADE_UP));
+
+    // It carries no correction, and says what the list's rule would set back. At a share of
+    // 1 that rule draws the chin straight below the iris's centre: the chin stands 0.4 in
+    // front of the eyes, and the made-up head has no iris, so the iris's depth is borrowed.
+    assert!(!file.contains("[corrections"), "{file}");
+    let correction = stated["correction"].as_str().expect("text");
+    let would = format!("{:.6}", 0.4 - borrowed["iris_depth"]);
+    let would = would.trim_end_matches('0');
+    assert!(
+        correction.starts_with("The set carries no correction.")
+            && correction.contains(&format!(
+                "would set the chin back by {would} of a unit at a share of 1"
+            )),
+        "{correction}"
+    );
+    // It says it is no table, and `maquette draw` reads it as it reads any set.
+    assert!(
+        file.contains("It is no proportion table and no part of one"),
+        "{file}"
+    );
+    let drawn = scratch("set-from-table-drawn");
+    maquette_ok(&[
+        "draw",
+        "--proportions",
+        path_text(&folder.join("results/set.toml")),
+        "--out",
+        path_text(&drawn),
+    ]);
+    assert!(drawn.join("side.svg").exists());
+
+    // Made up: only work 1 has a side view. One work's depth is one reference's number: it
+    // is not drawn, and the borrowed set's stands in.
+    let mut works = six_works();
+    works[1].chin_depth = None;
+    let one_work = folder_with("table-set-from-one-work", &works, &|_| String::new());
+    checked(&one_work, &[]);
+    let (_, set) = set_from_table(&one_work);
+    assert_eq!(
+        set["sources"]["chin_depth"].as_str(),
+        Some("borrowed: one work gives it, and one reference's number is not drawn")
+    );
+    assert_close(
+        number(&set["proportions"]["chin_depth"]),
+        borrowed["chin_depth"],
+        1e-9,
+        "borrowed",
+    );
+}
+
+/// The dots of one kind in a view's overlay of sources: where each stands.
+fn dots(overlay: &str, group: &str) -> Vec<[f64; 2]> {
+    let document = roxmltree::Document::parse(overlay).expect("the overlay is an SVG");
+    let of_kind = document
+        .descendants()
+        .find(|node| node.attribute("id") == Some(group))
+        .unwrap_or_else(|| panic!("the overlay has no group `{group}`"));
+    of_kind
+        .children()
+        .filter(|node| node.has_tag_name("circle"))
+        .map(|circle| {
+            ["cx", "cy"].map(|key| {
+                circle
+                    .attribute(key)
+                    .and_then(|value| value.parse().ok())
+                    .expect("a dot has a place")
+            })
+        })
+        .collect()
+}
+
+fn has_dot(dots: &[[f64; 2]], at: [f64; 2]) -> bool {
+    dots.iter()
+        .any(|dot| (dot[0] - at[0]).abs() < 0.002 && (dot[1] - at[1]).abs() < 0.002)
+}
+
+#[test]
+fn the_points_of_a_drawn_head_are_marked_by_where_their_numbers_come_from() {
+    let mut works = six_works();
+    works[2].chin_depth = Some(0.7);
+    let folder = folder("table-overlay-sources", &works);
+    checked(&folder, &[]);
+    set_from_table(&folder);
+    let set = folder.join("results/set.toml");
+    let drawn = scratch("overlay-sources");
+    maquette_ok(&[
+        "draw",
+        "--proportions",
+        path_text(&set),
+        "--out",
+        path_text(&drawn),
+    ]);
+    let printed = maquette_ok(&[
+        "overlay-sources",
+        "--proportions",
+        path_text(&set),
+        "--armature",
+        path_text(&drawn),
+        "--out",
+        path_text(&drawn),
+    ]);
+    let place = |view: &str, name: &str| -> [f64; 2] {
+        let point =
+            support::LandmarkFile::read(&drawn.join(format!("{view}.landmarks.toml"))).point(name);
+        [point.x, point.y]
+    };
+    let overlay = |view: &str| text(&drawn.join(format!("{view}.sources-overlay.svg")));
+    let front = overlay("front");
+    let side = overlay("side");
+
+    // The front view shows no depth. The mouth's centre stands at a height the table gives.
+    let at = place("front", "mouth-line-centre");
+    assert!(has_dot(&dots(&front, "from-the-table"), at), "{front}");
+    // The side view shows its depth as well, which three works give: a thin average. A
+    // point is no better measured than its weakest number.
+    let at = place("side", "mouth-line-centre");
+    assert!(has_dot(&dots(&side, "thin-averages"), at), "{side}");
+    assert!(!has_dot(&dots(&side, "from-the-table"), at), "{side}");
+    // The jaw point is in no made-up work, so it is borrowed in every view.
+    let at = place("front", "face-outline-left-jaw");
+    assert!(has_dot(&dots(&front, "borrowed"), at), "{front}");
+    // The chin in the front view stands on the centre line, one unit below the eye line:
+    // it rests on no proportion, and has no dot. In the side view it stands at its depth.
+    let at = place("front", "chin");
+    for group in ["from-the-table", "thin-averages", "borrowed"] {
+        assert!(!has_dot(&dots(&front, group), at), "{group}: {front}");
+    }
+    assert!(has_dot(
+        &dots(&side, "thin-averages"),
+        place("side", "chin")
+    ));
+    // A brow's end takes its depth from the line through the eye's corners. The table gives
+    // the corners' offsets and three works how far the eye wraps: thin in the side view.
+    // In the front view only its offset and its height count, which four works give.
+    let at = place("side", "brow-line-right-inner-end");
+    assert!(has_dot(&dots(&side, "thin-averages"), at), "{side}");
+    // The skull is a convention, and borrowed: a point of the form that is no landmark.
+    let at = place("front", "skull-top");
+    assert!(has_dot(&dots(&front, "borrowed"), at), "{front}");
+    // The overlay is as large as the view, so that it lies over it exactly.
+    assert!(
+        front.contains("width=\"1000\" height=\"1000\" viewBox=\"0 0 1000 1000\""),
+        "{front}"
+    );
+
+    // The counts printed are the dots drawn.
+    let line = format!(
+        "front: {} points rest on the table's middle values, {} on thin averages, {} on borrowed numbers.\n",
+        dots(&front, "from-the-table").len(),
+        dots(&front, "thin-averages").len(),
+        dots(&front, "borrowed").len()
+    );
+    assert!(printed.contains(&line), "{printed}");
+
+    // A set that does not say where its numbers come from is not marked.
+    let output = support::maquette(&[
+        "overlay-sources",
+        "--proportions",
+        support::MADE_UP,
+        "--armature",
+        path_text(&drawn),
+        "--out",
+        path_text(&drawn),
+    ]);
+    assert!(
+        failure(&output).contains("has no [sources] table"),
+        "{}",
+        failure(&output)
     );
 }

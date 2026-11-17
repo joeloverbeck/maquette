@@ -11,7 +11,7 @@ use maquette::views::Placement;
 use maquette::{
     Error, Result, armature, differences, enlargement, hand_made_drawings, hand_made_views,
     hard_case, jons_check, known_positions, measuring, overlay, proportions, read_back, readings,
-    reference_check_sheet, table, vectorcraft,
+    reference_check_sheet, sources, table, vectorcraft,
 };
 
 const USAGE: &str = "\
@@ -139,6 +139,18 @@ Usage:
       outside are printed. Both files are read from where they are named, and no reference
       folder is needed.
 
+  maquette overlay-sources --proportions <file> --armature <folder> --out <folder>
+      For a review sheet: mark where the numbers of a drawn head come from. The set of
+      proportions is one `maquette set-from-table` wrote, which says of each proportion
+      whether it is the table's middle value, a thin average or borrowed; the armature is
+      the folder `maquette draw` wrote from it. For each view an SVG in the view's own
+      units is written, with a dot on every point a guide passes through, coloured by the
+      least supported source among the proportions that place the point in that view. A
+      front view shows no depth and a side view no width, so a point may be of one kind in
+      one view and another in the next. Writes front.sources-overlay.svg,
+      three-quarter.sources-overlay.svg and side.sources-overlay.svg, and prints the count
+      of each kind.
+
   maquette reading-instructions
       Print the reading instructions: what a reader judges and places on a drawing.
 
@@ -260,15 +272,25 @@ mirrored, by an EXIF orientation, is refused.
       and the highest value among the works whose readings he accepted, and the number of
       works behind it. A drawing that is set aside or not called level is left out, and so
       is a rejected character. A proportion with five works or more behind it is given, and
-      has a valid range; one with fewer is too thin, with what its few works give stated,
-      and has none, also in a view that has five works; a convention has none. A view with
-      fewer than five works is reported as too thin and is not called a table. The table
-      lists the works it was measured on, and states that its ranges are separate and do
-      not rule on which combinations go together, and that a lowest and a highest value is
-      one reference's number. It takes no set of proportions, and refuses a record's
-      positions written as a reading: a comparison case's numbers never enter a table.
-      A table is a proposal until Jon has accepted it, and stays in the reference folder
-      until then.
+      has a valid range; one with fewer is too thin, also in a view that has five works,
+      and is listed with its count of works and why the others do not give it, and with no
+      number; a convention has no range. A view with fewer than five works is reported as
+      too thin and is not called a table. The table lists the works it was measured on, and
+      states that its ranges are separate and do not rule on which combinations go
+      together, and that a lowest and a highest value is one reference's number. It takes
+      no set of proportions, and refuses a record's positions written as a reading: a
+      comparison case's numbers never enter a table. A table is a proposal until Jon has
+      accepted it.
+
+  maquette set-from-table --check <check> --borrow <set> [--out <file>]
+      Make a whole set of proportions for one head to be drawn, from the table the record
+      of Jon's check gives: the table's middle value where a proportion has a range; the
+      average of the works where two to four give it, marked as thin; and for the rest the
+      number of the set named by --borrow, marked as borrowed. An ear is taken whole: unless
+      the works give every one of its proportions, all are borrowed. The set carries no
+      correction, and says what the list's rule would set back on its own depths. It says
+      of every proportion which of the three it is, and `maquette draw` reads it. The set
+      borrowed from is read from where it is named; the set made is no table.
 
 turn-from-readings, fit-of-views and proportions-from-readings take `--check <check>`, the
 record of Jon's check. A record that is not complete measures nothing. With a complete one
@@ -357,6 +379,8 @@ fn run(arguments: &[String]) -> Result<Ended> {
         "jons-check" => return jons_check_command(rest),
         "table-from-readings" => table_from_readings(rest)?,
         "set-against-table" => set_against_table(rest)?,
+        "set-from-table" => set_from_table(rest)?,
+        "overlay-sources" => overlay_sources(rest)?,
         "compare-proportions" => compare_proportions(rest)?,
         "read-back" => return read_back_command(rest),
         "read-back-hard-case" => return read_back_hard_case(rest),
@@ -1123,9 +1147,44 @@ fn jons_check_command(arguments: &[String]) -> Result<Ended> {
 
 fn table_from_readings(arguments: &[String]) -> Result<()> {
     let (folder, found) = measuring(arguments, &["--check", "--out"])?;
-    let path = required(&found, "--check")?;
-    let check = check_record(&folder, path)?;
-    let review = check.review(path, &|reading| reading_now(&folder, reading));
+    let table = table_by(&folder, required(&found, "--check")?)?;
+    deliver_measured(&folder, &found, &table.file(), &table.summary())
+}
+
+fn set_from_table(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(arguments, &["--check", "--borrow", "--out"])?;
+    let table = table_by(&folder, required(&found, "--check")?)?;
+    // The set that is borrowed from is committed numbers, read from where it is named.
+    let borrow = required(&found, "--borrow")?;
+    let borrowed = proportions::Set::read(&read(borrow)?)
+        .map_err(|error| Error::new(format!("{borrow}: {error}")))?;
+    let made = table.set_with(borrow, &borrowed)?;
+    deliver_measured(&folder, &found, &made.file()?, &made.summary())
+}
+
+fn overlay_sources(arguments: &[String]) -> Result<()> {
+    let found = options(arguments, &["--proportions", "--armature", "--out"])?;
+    let set = required(&found, "--proportions")?;
+    let set_text = read(set)?;
+    let armature = Path::new(required(&found, "--armature")?);
+    let folder = Path::new(required(&found, "--out")?);
+    std::fs::create_dir_all(folder)
+        .map_err(|error| Error::new(format!("cannot make {}: {error}", folder.display())))?;
+    for view in maquette::views::View::ALL {
+        let landmarks = armature.join(format!("{}.landmarks.toml", view.name()));
+        let named = landmarks.display().to_string();
+        let overlay = sources::overlay(set, &set_text, &named, &read(&named)?)?;
+        write(&folder.join(&overlay.file.name), &overlay.file.text)?;
+        print!("{}", overlay.summary());
+    }
+    Ok(())
+}
+
+/// The table a complete record of Jon's check gives, with each measured reading still held
+/// to what `check-reading` checks.
+fn table_by(folder: &Folder, path: &str) -> Result<table::Table> {
+    let check = check_record(folder, path)?;
+    let review = check.review(path, &|reading| reading_now(folder, reading));
     if !review.complete() {
         return Err(Error::new(format!(
             "the record of Jon's check `{path}` is not complete, so no table is built from it: {}. `maquette jons-check --check {path}` says what it does and lacks",
@@ -1138,13 +1197,12 @@ fn table_from_readings(arguments: &[String]) -> Result<()> {
         for (drawing, outcome) in &accepted.drawings {
             if matches!(outcome, jons_check::Outcome::Measured { .. }) {
                 for named in &drawing.readings {
-                    checked_reading(&folder, &named.path)?;
+                    checked_reading(folder, &named.path)?;
                 }
             }
         }
     }
-    let table = table::build(&review)?;
-    deliver_measured(&folder, &found, &table.file(), &table.summary())
+    table::build(&review)
 }
 
 fn set_against_table(arguments: &[String]) -> Result<()> {

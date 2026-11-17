@@ -5,8 +5,13 @@
 //! one. `maquette table-from-readings` builds a table from the record of Jon's check, and
 //! `maquette set-against-table` sets a set of proportions against a table.
 //!
-//! A table is a proposal until Jon has accepted it, and stays in the reference folder until
-//! then. Nothing here judges a head: the program reports what the accepted readings give.
+//! It also hides how a whole set of proportions is made from a table for a head to be drawn:
+//! the table's middle values where it has a range, the average of the works where two to
+//! four give a proportion, and another set's own numbers for the rest, each marked as what it
+//! is. `maquette set-from-table` writes one.
+//!
+//! A table is a proposal until Jon has accepted it. Nothing here judges a head: the program
+//! reports what the accepted readings give.
 
 use std::collections::BTreeMap;
 
@@ -32,15 +37,15 @@ pub const RULES: &[(&str, &str)] = &[
     ),
     (
         "values",
-        "For each proportion: the lowest, the middle and the highest value among the works that give it, and the number of those works. The middle is the median: the middle value in order, or midway between the two middle values of an even number of works. Every value is in units, a length over the height from the eye line down to the chin.",
+        "For each proportion: the number of works that give it and, where it has a range, the lowest, the middle and the highest value among them. The middle is the median: the middle value in order, or midway between the two middle values of an even number of works. Every value is in units, a length over the height from the eye line down to the chin.",
     ),
     (
         "floor",
-        "A proportion with five works or more behind it is given: its valid range runs from its lowest value to its highest. A proportion with fewer is too thin: what its few works give is stated, it is no range, and nothing is set against it. The floor is held proportion by proportion. In a view that has five works, a proportion that hair or a mark of Jon's leaves with fewer is too thin all the same: the floor is there so that no range is one hand's habit, and a range is backed only by the works that show that feature. A view with fewer than five works is reported as too thin and is not a table.",
+        "A proportion with five works or more behind it is given: its valid range runs from its lowest value to its highest. A proportion with fewer is too thin: the table says how many works stand behind it and why the others do not give it, and states no number, because the values of one to four works are those works' own numbers. It has no range, and nothing is set against it. The floor is held proportion by proportion. In a view that has five works, a proportion that hair or a mark of Jon's leaves with fewer is too thin all the same: the floor is there so that no range is one hand's habit, and a range is backed only by the works that show that feature. A view with fewer than five works is reported as too thin and is not a table.",
     ),
     (
         "conventions",
-        "A convention is built by a stated rule and is never a measurement: it has no valid range, however many works the rule could be run on. What the rule built is stated for what it is.",
+        "A convention is built by a stated rule and is never a measurement: it has no valid range, however many works the rule could be run on, and the table states no number for it.",
     ),
     (
         "separate_ranges",
@@ -352,12 +357,11 @@ impl Table {
         let mut out = String::from(
             "\
 # A proportion table, by `maquette table-from-readings`: for each proportion of the list, the
-# lowest, the middle and the highest value among the works whose readings Jon accepted, and
-# the number of works behind it. `maquette list-proportions` defines each proportion.
+# number of works whose accepted readings give it and, where five or more do, the lowest, the
+# middle and the highest value among them. `maquette list-proportions` defines each proportion.
 #
-# It is a proposal until Jon has accepted it, and stays in the reference folder until then.
-# [rules] says what it is built from, when a proportion has a valid range, and what the
-# table does not say.
+# It is a proposal until Jon has accepted it. [rules] says what it is built from, when a
+# proportion has a valid range, and what the table does not say.
 ",
         );
         out.push_str("\n[table]\n");
@@ -430,19 +434,11 @@ impl Table {
             ));
             out.push_str(&format!("works = {}\n", line.values.len()));
             out.push_str(&format!("standing = {}\n", quoted(line.standing().word())));
-            if let (Some(lowest), Some(highest)) = (line.values.first(), line.values.last()) {
-                // Where the numbers are no range, the file says so beside them.
-                match line.standing() {
-                    Standing::TooThin => out.push_str(&format!(
-                        "# What its {} give{}. It is no range.\n",
-                        counted(line.values.len(), "work"),
-                        if line.values.len() == 1 { "s" } else { "" }
-                    )),
-                    Standing::Convention => out.push_str(
-                        "# What the rule built in the works that give it what it needs. It is no measurement and no range.\n",
-                    ),
-                    Standing::Given | Standing::NoWork => {}
-                }
+            // Only a range is stated in numbers: the values of a few works are those works'
+            // own numbers.
+            if let (Standing::Given, Some(lowest), Some(highest)) =
+                (line.standing(), line.values.first(), line.values.last())
+            {
                 out.push_str(&format!("lowest = {}\n", six(*lowest)));
                 out.push_str(&format!("middle = {}\n", six(median(&line.values))));
                 out.push_str(&format!("highest = {}\n", six(*highest)));
@@ -486,10 +482,243 @@ impl Table {
             rule("separate_ranges"),
             rule("single_references")
         ));
-        out.push_str(
-            "It is a proposal until Jon has accepted it, and stays in the reference folder until then.\n",
-        );
+        out.push_str("It is a proposal until Jon has accepted it.\n");
         out
+    }
+}
+
+// ---------------------------------------------------------------- a whole set from a table
+
+/// How a whole set of proportions is made from a table, by name, as the set's file states it.
+pub const SET_RULES: &[(&str, &str)] = &[
+    (
+        "the_table",
+        "A proportion with a valid range takes the table's middle value: the median of the works that give it.",
+    ),
+    (
+        "a_thin_average",
+        "A proportion that two to four works give takes the average of those works, and is marked as thin: it has no range. It is the average and not the middle, because the middle of three works is one work's own number.",
+    ),
+    (
+        "borrowed",
+        "Every other proportion is borrowed, as it stands, from the set named as `borrowed_from`: one that a single work gives, since that is one reference's number; one that no work gives; and a convention, which is never measured.",
+    ),
+    (
+        "taken_whole",
+        "An ear is taken whole. It is one form built on its two base points, so unless the table and the thin averages give every one of its proportions, all of them are borrowed.",
+    ),
+    (
+        "no_correction",
+        "The set carries no correction, whatever the set it borrows from carries. A correction's amounts are worked out from a set's own depths, and whether a head is drawn with one is Jon's to say.",
+    ),
+];
+
+/// The proportions of a form that is taken whole from one source, by the start of their
+/// names: the rule `taken_whole`.
+const TAKEN_WHOLE: &str = "ear_";
+
+/// Where a proportion of a set made from a table comes from.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Source {
+    /// The table's middle value, with the works behind it.
+    Table(usize),
+    /// The average of two to four works.
+    ThinAverage(usize),
+    /// The borrowed set's own number, and why.
+    Borrowed(&'static str),
+}
+
+impl Source {
+    /// The source as the set's file says it. What stands before the colon is the kind, which
+    /// [`Source::kind_of`] reads back.
+    fn words(&self) -> String {
+        match self {
+            Source::Table(works) => format!("the table: the middle of {works} works"),
+            Source::ThinAverage(works) => format!("a thin average: of {works} works"),
+            Source::Borrowed(why) => format!("borrowed: {why}"),
+        }
+    }
+
+    /// The kind of source a set's file states for a proportion: "the table", "a thin
+    /// average" or "borrowed". None for anything else.
+    pub fn kind_of(words: &str) -> Option<&'static str> {
+        let kind = words.split(':').next().unwrap_or_default().trim();
+        ["the table", "a thin average", "borrowed"]
+            .into_iter()
+            .find(|known| *known == kind)
+    }
+}
+
+/// A whole set of proportions made from a table, with where each number comes from.
+#[derive(Debug, Clone)]
+pub struct SetFromTable {
+    built_from: String,
+    borrowed_from: String,
+    /// Each proportion's source, in the list's order.
+    sources: Vec<(String, Source)>,
+    set: proportions::Set,
+    /// What the list's rule for `lower_face_set_back` would set back on this set's own
+    /// depths at a share of 1: the chin and the mouth, in units. None where the rule cannot
+    /// be run on the set.
+    rule_would_set_back: Option<[f64; 2]>,
+}
+
+impl Table {
+    /// Makes a whole set of proportions from the table: the rules of [`SET_RULES`].
+    /// `borrowed` is the set whose numbers stand in where the works give none to draw, and
+    /// `borrowed_from` is what the file calls it.
+    pub fn set_with(
+        &self,
+        borrowed_from: &str,
+        borrowed: &proportions::Set,
+    ) -> Result<SetFromTable> {
+        let mut made: Vec<(String, f64, Source)> = self
+            .lines
+            .iter()
+            .map(|line| {
+                let works = line.values.len();
+                let (value, source) = match line.standing() {
+                    Standing::Given => (median(&line.values), Source::Table(works)),
+                    Standing::TooThin if works >= 2 => (
+                        line.values.iter().sum::<f64>() / works as f64,
+                        Source::ThinAverage(works),
+                    ),
+                    Standing::TooThin => (
+                        borrowed.get(&line.name),
+                        Source::Borrowed(
+                            "one work gives it, and one reference's number is not drawn",
+                        ),
+                    ),
+                    Standing::NoWork => (
+                        borrowed.get(&line.name),
+                        Source::Borrowed("no work gives it"),
+                    ),
+                    Standing::Convention => (
+                        borrowed.get(&line.name),
+                        Source::Borrowed("a convention, which is never measured"),
+                    ),
+                };
+                (line.name.clone(), value, source)
+            })
+            .collect();
+        // The rule `taken_whole`.
+        let whole = |name: &str| name.starts_with(TAKEN_WHOLE);
+        if made
+            .iter()
+            .any(|(name, _, source)| whole(name) && matches!(source, Source::Borrowed(_)))
+        {
+            for (name, value, source) in &mut made {
+                if whole(name) && !matches!(source, Source::Borrowed(_)) {
+                    *value = borrowed.get(name);
+                    *source = Source::Borrowed(
+                        "the ear is taken whole, and the works do not give all of it",
+                    );
+                }
+            }
+        }
+        let set = proportions::Set::from_values(
+            made.iter()
+                .map(|(name, value, _)| (name.clone(), *value))
+                .collect(),
+        )?;
+        const SET_BACK: &str = "lower_face_set_back";
+        let rule_would_set_back = crate::head_model::with_lower_face_set_back(set.clone(), 1.0)
+            .ok()
+            .and_then(|with| {
+                let amounts = with.correction(SET_BACK)?;
+                Some([*amounts.get("chin")?, *amounts.get("mouth")?])
+            });
+        Ok(SetFromTable {
+            built_from: self.built_from.clone(),
+            borrowed_from: borrowed_from.to_string(),
+            sources: made
+                .into_iter()
+                .map(|(name, _, source)| (name, source))
+                .collect(),
+            set,
+            rule_would_set_back,
+        })
+    }
+}
+
+impl SetFromTable {
+    fn count(&self, of: impl Fn(&Source) -> bool) -> usize {
+        self.sources.iter().filter(|(_, source)| of(source)).count()
+    }
+
+    /// What the set says of a correction: that it carries none, and what the list's rule
+    /// would give on its own depths.
+    fn correction(&self) -> String {
+        let carried = "The set carries no correction.";
+        match self.rule_would_set_back {
+            Some([chin, mouth]) if chin == 0.0 && mouth == 0.0 => format!(
+                "{carried} Run on this set's own depths, the list's rule for `lower_face_set_back` sets nothing back at any share: the chin does not stand in front of the iris's centre, and the mouth does not stand in front of the line from the nose mark's bottom to the chin."
+            ),
+            Some([chin, mouth]) => format!(
+                "{carried} Run on this set's own depths, the list's rule for `lower_face_set_back` would set the chin back by {} of a unit at a share of 1, and the mouth by {}. That is not carried.",
+                six(chin),
+                six(mouth)
+            ),
+            None => format!(
+                "{carried} The list's rule for `lower_face_set_back` cannot be run on this set: its mouth does not stand between its nose mark and its chin."
+            ),
+        }
+    }
+
+    /// The set as the text of a file that `maquette draw` reads.
+    pub fn file(&self) -> Result<String> {
+        let mut opening = String::from(
+            "\
+# A whole set of proportions made from a proportion table, by `maquette set-from-table`: the
+# table's middle values where it has a range, the average of the works where two to four give
+# a proportion, and another set's own numbers for the rest. [sources] says which each is.
+#
+# It is one head to be drawn and looked at. It is no proportion table and no part of one, and
+# what it borrows is not measured on any reference. `maquette draw` reads this file as it
+# reads any set of proportions, and `maquette list-proportions` defines each proportion.
+",
+        );
+        opening.push_str("\n[source]\n");
+        opening.push_str(&format!(
+            "table = {}\n",
+            quoted(&format!(
+                "built from the record of Jon's check {}",
+                self.built_from
+            ))
+        ));
+        opening.push_str(&format!(
+            "borrowed_from = {}\n",
+            quoted(&self.borrowed_from)
+        ));
+        opening.push_str(&format!(
+            "from_the_table = {}\nthin_averages = {}\nborrowed = {}\n",
+            self.count(|source| matches!(source, Source::Table(_))),
+            self.count(|source| matches!(source, Source::ThinAverage(_))),
+            self.count(|source| matches!(source, Source::Borrowed(_)))
+        ));
+        opening.push_str(&format!("correction = {}\n", quoted(&self.correction())));
+        opening.push_str("\n[rules]\n");
+        for (name, text) in SET_RULES {
+            opening.push_str(&format!("{name} = {}\n", quoted(text)));
+        }
+        opening.push_str("\n# Where each proportion comes from, in the list's order.\n[sources]\n");
+        for (name, source) in &self.sources {
+            opening.push_str(&format!("{name} = {}\n", quoted(&source.words())));
+        }
+        self.set.write(&opening)
+    }
+
+    /// What was made, in a few lines, for a person.
+    pub fn summary(&self) -> String {
+        format!(
+            "A set of {} proportions: {} from the table's middle values, {} thin averages of two to four works, {} borrowed from `{}`.\n{}\n",
+            self.sources.len(),
+            self.count(|source| matches!(source, Source::Table(_))),
+            self.count(|source| matches!(source, Source::ThinAverage(_))),
+            self.count(|source| matches!(source, Source::Borrowed(_))),
+            self.borrowed_from,
+            self.correction()
+        )
     }
 }
 

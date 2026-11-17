@@ -856,12 +856,13 @@ impl Review<'_> {
         self.problems.is_empty()
     }
 
-    /// The record's own path in the reference folder, with which look it was and the day:
-    /// what a table says it was built from.
+    /// Which look the record is of and the day he checked: what a table says it was built
+    /// from. The record's own path is left out: a table is written to be published, and
+    /// nothing published says where the reference folder keeps a file.
     pub fn named(&self) -> String {
         format!(
-            "`{}`: {}, checked on {}",
-            self.path, self.check.look, self.check.checked_on
+            "at {}, checked on {}",
+            self.check.look, self.check.checked_on
         )
     }
 
