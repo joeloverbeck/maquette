@@ -540,22 +540,48 @@ pub fn not_a_picture(error: impl std::fmt::Display) -> Error {
     ))
 }
 
-/// What a file that holds a picture whole calls its format: `image/png` or `image/jpeg`.
+/// What a file that holds a picture whole calls its format: `image/png` or `image/jpeg`. A
+/// picture that is not [`upright`] is refused.
 pub fn picture_media_type(bytes: &[u8]) -> Result<&'static str> {
-    match image::guess_format(bytes).map_err(not_a_picture)? {
-        image::ImageFormat::Png => Ok("image/png"),
-        image::ImageFormat::Jpeg => Ok("image/jpeg"),
-        other => Err(not_a_picture(format!("it is in the format {other:?}"))),
-    }
+    let media_type = match image::guess_format(bytes).map_err(not_a_picture)? {
+        image::ImageFormat::Png => "image/png",
+        image::ImageFormat::Jpeg => "image/jpeg",
+        other => return Err(not_a_picture(format!("it is in the format {other:?}"))),
+    };
+    upright(bytes)?;
+    Ok(media_type)
 }
 
-/// How wide and how high a picture is, in pixels.
+/// How wide and how high a picture is, in pixels. A picture that is not [`upright`] is
+/// refused.
 pub fn picture_size(bytes: &[u8]) -> Result<(u32, u32)> {
+    upright(bytes)?;
     image::ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
         .map_err(not_a_picture)?
         .into_dimensions()
         .map_err(not_a_picture)
+}
+
+/// Refuses a picture whose file says it is to be shown turned or mirrored, as an EXIF
+/// orientation other than upright does. A browser, and so a reference check sheet, shows it
+/// turned; maquette reads and enlarges its pixels as they are stored, and never converts a
+/// picture. A reading of it, its enlargements and its sheet would then not agree.
+pub fn upright(bytes: &[u8]) -> Result<()> {
+    use image::ImageDecoder;
+    let mut decoder = image::ImageReader::new(std::io::Cursor::new(bytes))
+        .with_guessed_format()
+        .map_err(not_a_picture)?
+        .into_decoder()
+        .map_err(not_a_picture)?;
+    let orientation = decoder.orientation().map_err(not_a_picture)?;
+    if orientation == image::metadata::Orientation::NoTransforms {
+        return Ok(());
+    }
+    Err(Error::new(format!(
+        "the picture's file says it is shown turned or mirrored (its EXIF orientation is {}, and upright is 1). A browser shows it so, and maquette reads its pixels as they are stored, so a reading, an enlargement and a sheet of it would not agree. Such a picture is not read",
+        orientation.to_exif()
+    )))
 }
 
 /// What a reference is: said by whoever hands over the drawing, except the manner.

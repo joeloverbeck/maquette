@@ -285,6 +285,25 @@ pub fn made_up_jpeg(path: &Path, width: u32, height: u32) {
     );
 }
 
+/// The made-up JPEG with an EXIF segment that says the picture is to be shown turned:
+/// `orientation` is the EXIF value, 1 for upright and 6 for a quarter turn clockwise. The
+/// pixels are the made-up picture's, stored as they are.
+pub fn made_up_jpeg_with_orientation(path: &Path, width: u32, height: u32, orientation: u8) {
+    made_up_jpeg(path, width, height);
+    let jpeg = std::fs::read(path).expect("the made-up JPEG is read");
+    // "Exif", then a big-endian TIFF header and one directory of one entry: tag 0x0112, the
+    // orientation, a SHORT, one of it.
+    let mut exif = b"Exif\0\0MM\0\x2a\0\0\0\x08\0\x01\x01\x12\0\x03\0\0\0\x01\0".to_vec();
+    exif.extend([orientation, 0, 0, 0, 0, 0, 0]);
+    let length = u16::try_from(exif.len() + 2).expect("a short segment");
+    let mut out = jpeg[..2].to_vec();
+    out.extend([0xFF, 0xE1]);
+    out.extend(length.to_be_bytes());
+    out.extend(exif);
+    out.extend(&jpeg[2..]);
+    std::fs::write(path, out).expect("the made-up JPEG is written");
+}
+
 /// The SHA-256 digest of a file, in lower-case hex, worked out by the test itself.
 pub fn sha256_of(path: &Path) -> String {
     sha256_hex(&std::fs::read(path).unwrap_or_else(|error| panic!("{}: {error}", path.display())))
