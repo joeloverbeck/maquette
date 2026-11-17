@@ -318,7 +318,7 @@ pub fn head(set: &Set) -> Result<Head> {
     Ok(Head {
         landmarks,
         side_set_backs,
-        head_height: set.get("hair_top_rise") + 1.0,
+        head_height: head_height(set.get("hair_top_rise")),
         skull_radius: set.get("skull_radius"),
         iris_width: set.get("iris_width"),
         iris_height: set.get("iris_height"),
@@ -786,34 +786,47 @@ pub fn skull_by_rule(
     value: impl Fn(&str) -> Option<f64>,
 ) -> std::result::Result<SkullBuilt, String> {
     let need = |name: &'static str| value(name).ok_or(name.to_string());
-    let [
-        outer_rise,
-        inner_rise,
-        outer_depth,
-        inner_depth,
-        temple_offset,
-        temple_rise,
-        temple_depth,
-    ] = [
+    let [outer_rise, inner_rise, outer_depth, inner_depth] = [
         need(SKULL_RULE_USES[0])?,
         need(SKULL_RULE_USES[1])?,
         need(SKULL_RULE_USES[2])?,
         need(SKULL_RULE_USES[3])?,
+    ];
+    let centre_rise = (outer_rise + inner_rise) / 2.0;
+    let centre_depth = (outer_depth + inner_depth) / 2.0;
+    Ok(SkullBuilt {
+        centre_rise,
+        centre_depth,
+        radius: skull_radius_to_temple(&value, centre_rise, centre_depth)?,
+    })
+}
+
+/// The radius part of the skull rule by itself: the distance in space from a skull's centre,
+/// wherever it stands, to the temple, the top end of the face outline. [`skull_by_rule`]
+/// takes it from the rule's own centre; taken from a drawn centre, it tests that part of the
+/// rule alone. The error names the first proportion it needs and does not get.
+pub fn skull_radius_to_temple(
+    value: impl Fn(&str) -> Option<f64>,
+    centre_rise: f64,
+    centre_depth: f64,
+) -> std::result::Result<f64, String> {
+    let need = |name: &'static str| value(name).ok_or(name.to_string());
+    let [temple_offset, temple_rise, temple_depth] = [
         need(SKULL_RULE_USES[4])?,
         need(SKULL_RULE_USES[5])?,
         need(SKULL_RULE_USES[6])?,
     ];
-    let centre_rise = (outer_rise + inner_rise) / 2.0;
-    let centre_depth = (outer_depth + inner_depth) / 2.0;
-    let radius = (temple_offset.powi(2)
+    Ok((temple_offset.powi(2)
         + (temple_rise - centre_rise).powi(2)
         + (temple_depth - centre_depth).powi(2))
-    .sqrt();
-    Ok(SkullBuilt {
-        centre_rise,
-        centre_depth,
-        radius,
-    })
+    .sqrt())
+}
+
+/// Head height in units, from the hair's top to the chin, of a head whose hair's top stands
+/// `hair_top_rise` above the eye line: the chin is one unit below it, by the unit's
+/// definition.
+pub fn head_height(hair_top_rise: f64) -> f64 {
+    hair_top_rise + 1.0
 }
 
 /// What two views give when they are taken back into proportions.

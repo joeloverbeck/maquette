@@ -1,5 +1,5 @@
-//! How text is written into a TOML file, so that every file the program writes reads back to
-//! the same text.
+//! How text and a position are written into a TOML file, so that every file the program
+//! writes reads back to the same text.
 
 /// A TOML basic string holding `text`: quoted, with the quote, the backslash and every
 /// control character TOML does not allow there escaped. A tab may stand as it is.
@@ -23,6 +23,15 @@ pub fn quoted(text: &str) -> String {
     }
     out.push('"');
     out
+}
+
+/// A position as a TOML inline table, to a thousandth: `{ x = 412.5, y = 96.0 }`.
+pub fn position(at: [f64; 2]) -> String {
+    format!(
+        "{{ x = {}, y = {} }}",
+        crate::number::toml(at[0], 3),
+        crate::number::toml(at[1], 3)
+    )
 }
 
 /// A TOML array of texts, on one line.

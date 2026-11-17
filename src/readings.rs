@@ -861,6 +861,31 @@ fn exchanged(name: &str) -> String {
     }
 }
 
+/// The names the list of proportions gives a landmark of a reading, on a head that faces
+/// the viewer's right; the first is the one a record of known positions uses. The face
+/// outline is where a reading's names and the list's part ways: a reader places every point
+/// of it under the face outline's name, and the list calls it the jaw line where it is the
+/// side of the jaw. In a front view a point of the outline is both the cheek point and the
+/// jaw-line point of its level; in a turned view the near side's outline is the jaw line and
+/// the far side's the cheek. The jaw point keeps its name, as every other landmark does.
+pub fn list_names(view: View, landmark: &str) -> Vec<String> {
+    let outline = landmark.strip_prefix("face-outline-").and_then(|rest| {
+        let (side, point) = rest.split_once('-')?;
+        (point != "jaw").then_some((side, point))
+    });
+    let Some((side, point)) = outline else {
+        return vec![landmark.to_string()];
+    };
+    let jaw_line = format!("jaw-line-{side}-{point}");
+    if view == View::Front {
+        vec![landmark.to_string(), jaw_line]
+    } else if side == Faces::ViewersRight.near() {
+        vec![jaw_line]
+    } else {
+        vec![landmark.to_string()]
+    }
+}
+
 /// Positions under a reading's names, as the head model reads them. See [`Record::positions`].
 pub fn positions_of(
     view: View,
@@ -877,31 +902,13 @@ pub fn positions_of(
     } else {
         placed.clone()
     };
-    let near = Faces::ViewersRight.near();
     let mut reading = head_model::Reading {
         turn_degrees: view.turn_degrees(),
         ..head_model::Reading::default()
     };
     for (name, at) in &placed {
-        let outline = name.strip_prefix("face-outline-").and_then(|rest| {
-            let (side, point) = rest.split_once('-')?;
-            (point != "jaw").then_some((side, point))
-        });
-        match outline {
-            Some((side, point)) => {
-                let jaw_line = format!("jaw-line-{side}-{point}");
-                if view == View::Front {
-                    reading.points.insert(name.clone(), *at);
-                    reading.points.insert(jaw_line, *at);
-                } else if side == near {
-                    reading.points.insert(jaw_line, *at);
-                } else {
-                    reading.points.insert(name.clone(), *at);
-                }
-            }
-            None => {
-                reading.points.insert(name.clone(), *at);
-            }
+        for list_name in list_names(view, name) {
+            reading.points.insert(list_name, *at);
         }
     }
     for side in ["left", "right"] {

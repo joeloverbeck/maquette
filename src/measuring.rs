@@ -17,7 +17,7 @@ use crate::hand_made_views::{Marks, marks};
 use crate::head_model::{self, Reading as Positions, Taken};
 use crate::number::{round3, toml as toml_number};
 use crate::readings::{Drawing, Faces, Record, other_revision, two_readings};
-use crate::toml_text::{quoted, quoted_lines, quoted_list};
+use crate::toml_text::{position, quoted, quoted_lines, quoted_list};
 use crate::views::View;
 use crate::{Error, Result};
 
@@ -109,14 +109,6 @@ fn percent(value: f64) -> String {
     toml_number(value, 3)
 }
 
-fn position(at: [f64; 2]) -> String {
-    format!(
-        "{{ x = {}, y = {} }}",
-        toml_number(at[0], 3),
-        toml_number(at[1], 3)
-    )
-}
-
 // ---------------------------------------------------------------- agreement
 
 /// One landmark both readings place, and how far apart they put it.
@@ -150,14 +142,6 @@ pub struct Agreement {
     pub placed_by_second_only: Vec<String>,
     /// What the two readers judge differently: what it is, and what each says.
     pub judged_differently: Vec<(String, String, String)>,
-}
-
-fn marks_word(marks: Marks) -> &'static str {
-    match marks {
-        Marks::Position => "position",
-        Marks::Height => "height",
-        Marks::Sideways => "sideways",
-    }
 }
 
 fn head_height_of(record: &Record) -> Option<f64> {
@@ -225,11 +209,7 @@ pub fn agreement(
             ));
         };
         let marks = compared_in(name);
-        let distance = match marks {
-            Marks::Position => (at[0] - other[0]).hypot(at[1] - other[1]),
-            Marks::Height => (at[1] - other[1]).abs(),
-            Marks::Sideways => (at[0] - other[0]).abs(),
-        };
+        let distance = marks.distance(*at, *other);
         compared.push(Compared {
             number: None,
             landmark: name.clone(),
@@ -378,7 +358,7 @@ impl Agreement {
                 out.push_str(&format!("landmark = {}\n", quoted(&compared.landmark)));
                 out.push_str(&format!(
                     "compared_in = {}\n",
-                    quoted(marks_word(compared.marks))
+                    quoted(compared.marks.word())
                 ));
                 out.push_str(&format!("first = {}\n", position(compared.first)));
                 out.push_str(&format!("second = {}\n", position(compared.second)));
@@ -459,6 +439,13 @@ impl Agreement {
 
 /// The left and right pairs whose spacing says how far a head is turned: each marks a
 /// feature, so both views show the same two points of the head.
+///
+/// The arithmetic of the turn is the head model's, shared with the record of the hand-made
+/// drawings. The list of pairs is not shared, and is not meant to be: this one is of the
+/// landmarks a reader places on a picture, narrowed on what a reader can place sideways,
+/// and that one (`hand_made_drawings`) is of positions taken from the nodes of a vector
+/// drawing. Each is stated on its own evidence, and a change to one is no reason to change
+/// the other.
 const PAIRS_COUNTED: &[(&str, &str)] = &[
     ("eye", "outer-corner"),
     ("eye", "inner-corner"),
@@ -1109,19 +1096,18 @@ impl Fit {
 /// own skull, part by part, as text. It tests the rule on a head whose skull is drawn; it
 /// changes nothing and tunes nothing.
 pub fn skull_rule_on(set: &crate::proportions::Set, named: &str) -> Result<String> {
-    let built = head_model::skull_by_rule(|name| Some(set.get(name)))
-        .map_err(|lacking| Error::new(format!("the set of proportions has no `{lacking}`")))?;
-    let head_height = set.get("hair_top_rise") + 1.0;
+    let lacking =
+        |lacking: String| Error::new(format!("the set of proportions has no `{lacking}`"));
+    let built = head_model::skull_by_rule(|name| Some(set.get(name))).map_err(lacking)?;
+    let head_height = head_model::head_height(set.get("hair_top_rise"));
     let (rise, depth, radius) = (
         set.get("skull_centre_rise"),
         set.get("skull_centre_depth"),
         set.get("skull_radius"),
     );
     // The radius part alone: the same distance to the temple, from the set's own centre.
-    let radius_alone = (set.get("face_top_half_width").powi(2)
-        + (set.get("face_top_rise") - rise).powi(2)
-        + (set.get("face_top_depth") - depth).powi(2))
-    .sqrt();
+    let radius_alone = head_model::skull_radius_to_temple(|name| Some(set.get(name)), rise, depth)
+        .map_err(lacking)?;
     let mut out = String::from(
         "\
 # The skull rule run on a set of proportions, by `maquette skull-by-rule`, and set against the
