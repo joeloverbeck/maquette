@@ -202,10 +202,14 @@ She has no hand-made side view. The generator draws one from this set, and nothi
 | Share | Chin set back | Chin drawn at | Mouth set back | Mouth drawn at |
 |---|---|---|---|---|
 | 0, as at look 2 | 0 | 33.2 | 0 | 62.9 |
-| 0.5, in `proportions.toml` | 20.9 (4.2% of head height) | 12.3 | 18.2 (3.7%) | 44.7 |
+| 0.5, in `proportions.toml`, accepted at look 3 | 20.9 (4.2% of head height) | 12.3 | 18.2 (3.7%) | 44.7 |
 | 1 | 41.7 (8.4%) | -8.5 | 26.2 (5.3%) | 36.7 |
 
-The share of 0.5 is the candidate recommended to Jon at look 3, beside the share of 1. Neither is accepted, and no rule gives the share: his look does. `design/look-3-saffi-side-view/` holds the sheet.
+**Look 3 (2026-11-17): accepted.** Jon was shown the share of 0.5 as candidate A beside the share of 1 as candidate B, and chose A. No rule gives the share: his look did. `design/look-3-saffi-side-view/` holds the sheet he saw.
+
+That accepts her armature in three views: the front and three-quarter views, which he had said at look 2 read as one head, and the side view with the correction at the amounts of the 0.5 row. The six files are in [`armatures/saffi/`](../../armatures/saffi/README.md), and `cargo test` checks that `maquette draw` still writes them byte for byte from `proportions.toml`.
+
+It accepts nothing else. Candidate B is not accepted. Her proportions are not made a standard, or good ones for another character. No table is accepted, and her numbers still never enter one.
 
 ## What this is evidence of
 

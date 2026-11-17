@@ -1,11 +1,21 @@
 # Look 3: Saffi's side view, two candidates
 
-The armature review sheet for the third look of #3, made for #6 after look 2 did not accept the side view. It started from the sheet of look 2 in `../look-2-saffi-three-views/`. Nothing on it is accepted.
+The armature review sheet for the third look of #3, made for #6 after look 2 did not accept the side view. It started from the sheet of look 2 in `../look-2-saffi-three-views/`. The sheet accepts nothing itself: "The outcome" says what Jon chose.
 
 - `armature-review-sheet.figcraft`: the FigCraft source.
 - `armature-review-sheet.png`: its export, 2400 pixels wide. The sheet is 4000 units wide where look 2's was 3200, so this keeps look 2's text size.
 - `armature-review-sheet-full-size.png`: the same at full size, 4000 pixels wide, for the small text.
 - `candidate-b-proportions.toml`: the set of proportions candidate B was drawn from. Candidate A's is `data/saffi/proportions.toml`.
+
+## The outcome
+
+**Jon chose candidate A** on 2026-11-17. The record is on issue #6.
+
+- **What that accepts:** Saffi's armature in three views. They are the front and three-quarter views, and side view A, which carries `lower_face_set_back` with the chin drawn 20.864 units back and the mouth 18.166. The six files are in `armatures/saffi/` under the digests listed in "What it is made from": the first four, and the two marked A. A test pins their bytes.
+- **What it does not:** candidate B. Nor does it make her proportions a standard, and it accepts no table.
+- **`candidate-b-proportions.toml` is kept only as the record of what was shown.** It is not a set of proportions to draw an armature from, and nothing reads it.
+
+The sheet, its two exports and the sections below are as they were when Jon looked. They speak of two candidates and a recommendation, and are not brought up to date.
 
 ## The decision
 

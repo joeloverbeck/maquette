@@ -1,0 +1,231 @@
+# Landmark file of one view of an armature, written by maquette beside the view's SVG.
+# Positions are in the SVG's own units: x grows toward the viewer's right, y grows downward.
+# Left and right in a name are the character's own.
+
+view = "three-quarter"
+svg = "three-quarter.svg"
+# How far the head is turned toward the viewer's right, so the character's right is the near side.
+turn_degrees = 29.0
+
+[frame]
+width = 1000.0
+height = 1000.0
+unit = 200.0  # eye line to chin: what every proportion is divided by
+head_height = 494.456  # hair top to chin: differences are stated as shares of it
+eye_line_y = 400.0
+turn_axis_x = 500.0  # the upright axis the head turns about, through the skull's centre
+turn_axis_depth = -138.398  # the depth that axis stands at: the skull's centre, behind the eyes
+
+# Landmarks: points in space. Every view shows the same landmarks, each at the same height.
+# `depth` is how far the point stands in front of the eyes, the same in every view. Depth zero is
+# the midpoint between the two eye openings' centres, as the list of proportions defines it.
+# x is turn_axis_x plus the front view's offset from its axis times the cosine of the turn,
+# plus (depth minus turn_axis_depth) times the sine of the turn.
+[landmarks]
+chin = { x = 583.197, y = 600.0, depth = 33.209 }
+hair-top = { x = 490.407, y = 105.544, depth = -158.185 }
+skull-centre = { x = 500.0, y = 327.299, depth = -138.398 }
+skull-front = { x = 595.359, y = 327.299, depth = 58.296 }
+centre-line-at-eye-level = { x = 588.606, y = 400.0, depth = 44.367 }
+nose-mark-bottom = { x = 598.604, y = 488.044, depth = 64.988 }
+mouth-line-centre = { x = 597.576, y = 531.183, depth = 62.87 }
+face-outline-right-top = { x = 438.461, y = 363.762, depth = -10.132 }
+face-outline-left-top = { x = 685.909, y = 363.762, depth = -10.132 }
+face-outline-right-at-eye-level = { x = 428.717, y = 400.0, depth = -29.643 }
+face-outline-left-at-eye-level = { x = 676.734, y = 400.0, depth = -29.643 }
+face-outline-right-at-nose-level = { x = 447.737, y = 479.313, depth = -11.702 }
+face-outline-left-at-nose-level = { x = 675.11, y = 479.313, depth = -11.702 }
+face-outline-right-at-mouth-level = { x = 471.382, y = 531.183, depth = -7.099 }
+face-outline-left-at-mouth-level = { x = 655.928, y = 531.183, depth = -7.099 }
+face-outline-right-jaw = { x = 556.492, y = 589.215, depth = 39.565 }
+face-outline-left-jaw = { x = 616.065, y = 589.215, depth = 39.565 }
+jaw-line-right-top = { x = 386.223, y = 363.762, depth = -117.88 }
+jaw-line-left-top = { x = 633.671, y = 363.762, depth = -117.88 }
+jaw-line-right-at-eye-level = { x = 385.939, y = 400.0, depth = -117.88 }
+jaw-line-left-at-eye-level = { x = 633.955, y = 400.0, depth = -117.88 }
+jaw-line-right-at-nose-level = { x = 396.261, y = 479.313, depth = -117.88 }
+jaw-line-left-at-nose-level = { x = 623.634, y = 479.313, depth = -117.88 }
+jaw-line-right-at-mouth-level = { x = 432.982, y = 531.183, depth = -86.304 }
+jaw-line-left-at-mouth-level = { x = 617.529, y = 531.183, depth = -86.304 }
+eye-right-outer-corner = { x = 456.861, y = 395.346, depth = -12.341 }
+eye-left-outer-corner = { x = 665.366, y = 395.346, depth = -12.341 }
+eye-right-inner-corner = { x = 536.257, y = 404.487, depth = 12.341 }
+eye-left-inner-corner = { x = 609.902, y = 404.487, depth = 12.341 }
+eye-right-opening-top = { x = 477.813, y = 381.717, depth = -5.828 }
+eye-left-opening-top = { x = 650.73, y = 381.717, depth = -5.828 }
+eye-right-opening-bottom = { x = 498.47, y = 418.283, depth = 0.594 }
+eye-left-opening-bottom = { x = 636.299, y = 418.283, depth = 0.594 }
+eye-right-opening-centre = { x = 496.559, y = 400.0, depth = 0.0 }
+eye-left-opening-centre = { x = 637.634, y = 400.0, depth = 0.0 }
+iris-right-centre = { x = 493.122, y = 398.044, depth = -8.519 }
+iris-left-centre = { x = 632.811, y = 398.044, depth = -8.519 }
+lid-line-right-inner-end = { x = 543.332, y = 406.388, depth = 14.54 }
+lid-line-left-inner-end = { x = 604.96, y = 406.388, depth = 14.54 }
+lid-line-right-crest = { x = 475.694, y = 381.238, depth = -6.486 }
+lid-line-left-crest = { x = 652.21, y = 381.238, depth = -6.486 }
+lid-line-right-outer-end = { x = 446.883, y = 389.055, depth = -15.443 }
+lid-line-left-outer-end = { x = 672.337, y = 389.055, depth = -15.443 }
+brow-line-right-inner-end = { x = 535.169, y = 361.194, depth = 12.003 }
+brow-line-left-inner-end = { x = 610.662, y = 361.194, depth = 12.003 }
+brow-line-right-outer-end = { x = 457.163, y = 347.585, depth = -12.247 }
+brow-line-left-outer-end = { x = 665.155, y = 347.585, depth = -12.247 }
+nose-mark-right-corner = { x = 583.197, y = 470.583, depth = 64.988 }
+nose-mark-left-corner = { x = 614.01, y = 470.583, depth = 64.988 }
+mouth-line-right-end = { x = 562.654, y = 530.156, depth = 41.684 }
+mouth-line-left-end = { x = 611.956, y = 530.156, depth = 41.684 }
+ear-right-base-outer = { x = 341.005, y = 214.659, depth = -157.514 }
+ear-left-base-outer = { x = 640.46, y = 214.659, depth = -157.514 }
+ear-right-base-inner = { x = 428.92, y = 173.915, depth = -127.83 }
+ear-left-base-inner = { x = 581.327, y = 173.915, depth = -127.83 }
+ear-right-top = { x = 356.44, y = 88.301, depth = -152.302 }
+ear-left-top = { x = 630.078, y = 88.301, depth = -152.302 }
+ear-right-outer-extent = { x = 314.684, y = 133.173, depth = -166.401 }
+ear-left-outer-extent = { x = 658.164, y = 133.173, depth = -166.401 }
+ear-right-inner-extent = { x = 429.205, y = 170.35, depth = -127.734 }
+ear-left-inner-extent = { x = 581.135, y = 170.35, depth = -127.734 }
+shoulder-right-point = { x = 137.723, y = 781.8, depth = -197.719 }
+shoulder-left-point = { x = 804.758, y = 781.8, depth = -197.719 }
+
+# View points: points of this view only, such as the side of a round form or where two guides cross.
+# Under the same name another view shows a different point of the head.
+[view_points]
+hair-right-end = { x = 268.68, y = 600.0 }
+hair-right-extent = { x = 268.68, y = 327.299 }
+hair-left-extent = { x = 712.134, y = 327.299 }
+hair-left-end = { x = 712.134, y = 600.0 }
+skull-left-extent = { x = 696.694, y = 327.299 }
+skull-bottom = { x = 500.0, y = 523.993 }
+skull-right-extent = { x = 303.306, y = 327.299 }
+skull-top = { x = 500.0, y = 130.605 }
+iris-right-outer-extent = { x = 473.919, y = 398.044 }
+iris-right-inner-extent = { x = 512.325, y = 398.044 }
+iris-right-bottom = { x = 493.122, y = 418.199 }
+iris-right-top = { x = 493.122, y = 377.889 }
+iris-left-outer-extent = { x = 652.014, y = 398.044 }
+iris-left-inner-extent = { x = 613.608, y = 398.044 }
+iris-left-bottom = { x = 632.811, y = 418.199 }
+iris-left-top = { x = 632.811, y = 377.889 }
+neck-right-top = { x = 381.038, y = 483.941 }
+neck-right-base = { x = 381.038, y = 611.298 }
+neck-left-top = { x = 565.552, y = 594.004 }
+neck-left-base = { x = 565.552, y = 611.298 }
+
+# The SVG's structure: one layer, its children in drawing order, and the guides inside each group.
+[structure]
+layer = "armature"
+children = ["hair-volume", "skull", "face-outline", "centre-line", "eye-level-line", "nose-level-line", "mouth-level-line", "eye-right", "eye-left", "brow-line-right", "brow-line-left", "nose-mark", "mouth-line", "ear-right", "ear-left", "neck", "shoulder-line"]
+
+[structure.groups]
+eye-right = ["eye-opening-right", "lid-line-right", "iris-right"]
+eye-left = ["eye-opening-left", "lid-line-left", "iris-left"]
+neck = ["neck-right", "neck-left"]
+
+# Guides: each is the SVG element whose id is its name. `passes_through` names the landmarks and
+# view points its outline passes through, in order; each is one anchor of the element in the SVG.
+# A circle or an ellipse passes through its right, bottom, left and top points, not its centre,
+# which is how VectorCraft reads one back.
+
+[guides.hair-volume]
+element = "path"
+closed = false
+passes_through = ["hair-right-end", "hair-right-extent", "hair-top", "hair-left-extent", "hair-left-end"]
+
+[guides.skull]
+element = "circle"
+centre = "skull-centre"
+r = 196.694
+passes_through = ["skull-left-extent", "skull-bottom", "skull-right-extent", "skull-top"]
+
+[guides.face-outline]
+element = "path"
+closed = false
+passes_through = ["face-outline-left-top", "face-outline-left-at-eye-level", "face-outline-left-at-nose-level", "face-outline-left-at-mouth-level", "face-outline-left-jaw", "chin", "face-outline-right-jaw", "jaw-line-right-at-mouth-level", "jaw-line-right-at-nose-level", "jaw-line-right-at-eye-level", "jaw-line-right-top"]
+
+[guides.centre-line]
+element = "path"
+closed = false
+passes_through = ["skull-top", "skull-front", "centre-line-at-eye-level", "nose-mark-bottom", "mouth-line-centre", "chin"]
+
+[guides.eye-level-line]
+element = "line"
+passes_through = ["jaw-line-right-at-eye-level", "face-outline-left-at-eye-level"]
+
+[guides.nose-level-line]
+element = "line"
+passes_through = ["jaw-line-right-at-nose-level", "face-outline-left-at-nose-level"]
+
+[guides.mouth-level-line]
+element = "line"
+passes_through = ["jaw-line-right-at-mouth-level", "face-outline-left-at-mouth-level"]
+
+[guides.eye-opening-right]
+element = "path"
+closed = true
+passes_through = ["eye-right-outer-corner", "eye-right-opening-top", "eye-right-inner-corner", "eye-right-opening-bottom"]
+
+[guides.lid-line-right]
+element = "path"
+closed = false
+passes_through = ["lid-line-right-inner-end", "lid-line-right-crest", "lid-line-right-outer-end"]
+
+[guides.iris-right]
+element = "ellipse"
+centre = "iris-right-centre"
+rx = 19.203
+ry = 20.155
+passes_through = ["iris-right-inner-extent", "iris-right-bottom", "iris-right-outer-extent", "iris-right-top"]
+
+[guides.eye-opening-left]
+element = "path"
+closed = true
+passes_through = ["eye-left-outer-corner", "eye-left-opening-top", "eye-left-inner-corner", "eye-left-opening-bottom"]
+
+[guides.lid-line-left]
+element = "path"
+closed = false
+passes_through = ["lid-line-left-inner-end", "lid-line-left-crest", "lid-line-left-outer-end"]
+
+[guides.iris-left]
+element = "ellipse"
+centre = "iris-left-centre"
+rx = 19.203
+ry = 20.155
+passes_through = ["iris-left-outer-extent", "iris-left-bottom", "iris-left-inner-extent", "iris-left-top"]
+
+[guides.brow-line-right]
+element = "line"
+passes_through = ["brow-line-right-inner-end", "brow-line-right-outer-end"]
+
+[guides.brow-line-left]
+element = "line"
+passes_through = ["brow-line-left-inner-end", "brow-line-left-outer-end"]
+
+[guides.nose-mark]
+element = "polyline"
+passes_through = ["nose-mark-right-corner", "nose-mark-bottom", "nose-mark-left-corner"]
+
+[guides.mouth-line]
+element = "polyline"
+passes_through = ["mouth-line-right-end", "mouth-line-centre", "mouth-line-left-end"]
+
+[guides.ear-right]
+element = "path"
+closed = false
+passes_through = ["ear-right-base-outer", "ear-right-outer-extent", "ear-right-top", "ear-right-inner-extent", "ear-right-base-inner"]
+
+[guides.ear-left]
+element = "path"
+closed = false
+passes_through = ["ear-left-base-outer", "ear-left-outer-extent", "ear-left-top", "ear-left-inner-extent", "ear-left-base-inner"]
+
+[guides.neck-right]
+element = "line"
+passes_through = ["neck-right-top", "neck-right-base"]
+
+[guides.neck-left]
+element = "line"
+passes_through = ["neck-left-top", "neck-left-base"]
+
+[guides.shoulder-line]
+element = "line"
+passes_through = ["shoulder-right-point", "shoulder-left-point"]

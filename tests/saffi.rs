@@ -4,7 +4,8 @@
 //! The expected numbers below are worked by hand from the positions that
 //! `data/saffi/README.md`, `data/saffi/hand-made-views.toml` and
 //! `data/saffi/final-drawings.toml` give, not taken from the program.
-//! Nothing here says her armature looks right: that is Jon's look.
+//! Nothing here says her armature looks right: that is Jon's look. One test pins the
+//! bytes of the armature he accepted, and says only that it is still what the program draws.
 
 mod support;
 
@@ -14,9 +15,12 @@ const RECORD: &str = "data/saffi/hand-made-views.toml";
 /// Her final drawings' ears and lids, which replace her record's (Jon, 2026-11-16).
 const FINAL_RECORD: &str = "data/saffi/final-drawings.toml";
 const HER_PROPORTIONS: &str = "data/saffi/proportions.toml";
+/// The armature Jon accepted at look 3 (2026-11-17): the six files `maquette draw` wrote from
+/// her set of proportions at the default placement.
+const HER_ACCEPTED_ARMATURE: &str = "armatures/saffi";
 /// The share of the chin's full amount at which her set carries the named correction
-/// `lower_face_set_back`. It is the candidate put to Jon as the recommended one at look 3,
-/// and it is not accepted: his look settles the amount.
+/// `lower_face_set_back`. It was candidate A of look 3, and Jon accepted her armature with
+/// it. No rule gives the share: his look did.
 const SET_BACK_SHARE: &str = "0.5";
 
 /// The pinned turn of her three-quarter view.
@@ -373,6 +377,40 @@ fn her_proportions_draw_and_come_back() {
     assert_eq!(hers.len(), came_back.len());
     for (name, value) in &hers {
         assert_close(came_back[name], *value, 1e-4, name);
+    }
+}
+
+#[test]
+fn her_proportions_draw_the_armature_jon_accepted_byte_for_byte() {
+    // The one reference for an armature's bytes. Jon accepted these six files at look 3
+    // (2026-11-17), and the committed ones have the digests the record of his acceptance
+    // gives (`armatures/saffi/README.md`). This says the program still draws that armature,
+    // and nothing about whether it looks right.
+    let accepted = repository().join(HER_ACCEPTED_ARMATURE);
+    let drawn = draw("saffi-accepted-armature", HER_PROPORTIONS, &[]);
+    let files_in = |folder: &std::path::Path| -> std::collections::BTreeSet<String> {
+        std::fs::read_dir(folder)
+            .unwrap_or_else(|error| panic!("{}: {error}", folder.display()))
+            .map(|entry| entry.expect("a folder entry").file_name())
+            .map(|name| name.into_string().expect("the file name is text"))
+            .filter(|name| name != "README.md")
+            .collect()
+    };
+    assert_eq!(
+        files_in(&drawn),
+        files_in(&accepted),
+        "`maquette draw --proportions {HER_PROPORTIONS}` writes other files than {HER_ACCEPTED_ARMATURE}/ holds"
+    );
+    for file in files_in(&accepted) {
+        let (was_accepted, is_drawn) = (
+            std::fs::read(accepted.join(&file)).expect("the accepted file can be read"),
+            std::fs::read(drawn.join(&file)).expect("the drawn file can be read"),
+        );
+        assert!(
+            was_accepted == is_drawn,
+            "`maquette draw --proportions {HER_PROPORTIONS}` no longer writes {file} as Jon accepted it. Compare {} with {HER_ACCEPTED_ARMATURE}/{file}. If the change is meant, her armature has changed and needs his look again: do not write the accepted file again to make this pass.",
+            drawn.join(&file).display()
+        );
     }
 }
 

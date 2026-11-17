@@ -1,7 +1,8 @@
 //! The generator, through the command line: a set of proportions in, armature files out.
 //!
 //! The set of proportions used here is made up (`tests/fixtures/made-up-proportions.toml`).
-//! Nothing here pins the bytes of an armature: none is accepted yet.
+//! Nothing here pins the bytes of an armature: a made-up set has no accepted one.
+//! `tests/saffi.rs` pins Saffi's.
 
 mod support;
 
