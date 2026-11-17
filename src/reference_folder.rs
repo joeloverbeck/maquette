@@ -84,10 +84,14 @@ impl Folder {
             ))
         })?;
         if let Some(repository) = repository_holding(&root) {
+            let where_it_is = if repository == root {
+                "is a Git repository".to_string()
+            } else {
+                format!("is inside the Git repository `{}`", repository.display())
+            };
             return Err(Error::new(format!(
-                "the reference folder `{}`, which the environment variable {VARIABLE} names, is inside the Git repository `{}`, so nothing can be measured there. References are kept outside every repository, so that no image, reading or sheet can be committed: name a folder that is in no repository. {HOW}",
-                named.display(),
-                repository.display()
+                "the reference folder `{}`, which the environment variable {VARIABLE} names, {where_it_is}, so nothing can be measured there. References are kept outside every repository, so that no image, reading or sheet can be committed: name a folder that is in no repository. {HOW}",
+                named.display()
             )));
         }
         Ok(Folder { root })

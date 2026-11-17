@@ -412,7 +412,10 @@ fn a_path_that_leaves_the_reference_folder_is_refused() {
 fn a_reference_folder_inside_a_git_repository_is_refused() {
     let inside = scratch("readings-folder-in-a-repository");
     made_up_image(&inside.join("picture.png"), 800, 900);
-    for named in [support::repository(), inside.clone()] {
+    for (named, where_it_is) in [
+        (support::repository(), "is a Git repository"),
+        (inside.clone(), "is inside the Git repository"),
+    ] {
         let output = maquette_in(
             Some(&named),
             &[
@@ -429,7 +432,7 @@ fn a_reference_folder_inside_a_git_repository_is_refused() {
         );
         let message = failure(&output);
         assert!(
-            message.contains("inside the Git repository")
+            message.contains(where_it_is)
                 && message.contains("outside every repository")
                 && message.contains("MAQUETTE_REFERENCES"),
             "{}: {message}",
