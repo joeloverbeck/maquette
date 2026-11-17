@@ -9,6 +9,13 @@ repository = "https://github.com/joeloverbeck/maquette"
 publish = false
 
 [dependencies]
+# A reference check sheet is one SVG that holds its drawings, so that it stays whole when the
+# working copy of a reference is gone: each image is embedded in it as base64.
+base64 = "0.22"
+# Reads a reference image, to enlarge a small head before it is read and to fit the image on
+# a reference check sheet. PNG only: the drawings with known positions are PNG, and another
+# format is one feature of this crate when a reference first needs it.
+image = { version = "0.25", default-features = false, features = ["png"] }
 # Reads the SVG of a hand-made drawing: its groups and shapes. The generator writes its SVG
 # as text and parses none, so the tests that read its output with this crate still share no
 # code with what they check.
@@ -16,7 +23,8 @@ roxmltree = "0.21"
 # VectorCraft's MCP server speaks JSON: the read-back writes its requests and reads its
 # replies and recordings of them with this.
 serde_json = { version = "1.0", default-features = false, features = ["std"] }
-# A hand-made drawing is read only when its SHA-256 digest is the one recorded for it.
+# A hand-made drawing is read only when its SHA-256 digest is the one recorded for it, and
+# a reading records the digest of the image it was read from.
 sha2 = { version = "0.10", default-features = false }
 # Reads every text file a person edits or a consumer reads back: the list of proportions,
 # a set of proportions, a landmark file and the record of the hand-made views.

@@ -37,6 +37,9 @@ pub struct Proportion {
     pub what: String,
     pub front: String,
     pub three_quarter: String,
+    /// How a convention is built where nothing is drawn behind it. A measured proportion
+    /// has none.
+    pub rule: Option<String>,
 }
 
 /// The list of proportions with the statements that go with it.
@@ -105,12 +108,23 @@ fn parse_list(text: &str) -> Result<List> {
                 "the list of proportions names `{name}` twice"
             )));
         }
+        // A convention is built by a stated rule, and only a convention is.
+        let rule = match (kind, entry.contains_key("rule")) {
+            (Kind::Convention, _) => Some(text_of(entry, "rule", &context)?),
+            (Kind::Measured, false) => None,
+            (Kind::Measured, true) => {
+                return Err(Error::new(format!(
+                    "the list of proportions: {context} is measured and states a rule; only a convention is built by rule"
+                )));
+            }
+        };
         proportions.push(Proportion {
             kind,
             positive,
             what: text_of(entry, "what", &context)?,
             front: text_of(entry, "front", &context)?,
             three_quarter: text_of(entry, "three_quarter", &context)?,
+            rule,
             name,
         });
     }
@@ -246,6 +260,9 @@ impl List {
                 "  Three-quarter view: {}\n",
                 proportion.three_quarter
             ));
+            if let Some(rule) = &proportion.rule {
+                out.push_str(&format!("  By rule: {rule}\n"));
+            }
         }
         out
     }
