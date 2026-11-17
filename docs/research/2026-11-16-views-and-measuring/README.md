@@ -8,6 +8,7 @@ Reference-only evidence gathered while the first increment was being reoriented 
 | `notes/lawful_multiview_references.md` | Where rights holders publish character model sheets, which views they show, what their terms say, and how to tell a level head from a tilted one |
 | `notes/measuring_drawings_without_detectors.md` | How published studies measured drawn faces by hand, how accurately multimodal models place points, how people check proposed points, and what small samples support |
 | `notes/agent_reading_accuracy_test.md` | A test of an agent reading points off five drawings whose true positions are known |
+| `notes/measuring_path_dry_run.md` | Added 2026-11-17 for ticket #8: what the measuring commands gave where the answer is known, on made-up heads, on Saffi's recorded positions and on readings of pictures of her hand-made drawings, and how close the skull rule comes to her drawn circle |
 
 ## How to read it
 

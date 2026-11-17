@@ -5,8 +5,10 @@
 # checked against it. Nothing else repeats a definition.
 #
 # It is the first list: what Saffi's front view and three-quarter view need, and how the side
-# view is drawn from the same proportions. How a proportion is taken from a side drawing is not
-# stated yet: the reading of published references is a later ticket, and it revises this list.
+# view is drawn from the same proportions. A convention states the rule that builds it where
+# nothing is drawn: the skull's three, since a published drawing shows no skull.
+# How a proportion is taken from a side drawing is not stated yet. The reading instructions say
+# what a reader places in a side view; the first side drawing that is read revises this list.
 
 [unit]
 name = "eye line to chin"
