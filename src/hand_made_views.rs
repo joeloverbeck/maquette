@@ -242,7 +242,7 @@ impl<'a> RecordFile<'a> {
         let sha256 = section
             .get("sha256")
             .and_then(toml::Value::as_str)
-            .ok_or_else(|| self.fault(format!("'s [views.{view}] has no sha256")))?
+            .ok_or_else(|| self.fault(format!(" has no sha256 in [views.{view}]")))?
             .to_string();
         let landmarks = section
             .get("landmarks")
@@ -284,7 +284,9 @@ fn read_view(
             match entry.get(key) {
                 Some(toml::Value::Float(number)) => Ok(*number),
                 Some(toml::Value::Integer(number)) => Ok(*number as f64),
-                _ => Err(file.fault(format!("'s {view} view gives `{name}` no number `{key}`"))),
+                _ => Err(file.fault(format!(
+                    " gives `{name}` no number `{key}` in its {view} view"
+                ))),
             }
         };
         let covered_by_head = entry

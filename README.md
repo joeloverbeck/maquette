@@ -94,7 +94,7 @@ cargo run -- record-hand-made-drawings \
   --out <a folder>
 ```
 
-`list-drawing` prints what any hand-made drawing holds: every group, and every shape under its address, with its nodes numbered in path order and how far it reaches. It is what a reading of a new drawing is written from, in place of searching the file by hand. A drawing is read as written: one that moves its coordinates with a transform, or draws a path with anything but the absolute `M`, `L`, `C` and `Z`, is refused.
+`list-drawing` prints what any hand-made drawing holds: every group, and every shape under its address, with its nodes numbered in path order and how far it reaches. It is what a reading of a new drawing is written from, in place of searching the file by hand. A drawing is read as written: one that moves its coordinates with a transform, draws a path with anything but the absolute `M`, `L`, `C` and `Z`, or draws on after `Z` without a new `M`, is refused. A shape is listed as filled or not as SVG has it: by its own `fill`, in its `style` or as an attribute, or else by its group's.
 
 `record-hand-made-drawings` reads Saffi's four hand-made drawings and writes the three records of them in `data/saffi/`. The drawings are private and no clean clone has them: [`data/saffi/README.md`](data/saffi/README.md) lists each with its digest and where it is kept. Each is read only when its SHA-256 digest is the recorded one. Where a folder or a drawing is absent, or a digest differs, the command says so and writes nothing, and the committed numbers stand as recorded. Nothing else in the repository needs the drawings.
 

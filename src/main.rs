@@ -76,8 +76,9 @@ Usage:
       List what a hand-made drawing holds: every group, and every shape under its address
       (the id of its group, a slash, and its name), with its nodes numbered in path order
       and how far it reaches. This is what a reading of a new drawing is written from. A
-      drawing is read as written: one that moves its coordinates with a transform, or
-      draws a path with anything but the absolute M, L, C and Z, is refused.
+      drawing is read as written: one that moves its coordinates with a transform, draws
+      a path with anything but the absolute M, L, C and Z, or draws on after Z without a
+      new M, is refused.
 
   maquette record-hand-made-drawings --underdrawings <folder> --final-drawings <folder>
                                      --out <folder>
