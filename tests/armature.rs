@@ -88,7 +88,7 @@ fn groups_of(view: &str) -> BTreeSet<&'static str> {
 /// support 27.9 to 29.4 (`data/saffi/views-compared.toml`).
 const TURN_DEGREES: f64 = 29.0;
 
-/// The side view is the same turn carried to a full profile.
+/// The side view is the same turn carried to 90 degrees.
 const SIDE_TURN_DEGREES: f64 = 90.0;
 
 /// The sine and the cosine of a view's turn. The front and the side view are exact.

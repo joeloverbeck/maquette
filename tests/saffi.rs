@@ -61,7 +61,8 @@ fn her_set_of_proportions_is_what_the_command_writes_from_her_records() {
 #[test]
 fn her_side_view_draws_the_chin_and_the_mouth_where_her_correction_puts_them() {
     // Her set carries the named correction at the share her file records. Nothing here says
-    // the amount is right: no drawing of hers has a side view, and that is Jon's look.
+    // the amount is right: no drawing of hers has a side view, so that was Jon's look, and at
+    // look 3 he accepted her armature with this amount.
     let folder = draw("saffi-side-set-back", HER_PROPORTIONS, &[]);
     let side = support::LandmarkFile::read(&folder.join("side.landmarks.toml"));
     let share: f64 = SET_BACK_SHARE.parse().expect("a number");

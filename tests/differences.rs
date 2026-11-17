@@ -658,8 +658,9 @@ fn a_fault_in_a_record_is_reported_under_the_path_of_the_record_it_is_in() {
     }
 }
 
-// Saffi. Nothing below says her list is short, long or empty, and nothing pins its length:
-// what moves after Jon's look moves the list with it.
+// Saffi. Nothing below says her list is short, long or empty, and nothing pins its length.
+// Jon accepted her armature at look 3 and `tests/saffi.rs` pins its bytes; the list is not
+// part of what he accepted, and it moves with anything a later look moves.
 
 const HER_RECORD: &str = "data/saffi/hand-made-views.toml";
 /// Her final drawings' ears and lids, which replace her record's (Jon, 2026-11-16).

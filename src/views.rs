@@ -23,7 +23,7 @@ use crate::{Error, Result};
 /// one by one support 27.9 to 29.4 degrees. This is the only place the turn is written.
 pub const THREE_QUARTER_TURN_DEGREES: f64 = 29.0;
 
-/// How far the side view is turned: the three-quarter view's turn carried to a full profile.
+/// How far the side view is turned: the three-quarter view's turn carried to 90 degrees.
 pub const SIDE_TURN_DEGREES: f64 = 90.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
