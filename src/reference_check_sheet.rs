@@ -193,6 +193,18 @@ fn line(x: f64, top: f64, size: f64, weight: u32, fill: &str, text: &str) -> Str
     )
 }
 
+/// Text cut to the room it has on one line, with a mark that it was cut. No font is
+/// measured: a character is taken as 0.46 of the text's size across, which is near what the
+/// sheet's typeface gives at these sizes.
+fn fitted(text: &str, size: f64, room: f64) -> String {
+    let most = (room / (size * 0.46)) as usize;
+    if text.chars().count() <= most {
+        return text.to_string();
+    }
+    let kept: String = text.chars().take(most.saturating_sub(1)).collect();
+    format!("{}…", kept.trim_end())
+}
+
 /// Text broken into lines of at most `width` characters, at spaces.
 fn wrapped(text: &str, width: usize) -> Vec<String> {
     let mut lines: Vec<String> = Vec::new();
@@ -363,8 +375,22 @@ pub fn render(
             field("work"),
             field("designer")
         );
-        body.push_str(&line(MARGIN, top, 36.0, 600, INK, &heading));
-        body.push_str(&line(MARGIN, top + 52.0, 28.0, 400, fit_colour, &fit_text));
+        body.push_str(&line(
+            MARGIN,
+            top,
+            36.0,
+            600,
+            INK,
+            &fitted(&heading, 36.0, 2260.0),
+        ));
+        body.push_str(&line(
+            MARGIN,
+            top + 52.0,
+            28.0,
+            400,
+            fit_colour,
+            &fitted(&fit_text, 28.0, 3040.0),
+        ));
         for (x, text) in [
             (2400.0, "Accept"),
             (2700.0, "Reject"),
@@ -417,7 +443,7 @@ pub fn render(
         28.0,
         400,
         INK,
-        &description.decision,
+        &fitted(&description.decision, 28.0, 2960.0),
     ));
     body.push_str(&line(
         MARGIN + 36.0,
@@ -462,7 +488,7 @@ pub fn render(
         30.0,
         400,
         SECONDARY,
-        &description.note,
+        &fitted(&description.note, 30.0, 3040.0),
     ));
     out.push_str(&line(MARGIN, 170.0, 24.0, 400, SECONDARY, MEASURED_AGAINST));
     out.push_str(&line(MARGIN, 202.0, 24.0, 400, SECONDARY, LEGEND));
@@ -617,9 +643,9 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
                         "Two readings agree to {}% of head height at worst; {}",
                         plain(largest, 2),
                         match agreement.above.len() {
-                            0 => "no point is more than 1% apart".to_string(),
-                            1 => "1 point is more than 1% apart".to_string(),
-                            count => format!("{count} points are more than 1% apart"),
+                            0 => "no point is over 1% apart".to_string(),
+                            1 => "1 point is over 1% apart".to_string(),
+                            count => format!("{count} points are over 1% apart"),
                         }
                     ),
                     None => "The two readings place no point in common".to_string(),
@@ -694,8 +720,22 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
                         .unwrap_or("the viewer's right")
                 ),
             };
-            svg.push_str(&line(PADDING, 792.0, 30.0, 600, INK, &judgement));
-            svg.push_str(&line(PADDING, 840.0, 24.0, 400, SECONDARY, &agreement_line));
+            svg.push_str(&line(
+                PADDING,
+                792.0,
+                30.0,
+                600,
+                INK,
+                &fitted(&judgement, 30.0, 936.0),
+            ));
+            svg.push_str(&line(
+                PADDING,
+                840.0,
+                24.0,
+                400,
+                SECONDARY,
+                &fitted(&agreement_line, 24.0, 936.0),
+            ));
         }
         Some(why) => {
             // The mock-up's pill, with its label inside it.
@@ -720,9 +760,13 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
         24.0,
         400,
         SECONDARY,
-        &format!(
-            "Source: {}",
-            first.reference.get("source").cloned().unwrap_or_default()
+        &fitted(
+            &format!(
+                "Source: {}",
+                first.reference.get("source").cloned().unwrap_or_default()
+            ),
+            24.0,
+            936.0,
         ),
     ));
     let readers: Vec<&str> = records
@@ -735,7 +779,7 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
         24.0,
         400,
         SECONDARY,
-        &format!("Read by {}", readers.join(" and ")),
+        &fitted(&format!("Read by {}", readers.join(" and ")), 24.0, 936.0),
     ));
 
     // Under the card: each reader's reasons, which are what Jon checks.

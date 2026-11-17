@@ -46,10 +46,10 @@ fn folder(name: &str) -> PathBuf {
         made_up_image(&folder.join("pictures").join(picture), width, 1000);
     }
     let front = seen(0.0, 500.0);
-    // The second reader puts one mouth end 3 across and 4 down: 5 pixels, 1.042% of the head
+    // The second reader puts the nose mark's bottom 3 across and 4 down: 5 pixels, 1.042% of the head
     // height of 480, and does not place one ear.
     let mut second = front.clone();
-    let at = second.get_mut("mouth-line-left-end").expect("in the head");
+    let at = second.get_mut("nose-mark-bottom").expect("in the head");
     *at = [at[0] + 3.0, at[1] + 4.0];
     second.remove("ear-right-top");
     reading(
@@ -167,7 +167,7 @@ fn a_sheet_shows_each_characters_views_with_the_points_read_and_what_was_set_asi
         "{all}"
     );
     assert!(said("No side view of this character was read"), "{all}");
-    // The front view is the midpoint of its two readings, so its left mouth end stands 2
+    // The front view is the midpoint of its two readings, so the bottom of its nose mark stands 2
     // pixels lower than the three-quarter view shows it: 2 / 480 = 0.417% of head height,
     // which is the largest misfit.
     assert!(
@@ -176,10 +176,10 @@ fn a_sheet_shows_each_characters_views_with_the_points_read_and_what_was_set_asi
     );
     // The two front readings are 1.042% apart at one point, which is numbered and listed.
     assert!(
-        said("Two readings agree to 1.04% of head height at worst; 1 point is more than 1% apart"),
+        said("Two readings agree to 1.04% of head height at worst; 1 point is over 1% apart"),
         "{all}"
     );
-    assert!(said("mouth-line-left-end") && said("1.04%"), "{all}");
+    assert!(said("nose-mark-bottom") && said("1.04%"), "{all}");
     assert!(said("Placed by one reader only: ear-right-top"), "{all}");
     assert!(
         said("Two readings agree to 0% of head height at worst"),
@@ -255,9 +255,9 @@ fn a_sheet_shows_each_characters_views_with_the_points_read_and_what_was_set_asi
             .any(|dot| dot.0 == 500.0 && dot.1 == 600.0 && dot.2 == "agreed"),
         "{dots:?}"
     );
-    // The mouth end the readers disagree on: at 528, 540 and at 531, 544.
-    assert!(dots.contains(&(528.0, 540.0, "apart")), "{dots:?}");
-    assert!(dots.contains(&(531.0, 544.0, "apart")), "{dots:?}");
+    // The nose mark's bottom, which the readers disagree on: at 500, 490 and at 503, 494.
+    assert!(dots.contains(&(500.0, 490.0, "apart")), "{dots:?}");
+    assert!(dots.contains(&(503.0, 494.0, "apart")), "{dots:?}");
     // No points are drawn on a drawing that is set aside.
     let aside = pictures[3].parent().expect("the drawing's frame");
     assert_eq!(

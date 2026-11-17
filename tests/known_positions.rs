@@ -349,3 +349,146 @@ fn two_sets_of_proportions_are_set_against_each_other() {
     assert_eq!(texts(&found["only_in_second"]), ["chin_depth"]);
     assert!(texts(&found["only_in_first"]).is_empty());
 }
+
+/// Writes a record's own positions as a reading of each view, over a made-up grey picture.
+fn record_as_readings(folder: &Path, record: &str) {
+    for (view, picture, width) in [
+        ("front", "front.png", 1000),
+        ("three-quarter", "turned.png", 1001),
+    ] {
+        support::made_up_image(&folder.join(picture), width, 1000);
+        measure_ok(
+            folder,
+            &[
+                "known-positions-as-reading",
+                "--known-positions",
+                record,
+                "--view",
+                view,
+                "--image",
+                picture,
+                "--out",
+                &format!("{view}.toml"),
+            ],
+        );
+    }
+}
+
+#[test]
+fn a_records_own_positions_written_as_a_reading_score_nothing_off() {
+    let folder = scratch("known-positions-as-reading");
+    record_as_readings(&folder, KNOWN);
+    let written = text(&folder.join("front.toml"));
+    assert!(written.contains("Not a reading"), "{written}");
+    // What the hair covers in the made-up record is stated as not seen, with what covers it.
+    assert!(
+        written.contains("face-outline-left-top = \"covered in the drawing by head/hair_front\""),
+        "{written}"
+    );
+    let found = scored(&folder, "front.toml", "front-score.toml");
+    // The made-up record's front view gives 19 landmarks a reader is asked for, one of them
+    // under the hair. The band of its one brow end is read as its middle.
+    assert_eq!(found["summary"]["scored"].as_integer(), Some(18));
+    assert_close(
+        number(&found["summary"]["worst_percent_of_head_height"]),
+        0.0,
+        1e-9,
+        "the worst",
+    );
+    assert!(entries(&found, "placed_though_covered").is_empty());
+    assert_eq!(
+        texts(&found["not_seen"]["and_covered_in_the_drawing"]),
+        ["face-outline-left-top"]
+    );
+}
+
+#[test]
+fn saffis_record_under_a_readers_names_gives_back_her_turn_and_her_heights() {
+    // Saffi's hand-made views are on record as numbers, so the measuring commands can be run
+    // on them with no drawing and no reader: this is what they make of exact positions. Her
+    // S2 underdrawings alone are used, because those are the drawings a reader is shown.
+    let record = "data/saffi/hand-made-views.toml";
+    let folder = scratch("known-positions-saffi");
+    record_as_readings(&folder, record);
+    let read = |command: &str, out: &str| -> toml::Table {
+        measure_ok(
+            &folder,
+            &[
+                command,
+                "--front",
+                "front.toml",
+                "--three-quarter",
+                "three-quarter.toml",
+                "--out",
+                out,
+            ],
+        );
+        text(&folder.join(out)).parse().expect("TOML")
+    };
+
+    // The record gives the turn as 28.96 degrees over 18 pairs under its own names, 27.85
+    // over the 15 with no covered point, and calls it known to about a degree. Under a
+    // reader's names fewer pairs are counted, and the turn must still be that turn.
+    let recorded: toml::Table = text(&support::repository().join("data/saffi/views-compared.toml"))
+        .parse()
+        .expect("TOML");
+    let turn = read("turn-from-readings", "turn.toml");
+    let degrees = number(&turn["turn"]["degrees"]);
+    assert!(
+        (degrees - number(&recorded["turn"]["degrees"])).abs() < 1.0
+            && (degrees - number(&recorded["turn"]["uncovered_degrees"])).abs() < 1.0,
+        "the turn is {degrees}"
+    );
+
+    // Her S2 proportions, as the head model takes them from the record at the pinned turn.
+    let s2 = folder.join("s2-proportions.toml");
+    maquette_ok(&[
+        "proportions-from-hand-made-views",
+        "--record",
+        record,
+        "--out",
+        s2.to_str().expect("text"),
+    ]);
+    read("proportions-from-readings", "proportions.toml");
+    let printed = maquette_ok(&[
+        "compare-proportions",
+        "--first",
+        folder.join("proportions.toml").to_str().expect("text"),
+        "--second",
+        s2.to_str().expect("text"),
+    ]);
+    let compared: toml::Table = printed.parse().expect("TOML");
+    // A height does not depend on the turn, so every height both give is the same.
+    let heights = &compared["summary"]["heights"];
+    assert!(heights["compared"].as_integer().expect("a count") >= 20);
+    assert_close(
+        number(&heights["largest_percent_of_head_height"]),
+        0.0,
+        1e-9,
+        "the heights",
+    );
+    // A width is taken through the cosine of the turn and a depth through its sine, so the
+    // degree between the two turns shows there, and a depth carries about twice as much.
+    assert!(number(&compared["summary"]["widths"]["largest_percent_of_head_height"]) < 0.5);
+    assert!(number(&compared["summary"]["depths"]["largest_percent_of_head_height"]) < 1.5);
+    // What a reader cannot be asked for is not given: the skull, which is not read and
+    // which the rule cannot build because the hair covers both temples of her front view.
+    let only_recorded = texts(&compared["only_in_second"]);
+    for name in [
+        "skull_radius",
+        "skull_centre_rise",
+        "skull_centre_depth",
+        "face_top_half_width",
+    ] {
+        assert!(
+            only_recorded.contains(&name.to_string()),
+            "{only_recorded:?}"
+        );
+    }
+    assert!(texts(&compared["only_in_first"]).is_empty());
+
+    // The fit is reported, and it is not zero: her two drawings are not one head exactly.
+    let fit = read("fit-of-views", "fit.toml");
+    let percent = number(&fit["fit"]["percent_of_head_height"]);
+    assert!(percent > 0.0 && percent < 3.0, "the fit is {percent}");
+}

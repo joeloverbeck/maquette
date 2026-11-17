@@ -81,6 +81,17 @@ const MEASURING: &[&[&str]] = &[
         "tests/fixtures/differences/made-up-hand-made-views.toml",
     ],
     &[
+        "known-positions-as-reading",
+        "--known-positions",
+        "tests/fixtures/differences/made-up-hand-made-views.toml",
+        "--view",
+        "front",
+        "--image",
+        "front.png",
+        "--out",
+        "front.toml",
+    ],
+    &[
         "reference-check-sheet",
         "--sheet",
         "sheet.toml",

@@ -106,6 +106,88 @@ Usage:
       The spoiled copies are made in a temporary folder and removed. Each line and what was
       found is printed. --record writes VectorCraft's replies for the view and for each
       spoiled copy into a folder. Exit status as for read-back.
+
+  maquette skull-by-rule --proportions <file>
+      Run the rule that builds the skull where nothing is drawn on a set of proportions,
+      and set what it builds against the set's own skull, part by part: the centre's height,
+      its depth, and the radius. It tests the rule on a head whose skull is drawn.
+
+  maquette compare-proportions --first <file> --second <file>
+      Set two files of proportions against each other, proportion by proportion: each
+      difference in units and as a share of head height, with the heights, the widths, the
+      depths and the conventions summed up apart. A file that lacks some proportions is
+      compared in the ones it has.
+
+  maquette reading-instructions
+      Print the reading instructions: what a reader judges and places on a drawing.
+
+Measuring. The commands below read and write in the reference folder, the one folder
+outside the repository that holds reference images, readings and reference check sheets.
+The environment variable MAQUETTE_REFERENCES names it. Every path given to them is taken
+from that folder, and one that leaves it is refused; with no folder they stop and say so.
+Where a view is asked for, <readings> is one reading, or the two readings of the drawing
+with a comma between them: a landmark then stands midway between the two.
+
+  maquette start-reading --image <picture> --view front|three-quarter|side
+                         [--faces right|left] --reader <label> --out <reading>
+      Start a reading of a picture: a file with the picture's SHA-256 digest and size, the
+      questions of the judgement, and a line for every landmark the view asks for.
+      --faces is for a turned view: which way the head faces, from the viewer's side.
+
+  maquette check-reading --reading <reading>
+      Say what a reading lacks or gets wrong: an unanswered judgement, a landmark neither
+      placed nor stated as not seen, a position outside the picture, a pair whose names
+      may be exchanged, a picture that has changed. Exit status 0 when it is complete, 1
+      when it is not.
+
+  maquette enlarge-image --image <picture> --left <x> --top <y> --width <w> --height <h>
+                         --factor <n> [--grid <step>] --out <picture>
+      Enlarge a part of a picture a whole number of times, each pixel as a block. --grid
+      draws a line every so many pixels of the picture and labels it with its position in
+      the picture. An enlargement with an edge above 1568 pixels is refused: an agent is
+      shown it resized.
+
+  maquette agreement-of-readings --first <reading> --second <reading> [--out <file>]
+      Set two readings of one drawing against each other: for every landmark both place,
+      how far apart they put it as a share of head height, with every disagreement above 1%
+      numbered, the landmarks only one places, and what the readers judge differently.
+
+  maquette turn-from-readings --front <readings> --three-quarter <readings> [--out <file>]
+      Work out the turn a three-quarter drawing shows, from how far the spacing of its left
+      and right pairs narrows against the front view of the same character. Each pair's own
+      turn and misfit is listed, and the readers' own estimates beside it.
+
+  maquette fit-of-views --front <readings> --three-quarter <readings> [--side <readings>]
+                        [--out <file>]
+      Say, as one figure, how far a character's views are from being drawings of one level,
+      symmetric head: the largest misfit in level, in spacing against the turn, and from the
+      front view's centre line, as a share of head height. A side view is compared in height.
+
+  maquette proportions-from-readings --front <readings> --three-quarter <readings>
+                                     [--out <file>]
+      Take a character's readings back into proportions, at the turn the readings show.
+      The skull is built by rule from the ears and the temples. The proportions the
+      readings do not give are listed with the reason; when all are given, the file is a
+      set of proportions that `maquette draw` reads.
+
+  maquette score-reading --reading <reading> --known-positions <record> [--out <file>]
+      Score a reading against a drawing whose true positions are on record, such as
+      data/saffi/hand-made-views.toml: the reader's error as a share of head height, by
+      kind of landmark, with what cannot be seen in the picture kept apart. The record is
+      read from where it is named.
+
+  maquette known-positions-as-reading --known-positions <record> --view front|three-quarter
+                                      --image <picture> --out <reading>
+      Write a record's own positions as a reading of the picture: what a reader who placed
+      every visible point exactly would write. It is not a reading. The measuring commands
+      run on it show what they make of exact positions.
+
+  maquette reference-check-sheet --sheet <description> --out <svg>
+      Render a reference check sheet from a description: a TOML file with a `note`, a `look`
+      (which of Jon's looks it is, or that none is asked) and, for each row, a
+      [[character]] with a `label` and the `readings` of its drawings. Each character's
+      views stand side by side with the points read, what was set aside and why, and the
+      fit. The sheet is one SVG that holds its drawings, and stays in the reference folder.
 ";
 
 /// How a command ended, when nothing went wrong in running it.
@@ -180,6 +262,7 @@ fn run(arguments: &[String]) -> Result<Ended> {
         "fit-of-views" => fit_of_views(rest)?,
         "proportions-from-readings" => proportions_from_readings(rest)?,
         "score-reading" => score_reading(rest)?,
+        "known-positions-as-reading" => known_positions_as_reading(rest)?,
         "reference-check-sheet" => reference_check_sheet(rest)?,
         "compare-proportions" => compare_proportions(rest)?,
         "read-back" => return read_back_command(rest),
@@ -685,6 +768,33 @@ fn score_reading(arguments: &[String]) -> Result<()> {
     let record = required(&found, "--known-positions")?;
     let score = known_positions::score(path, &reading(&folder, path)?, record, &read(record)?)?;
     deliver_measured(&folder, &found, &score.file(), &score.summary())
+}
+
+fn known_positions_as_reading(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(
+        arguments,
+        &["--known-positions", "--view", "--image", "--out"],
+    )?;
+    let record = required(&found, "--known-positions")?;
+    let view = readings::view_named(required(&found, "--view")?)?;
+    let image = required(&found, "--image")?;
+    let out = required(&found, "--out")?;
+    let bytes = folder.read(image)?;
+    let (width, height) =
+        readings::picture_size(&bytes).map_err(|error| Error::new(format!("{image}: {error}")))?;
+    let picture = readings::Picture {
+        file: folder.name_of(&folder.path(image)?),
+        sha256: readings::sha256_hex(&bytes),
+        width: f64::from(width),
+        height: f64::from(height),
+    };
+    let text = known_positions::as_reading(record, &read(record)?, view, &picture)?;
+    folder.write(out, text.as_bytes())?;
+    println!(
+        "Wrote the record's positions for the {} view as a reading in `{out}`. It is not a reading: nobody read it from a picture.",
+        view.name()
+    );
+    Ok(())
 }
 
 fn compare_proportions(arguments: &[String]) -> Result<()> {

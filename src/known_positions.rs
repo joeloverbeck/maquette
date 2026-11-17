@@ -14,7 +14,8 @@
 use std::collections::BTreeMap;
 
 use crate::differences::THRESHOLD_PERCENT;
-use crate::hand_made_views::{self, Marks, Provenance, marks};
+use crate::hand_made_views::{self, Marks, Provenance};
+use crate::measuring::compared_in;
 use crate::number::toml as toml_number;
 use crate::proportions::{self, Kind};
 use crate::readings::{Faces, Record};
@@ -34,7 +35,7 @@ pub const RULES: &[(&str, &str)] = &[
     ),
     (
         "one_direction",
-        "The top and the bottom of an iris and the hair's top are scored in height only, a side extent of the hair or an iris sideways only, and a crossing of the face outline with a level sideways only: the record takes a crossing at the height of the drawn level line. Every other landmark is scored by the straight distance.",
+        "The top and the bottom of an iris and the hair's top are scored in height only, a side extent of the hair, an iris or an ear sideways only, and a crossing of the face outline with a level sideways only: the record takes a crossing at the height of the drawn level line. Every other landmark is scored by the straight distance.",
     ),
     (
         "yardstick",
@@ -135,6 +136,171 @@ fn known_name(view: View, landmark: &str) -> String {
     }
 }
 
+/// One view of a record of known positions.
+struct Known {
+    view: View,
+    what: String,
+    sha256: String,
+    /// Hair top to chin, in the record's units.
+    head_height: f64,
+    points: BTreeMap<String, [f64; 2]>,
+    provenance: Provenance,
+    covers: BTreeMap<String, Vec<String>>,
+}
+
+impl Known {
+    fn read(record_path: &str, record_text: &str, view: View) -> Result<Known> {
+        let hand_made = hand_made_views::read(record_text, None)
+            .map_err(|error| Error::new(format!("{record_path}: {error}")))?;
+        let table: toml::Table = record_text
+            .parse()
+            .map_err(|error| Error::new(format!("{record_path}: not valid TOML: {error}")))?;
+        let (known, provenance, sha256) = match view {
+            View::Front => (
+                hand_made.front,
+                hand_made.front_record,
+                hand_made.front_sha256,
+            ),
+            View::ThreeQuarter => (
+                hand_made.three_quarter,
+                hand_made.three_quarter_record,
+                hand_made.three_quarter_sha256,
+            ),
+            View::Side => {
+                return Err(Error::new(
+                    "no hand-made side view exists, so a side view has no known positions",
+                ));
+            }
+        };
+        let head_height = match (known.points.get("chin"), known.points.get("hair-top")) {
+            (Some(chin), Some(hair_top)) if chin[1] > hair_top[1] => chin[1] - hair_top[1],
+            _ => {
+                return Err(Error::new(format!(
+                    "{record_path}: the record's {} view has no hair top above a chin, so there is no head height",
+                    view.name()
+                )));
+            }
+        };
+        Ok(Known {
+            view,
+            what: hand_made.what,
+            sha256,
+            head_height,
+            points: known.points,
+            provenance,
+            covers: covers(&table, view),
+        })
+    }
+
+    /// A landmark's known position, under a reader's name for it, and the shapes that cover
+    /// it in the drawing.
+    fn at(&self, landmark: &str) -> Option<([f64; 2], Vec<String>)> {
+        let name = known_name(self.view, landmark);
+        let at = self
+            .points
+            .get(&name)
+            .or_else(|| self.provenance.covered_by_head.get(&name))?;
+        let mut under: Vec<String> = self
+            .provenance
+            .read_from
+            .get(&name)
+            .into_iter()
+            .flatten()
+            .flat_map(|recorded| self.covers.get(recorded).cloned().unwrap_or_default())
+            .collect();
+        under.sort();
+        under.dedup();
+        Some((*at, under))
+    }
+}
+
+/// The record's own positions written as a reading: every landmark a reader is asked for
+/// that the record gives and nothing covers, placed where the record puts it, and the rest
+/// stated as not seen. It is not a reading. It is what a reader who placed every visible
+/// point exactly would write, so that what the measuring commands make of it can be told
+/// from what a reader's error adds.
+pub fn as_reading(
+    record_path: &str,
+    record_text: &str,
+    view: View,
+    picture: &crate::readings::Picture,
+) -> Result<String> {
+    let known = Known::read(record_path, record_text, view)?;
+    let faces = (view != View::Front).then_some(Faces::ViewersRight);
+    let said = "the record's, not a reader's";
+    let mut out = String::from(
+        "\
+# Not a reading: the positions of a record of known positions, written as a reading by
+# `maquette known-positions-as-reading`. Nobody read them from a picture. It shows what the
+# measuring commands make of exact positions under a reader's names.
+",
+    );
+    out.push_str(&format!(
+        "instructions = {}\n",
+        quoted(crate::readings::instructions_revision()?)
+    ));
+    out.push_str(&format!(
+        "\n[reader]\nname = \"the record of known positions\"\naids = {}\n",
+        quoted(&format!("none: copied from {record_path}"))
+    ));
+    out.push_str("\n[image]\n");
+    out.push_str(&format!("file = {}\n", quoted(&picture.file)));
+    out.push_str(&format!("sha256 = {}\n", quoted(&picture.sha256)));
+    out.push_str(&format!(
+        "width = {}\nheight = {}\n",
+        picture.width, picture.height
+    ));
+    out.push_str("\n[reference]\n");
+    out.push_str(&format!("work = {}\n", quoted(&known.what)));
+    for field in ["designer", "source", "age_band", "sex", "species", "manner"] {
+        out.push_str(&format!("{field} = {}\n", quoted(said)));
+    }
+    out.push_str("\n[judgement]\n");
+    out.push_str(&format!("view = {}\n", quoted(view.name())));
+    out.push_str(&format!("view_why = {}\n", quoted(said)));
+    if let Some(faces) = faces {
+        out.push_str(&format!("faces = {}\n", quoted(faces.words())));
+        out.push_str(&format!("turn_why = {}\n", quoted(said)));
+    }
+    out.push_str(&format!(
+        "turn_degrees = {}\n",
+        toml_number(view.turn_degrees(), 3)
+    ));
+    out.push_str(&format!(
+        "level = true\nlevel_why = {}\nset_aside = false\nset_aside_why = \"\"\n",
+        quoted(said)
+    ));
+    let mut not_seen = String::new();
+    out.push_str("\n[landmarks]\n");
+    for asked in crate::readings::asked(view, faces) {
+        match known.at(&asked.name) {
+            Some((at, under)) if under.is_empty() => {
+                out.push_str(&format!(
+                    "{} = {{ x = {}, y = {} }}\n",
+                    asked.name,
+                    toml_number(at[0], 3),
+                    toml_number(at[1], 3)
+                ));
+            }
+            Some((_, under)) => not_seen.push_str(&format!(
+                "{} = {}\n",
+                asked.name,
+                quoted(&format!(
+                    "covered in the drawing by {}",
+                    under.join(" and ")
+                ))
+            )),
+            None => not_seen.push_str(&format!(
+                "{} = \"the record gives no position\"\n",
+                asked.name
+            )),
+        }
+    }
+    out.push_str("\n[not_seen]\n");
+    out.push_str(&not_seen);
+    Ok(out)
+}
+
 /// Scores a reading against the record of a drawing with known positions.
 pub fn score(
     reading_path: &str,
@@ -147,57 +313,9 @@ pub fn score(
             "the reading is of a head that faces the viewer's left, and a record of hand-made views is of a head that faces the viewer's right",
         ));
     }
-    let hand_made = hand_made_views::read(record_text, None)
-        .map_err(|error| Error::new(format!("{record_path}: {error}")))?;
-    let table: toml::Table = record_text
-        .parse()
-        .map_err(|error| Error::new(format!("{record_path}: not valid TOML: {error}")))?;
-    let (known, provenance, sha256): (_, &Provenance, _) = match reading.view {
-        View::Front => (
-            &hand_made.front,
-            &hand_made.front_record,
-            &hand_made.front_sha256,
-        ),
-        View::ThreeQuarter => (
-            &hand_made.three_quarter,
-            &hand_made.three_quarter_record,
-            &hand_made.three_quarter_sha256,
-        ),
-        View::Side => {
-            return Err(Error::new(
-                "no hand-made side view exists, so a side reading has no known positions to be scored against",
-            ));
-        }
-    };
-    let covers = covers(&table, reading.view);
-    let head_height = match (known.points.get("chin"), known.points.get("hair-top")) {
-        (Some(chin), Some(hair_top)) if chin[1] > hair_top[1] => chin[1] - hair_top[1],
-        _ => {
-            return Err(Error::new(format!(
-                "{record_path}: the record's {} view has no hair top above a chin, so there is no head height",
-                reading.view.name()
-            )));
-        }
-    };
-
-    // A landmark's known position, and the shapes that cover it in the drawing.
-    let known_at = |landmark: &str| -> Option<([f64; 2], Vec<String>)> {
-        let name = known_name(reading.view, landmark);
-        let at = known
-            .points
-            .get(&name)
-            .or_else(|| provenance.covered_by_head.get(&name))?;
-        let mut under: Vec<String> = provenance
-            .read_from
-            .get(&name)
-            .into_iter()
-            .flatten()
-            .flat_map(|recorded| covers.get(recorded).cloned().unwrap_or_default())
-            .collect();
-        under.sort();
-        under.dedup();
-        Some((*at, under))
-    };
+    let known = Known::read(record_path, record_text, reading.view)?;
+    let head_height = known.head_height;
+    let known_at = |landmark: &str| known.at(landmark);
 
     let asked = reading.asked();
     let kind_of = |landmark: &str| -> &'static str {
@@ -210,8 +328,8 @@ pub fn score(
     let mut score = Score {
         reading: reading_path.to_string(),
         record: record_path.to_string(),
-        what: hand_made.what.clone(),
-        record_sha256: sha256.clone(),
+        what: known.what.clone(),
+        record_sha256: known.sha256.clone(),
         reader: reading.reader.clone(),
         picture: reading.picture.file.clone(),
         picture_sha256: reading.picture.sha256.clone(),
@@ -232,7 +350,7 @@ pub fn score(
             score.no_known_position.push(landmark.clone());
             continue;
         };
-        let marks = marks(landmark);
+        let marks = compared_in(landmark);
         let distance = match marks {
             Marks::Position => (read[0] - known[0]).hypot(read[1] - known[1]),
             Marks::Height => (read[1] - known[1]).abs(),
@@ -611,7 +729,7 @@ fn values_of(path: &str, text: &str) -> Result<BTreeMap<String, f64>> {
 
 /// What a proportion is, by its name: a height, a width across the head or a depth.
 fn dimension(name: &str) -> &'static str {
-    if name.ends_with("_depth") {
+    if name.contains("_depth") {
         "depths"
     } else if name.ends_with("_rise") || name.ends_with("_drop") || name.ends_with("_height") {
         "heights"

@@ -208,8 +208,10 @@ fn the_turn_is_recovered_from_made_up_heads_projected_at_known_turns() {
             Some("the viewer's right"),
             "{turn}"
         );
-        // Every left and right pair of the made-up head marks a feature, so all nine count.
-        assert_eq!(found["turn"]["pairs"].as_integer(), Some(9), "{turn}");
+        // Six of the made-up head's nine pairs mark a place sideways: the eye's corners, the
+        // brow's ends, the nose mark's corners and the mouth's ends. The top and the bottom
+        // of the eye opening and the ear's top are where an outline runs level.
+        assert_eq!(found["turn"]["pairs"].as_integer(), Some(6), "{turn}");
         // The reader's own estimate stands beside it and is not used.
         assert_close(
             number(
@@ -388,9 +390,9 @@ fn the_fit_is_above_zero_for_a_perturbed_head_and_names_the_worst_misfit() {
     );
 
     // The front view's nose mark 7.2 pixels off the centre line. The centre line is the mean
-    // of twelve sideways positions: the chin, the nose mark's bottom, the mouth line's centre
-    // and the midpoints of the nine pairs. Eleven stand at x = 500, so the mean is
-    // 500 + 7.2 / 12 and the nose mark stands 7.2 * 11 / 12 = 6.6 pixels from it: 1.375%.
+    // of nine sideways positions: the chin, the nose mark's bottom, the mouth line's centre
+    // and the midpoints of the six counted pairs. Eight stand at x = 500, so the mean is
+    // 500 + 7.2 / 9 and the nose mark stands 7.2 * 8 / 9 = 6.4 pixels from it: 1.333%.
     let mut off_centre = seen(0.0, 500.0);
     off_centre.get_mut("nose-mark-bottom").expect("in the head")[0] += 7.2;
     MadeUp::front("first", off_centre).write(&folder, "off-centre.toml");
@@ -401,8 +403,8 @@ fn the_fit_is_above_zero_for_a_perturbed_head_and_names_the_worst_misfit() {
     assert_eq!(worst["landmark"].as_str(), Some("nose-mark-bottom"));
     assert_close(
         number(&found["fit"]["percent_of_head_height"]),
-        1.375,
-        1e-9,
+        6.4 / 480.0 * 100.0,
+        0.0005,
         "the fit",
     );
 

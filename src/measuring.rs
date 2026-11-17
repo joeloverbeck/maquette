@@ -25,7 +25,7 @@ use crate::{Error, Result};
 pub const RULES: &[(&str, &str)] = &[
     (
         "one_direction",
-        "Two readings of a drawing are compared landmark by landmark, in pixels of the picture. The top and the bottom of an iris and the hair's top say how far a form reaches, and a reader may put one anywhere along a level edge: they are compared in height only. A side extent of the hair or of an iris, and a crossing of the face outline with the eye line, the nose level or the mouth level, are compared sideways only. Every other landmark is compared as a position, by the straight distance.",
+        "Two readings of a drawing are compared landmark by landmark, in pixels of the picture. The top and the bottom of an iris and the hair's top say how far a form reaches, and a reader may put one anywhere along a level edge: they are compared in height only. A side extent of the hair, of an iris or of an ear, where a reader may put the point anywhere along an upright edge, and a crossing of the face outline with the eye line, the nose level or the mouth level, are compared sideways only. Every other landmark is compared as a position, by the straight distance.",
     ),
     (
         "yardstick_of_two_readings",
@@ -53,7 +53,7 @@ pub const RULES: &[(&str, &str)] = &[
     ),
     (
         "pairs_counted",
-        "A pair is counted when both views place both of its points, and by what it is, before anything is fitted: the eye corners, the top and the bottom of the eye opening, the iris centres, the three points of the lid line, the ends of the brow line, the nose mark's corners, the mouth line's ends, and the ears' base points and tops. Not counted: the face outline, the hair's extents and the ears' side extents, which are silhouettes that show a different point of the head in each view; the neck, a column whose width does not narrow as it turns; and the shoulders, which belong to the body and may be turned differently.",
+        "A pair is counted when both views place both of its points, and by what it is, before anything is fitted: its two points must each mark a place sideways. Those are the corners of the eye opening, the iris centres, the ends of the lid line and of the brow line, the nose mark's corners, the mouth line's ends and the ears' base points. Not counted: a top, a bottom or a crest (of the eye opening, the lid line or the ear), which is where an outline runs level, so that its sideways position is the least certain thing about it; the face outline, the hair's extents and the ears' side extents, which are silhouettes that show a different point of the head in each view; the neck, a column whose width does not narrow as it turns; and the shoulders, which belong to the body and may be turned differently.",
     ),
     (
         "fit",
@@ -83,6 +83,16 @@ fn rules_table(names: &[&str]) -> String {
 
 fn above_threshold(distance: f64, head_height: f64) -> bool {
     distance * 100.0 > THRESHOLD_PERCENT * head_height
+}
+
+/// What a landmark of a reading is compared in: the `one_direction` rule. A side extent says
+/// how far a form reaches to a side, and marks no height.
+pub fn compared_in(landmark: &str) -> Marks {
+    if landmark.ends_with("-extent") {
+        Marks::Sideways
+    } else {
+        marks(landmark)
+    }
 }
 
 fn percent(value: f64) -> String {
@@ -207,7 +217,7 @@ pub fn agreement(
                 "the two readings cannot be compared: one of them places no hair top or no chin, so there is no head height to state a disagreement in",
             ));
         };
-        let marks = marks(name);
+        let marks = compared_in(name);
         let distance = match marks {
             Marks::Position => (at[0] - other[0]).hypot(at[1] - other[1]),
             Marks::Height => (at[1] - other[1]).abs(),
@@ -433,11 +443,8 @@ impl Agreement {
 const PAIRS_COUNTED: &[(&str, &str)] = &[
     ("eye", "outer-corner"),
     ("eye", "inner-corner"),
-    ("eye", "opening-top"),
-    ("eye", "opening-bottom"),
     ("iris", "centre"),
     ("lid-line", "inner-end"),
-    ("lid-line", "crest"),
     ("lid-line", "outer-end"),
     ("brow-line", "inner-end"),
     ("brow-line", "outer-end"),
@@ -445,7 +452,6 @@ const PAIRS_COUNTED: &[(&str, &str)] = &[
     ("mouth-line", "end"),
     ("ear", "base-outer"),
     ("ear", "base-inner"),
-    ("ear", "top"),
 ];
 
 /// The landmarks of the centre line that mark a place.
@@ -787,7 +793,7 @@ fn level_comparable(name: &str) -> bool {
     let of_the_body = name.starts_with("neck-") || name.starts_with("shoulder-");
     // The jaw line is the face outline under its other name: listed once.
     let named_twice = name.starts_with("jaw-line-");
-    !of_the_body && !named_twice && marks(name) != Marks::Sideways
+    !of_the_body && !named_twice && compared_in(name) != Marks::Sideways
 }
 
 /// Works out the fit of a character's views to one head. A side view is compared in height.
