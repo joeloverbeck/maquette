@@ -2,7 +2,8 @@
 //! judgement of the view, the turn and whether the head is level.
 //!
 //! This module hides what a reading holds and how it is written: which landmarks a view asks
-//! for, under which names, what makes a reading complete, and how its positions become the
+//! for, under which names, what makes a reading complete and fit to be measured, what makes
+//! two readings the two readings of one drawing, and how a reading's positions become the
 //! positions the head model reads. A reading is a TOML file in the reference folder. It is
 //! never committed.
 //!

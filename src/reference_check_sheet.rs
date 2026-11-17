@@ -18,6 +18,11 @@
 //! - The fit stands on its own line under the heading and in the ink colour: a colour would
 //!   be a verdict, and no rule sets one.
 //! - The sheet says what its numbers are measured against, and whether a look is asked.
+//! - A drawing whose two readings cannot be compared, or are not the two readings of one
+//!   drawing, keeps its card: the card says which, the reason stands under it, and the rest
+//!   of the sheet is drawn. Only a reader's setting aside is offered to Jon to overrule.
+//! - A drawing read under another revision of the reading instructions says so under its
+//!   card.
 
 use std::collections::BTreeMap;
 

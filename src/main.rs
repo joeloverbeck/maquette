@@ -133,11 +133,16 @@ Usage:
       Print the reading instructions: what a reader judges and places on a drawing.
 
 Measuring. The commands below read and write in the reference folder, the one folder
-outside the repository that holds reference images, readings and reference check sheets.
-The environment variable MAQUETTE_REFERENCES names it. Every path given to them is taken
-from that folder, and one that leaves it is refused; with no folder they stop and say so.
+outside every repository that holds reference images, readings and reference check sheets.
+The environment variable MAQUETTE_REFERENCES names it; a folder inside a Git repository is
+refused. Every path given to them is taken from that folder, and one that leaves it, by its
+own steps or through a link, is refused; with no folder they stop and say so.
 Where a view is asked for, <readings> is one reading, or the two readings of the drawing
 with a comma between them: a landmark then stands midway between the two.
+A reading is measured only when it passes what check-reading checks: complete, and its
+picture still the one that was read. The two readings of a drawing are two files, by two
+readers under two labels, and follow one revision of the reading instructions. A reading
+under an earlier revision is measured, and what is written says which it followed.
 
   maquette start-reading --image <picture> --view front|three-quarter|side
                          [--faces right|left] --reader <label> --out <reading>
@@ -153,10 +158,10 @@ with a comma between them: a landmark then stands midway between the two.
 
   maquette enlarge-image --image <picture> --left <x> --top <y> --width <w> --height <h>
                          --factor <n> [--grid <step>] --out <picture>
-      Enlarge a part of a picture a whole number of times, each pixel as a block. --grid
-      draws a line every so many pixels of the picture and labels it with its position in
-      the picture. An enlargement with an edge above 1568 pixels is refused: an agent is
-      shown it resized.
+      Enlarge a part of a picture a whole number of times, at most 16, each pixel as a
+      block. --grid draws a line every so many pixels of the picture and labels it with its
+      position in the picture. An enlargement with an edge above 1568 pixels is refused: an
+      agent is shown it resized.
 
   maquette agreement-of-readings --first <reading> --second <reading> [--out <file>]
       Set two readings of one drawing against each other: for every landmark both place,
@@ -166,7 +171,9 @@ with a comma between them: a landmark then stands midway between the two.
   maquette turn-from-readings --front <readings> --three-quarter <readings> [--out <file>]
       Work out the turn a three-quarter drawing shows, from how far the spacing of its left
       and right pairs narrows against the front view of the same character. Each pair's own
-      turn and misfit is listed, and the readers' own estimates beside it.
+      turn and misfit is listed, and the readers' own estimates beside it. It fails, and
+      writes nothing, where no turn gives what the readings show: a pair with no spacing in
+      the front view, or pairs wider apart in the three-quarter view than in the front view.
 
   maquette fit-of-views --front <readings> --three-quarter <readings> [--side <readings>]
                         [--out <file>]
@@ -185,7 +192,8 @@ with a comma between them: a landmark then stands midway between the two.
       Score a reading against a drawing whose true positions are on record, such as
       data/saffi/hand-made-views.toml: the reader's error as a share of head height, by
       kind of landmark, with what cannot be seen in the picture kept apart. The record is
-      read from where it is named.
+      read from where it is named. The reading is scored as it stands: what it leaves out
+      is listed, and its picture is not checked.
 
   maquette known-positions-as-reading --known-positions <record> --view front|three-quarter
                                       --image <picture> --out <reading>
@@ -198,7 +206,9 @@ with a comma between them: a landmark then stands midway between the two.
       (which of Jon's looks it is, or that none is asked) and, for each row, a
       [[character]] with a `label` and the `readings` of its drawings. Each character's
       views stand side by side with the points read, what was set aside and why, and the
-      fit. The sheet is one SVG that holds its drawings, and stays in the reference folder.
+      fit. Where two readings of a drawing cannot be compared, its card says so and the
+      sheet is still rendered. The sheet is one SVG that holds its drawings, and stays in
+      the reference folder.
 ";
 
 /// How a command ended, when nothing went wrong in running it.

@@ -24,6 +24,15 @@ The tests in `tests/measuring.rs`, `tests/proportions_from_readings.rs` and `tes
 - readings that hide the ears give the other 58 proportions and say why 15 are not given;
 - a reading's error against a made-up record is the distance typed in, by kind of landmark.
 
+Added after the review of the ticket, on the same day:
+
+- a reading that does not pass its check, or whose picture has changed or is gone, is not measured;
+- one reading named twice, two readings under one reader's label, and two readings of a drawing under two revisions of the instructions are refused, and a reading under an earlier revision is measured and said to be;
+- a front view whose pairs have no spacing, and a three-quarter view whose pairs stand a quarter wider apart than the front view's, give a failure and no turn;
+- a sheet still renders when two readings of a drawing have no head height between them, and says so on that drawing's card.
+
+The dry run's figures below were worked out before these checks existed and have not been worked out again under them. Sections 5 and 5c record that every reading of the dry run passed its check when it was made.
+
 They show nothing about drawings. A made-up head is a plain projection by construction.
 
 ## 3. The record's own positions, with no reader
@@ -284,7 +293,7 @@ Several of these come from the construction lines of an underdrawing, which a pu
 The rule needs the ear's two base points, for the centre, and the temple, for the radius.
 
 - **The ear's base points.** Read to 0.03% to 0.17% where a reader placed them. One reader of two placed both; the other stated the inner one as not seen, under the fringe. From the first reader's readings the rule's centre comes out at a rise of 1.0048 and a depth of −0.7031, where the record's positions give 1.0054 and −0.6997. In the retest both readers placed both, through the fringe, and their readings together give 1.0041 and −0.7013. So where the ear's base shows, the centre is as good as the record's. On her it is still a cat-folk's ear (section 4).
-- **The temple.** None of the four readers placed one, in either drawing, under either revision of the instructions: hair covers both temples in the front view, and the far one in the three-quarter view runs under a lock. The rule's radius has no input from these pictures. A fringe or a side lock covers the temple in most drawings of women.
+- **The temple.** None of the four readers placed one, in either drawing, under either revision of the instructions: hair covers both temples in the front view, and the far one in the three-quarter view runs under a lock. The rule's radius has no input from these pictures. A fringe or a side lock may be expected to cover the temple in many published drawings of women as well. That is an expectation and not a finding: it rests on these two drawings of one character, and no published drawing has been read.
 
 What else is drawn, and how near a sphere through it comes to her drawn circle, from her drawn centre (worked from `data/saffi/proportions.toml`; her S2 set in brackets):
 

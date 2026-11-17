@@ -106,11 +106,15 @@ The agent that makes a reading. Every drawing has two, and neither sees the othe
 **Reading instructions**:
 What a reader follows: which landmarks a view asks for, and how the view, the turn and the level are judged. A reading names the revision it followed.
 
+**Picture**:
+The image file of one drawing that a reader is given and reads: its landmarks are placed in the picture's pixels, and the reading records the picture's digest. The drawing is the work; the picture is the file of it. A reference image is the picture of a reference. Commands and a reading's file call it `image`.
+_Avoid_: scan, screenshot
+
 **Reference folder**:
-The one folder, outside the repository, that holds reference images, readings and reference check sheets. Configuration that is not committed names it.
+The one folder, outside every repository, that holds reference images, readings and reference check sheets. Configuration that is not committed names it.
 
 **Set aside**:
-What a reader does with a drawing whose head is not level or not in one of the three views: it is not measured. Jon can overrule it.
+What a reader does with a drawing that should not be measured: the head is not level, it is in none of the three views, the expression pulls the features out of place, or too little of the head shows to read. It is not measured. Jon can overrule it.
 
 **Agreement**:
 How far apart two readings of one drawing put a landmark, as a share of head height. A disagreement above 1% is shown to Jon.

@@ -1,12 +1,14 @@
-//! The reference folder: the one folder, outside the repository, that holds reference images,
-//! the readings of them and the reference check sheets.
+//! The reference folder: the one folder, outside every repository, that holds reference
+//! images, the readings of them and the reference check sheets.
 //!
-//! This module hides where that folder is configured and what "inside it" means. The
-//! repository is public and the drawings are other people's, so nothing measuring reads or
-//! writes may land in the repository by accident: every path a measuring command is given
-//! for an image, a reading, a sheet or a result is taken inside this folder, and a path that
-//! leaves it is refused. When the folder is not configured or does not exist, a measuring
-//! command stops with [`Folder::configured`]'s message, and everything else still works.
+//! This module hides where that folder is configured, what "outside every repository" means
+//! and what "inside the folder" means. The repository is public and the drawings are other
+//! people's, so nothing measuring reads or writes may land in a repository by accident: a
+//! folder inside a Git repository is refused, every path a measuring command is given for an
+//! image, a reading, a sheet or a result is taken inside the folder, and a path that leaves
+//! it, by its own steps or through a link, is refused. When the folder is not configured or
+//! does not exist, a measuring command stops with [`Folder::configured`]'s message, and
+//! everything else still works.
 
 use std::path::{Component, Path, PathBuf};
 
