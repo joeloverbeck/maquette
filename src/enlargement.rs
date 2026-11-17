@@ -76,6 +76,15 @@ fn label_width(text: &str) -> u32 {
     text.len() as u32 * (DIGIT_WIDTH + DIGIT_GAP) - DIGIT_GAP
 }
 
+/// Marks one pixel of a grid line: the grid's colour at half strength over the picture, so
+/// that what the line crosses still shows through it.
+fn grid_pixel(picture: &mut RgbImage, x: u32, y: u32) {
+    let under = picture.get_pixel(x, y).0;
+    let mixed = [0, 1, 2]
+        .map(|channel| ((u16::from(under[channel]) + u16::from(GRID.0[channel])) / 2) as u8);
+    picture.put_pixel(x, y, Rgb(mixed));
+}
+
 /// Writes a number with its top-left corner at x, y, as far as it fits.
 fn write_number(picture: &mut RgbImage, number: u32, x: u32, y: u32) {
     for (place, digit) in number.to_string().bytes().enumerate() {
@@ -171,7 +180,7 @@ pub fn enlarge(picture: &[u8], part: &Part) -> Result<Enlarged> {
         for position in lines(part.left, part.width) {
             let x = margin_left + (position - part.left) * part.factor;
             for y in margin_top..height {
-                out.put_pixel(x, y, GRID);
+                grid_pixel(&mut out, x, y);
             }
             let text = position.to_string();
             let at = x.saturating_sub(label_width(&text) / 2);
@@ -184,7 +193,7 @@ pub fn enlarge(picture: &[u8], part: &Part) -> Result<Enlarged> {
         for position in lines(part.top, part.height) {
             let y = margin_top + (position - part.top) * part.factor;
             for x in margin_left..width {
-                out.put_pixel(x, y, GRID);
+                grid_pixel(&mut out, x, y);
             }
             let at = y.saturating_sub(DIGIT_HEIGHT / 2);
             if at >= next_free && at + DIGIT_HEIGHT <= height {

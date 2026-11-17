@@ -44,6 +44,9 @@ const SET_ASIDE_TEXT: &str = "#B4511F";
 const SET_ASIDE_FILL: &str = "#FFF7F2";
 const POINT: &str = "#2F6FDD";
 const FONT: &str = "Inter, 'Helvetica Neue', Arial, sans-serif";
+/// The heading is semi-bold and large, and runs wider than [`fitted`] reckons: the share of
+/// its room it may fill, so that it stops short of the boxes beside it.
+const SEMI_BOLD: f64 = 0.94;
 
 /// What a sheet asks by default: the decision of the mock-up.
 const DECISION: &str = "Your decision for each character: is every head level and in the view stated, and do the dots sit on the right features?";
@@ -381,7 +384,7 @@ pub fn render(
             36.0,
             600,
             INK,
-            &fitted(&heading, 36.0, 2260.0),
+            &fitted(&heading, 36.0, 2260.0 * SEMI_BOLD),
         ));
         body.push_str(&line(
             MARGIN,

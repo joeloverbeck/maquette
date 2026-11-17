@@ -221,13 +221,13 @@ const ON_EACH_SIDE: &[Ask] = &[
         "ear",
         "base-outer",
         "ear",
-        "Of the two points where the ear's outline meets the head, the outer one; on an ear at the side of the head, the upper one.",
+        "Of the two corners of the ear's foot, where its own outline ends at the head, the outer one; on an ear at the side of the head, the upper one. Never where hair crosses the ear.",
     ),
     ask(
         "ear",
         "base-inner",
         "ear",
-        "Of the two points where the ear's outline meets the head, the inner one; on an ear at the side of the head, the lower one.",
+        "Of the two corners of the ear's foot, where its own outline ends at the head, the inner one; on an ear at the side of the head, the lower one. Never where hair crosses the ear.",
     ),
     ask("ear", "top", "ear", "The highest point of the ear."),
     ask(
@@ -246,7 +246,7 @@ const ON_EACH_SIDE: &[Ask] = &[
         "face-outline",
         "top",
         "face outline",
-        "The temple: the top end of the face outline on this side, where the hair leaves it showing.",
+        "The temple: the top end of the face outline on this side, where it meets the hairline. Not seen where hair hangs over the outline.",
     ),
     ask(
         "face-outline",
@@ -270,7 +270,7 @@ const ON_EACH_SIDE: &[Ask] = &[
         "face-outline",
         "jaw",
         "face outline",
-        "The jaw point: between the mouth level and the chin, where the jaw turns into the chin.",
+        "The jaw point: the last turn of the outline before the chin, where the slanted run of the jaw turns into the chin's bottom.",
     ),
     ask(
         "hair",
@@ -282,13 +282,13 @@ const ON_EACH_SIDE: &[Ask] = &[
         "neck",
         "base",
         "neck",
-        "Where the neck ends on this side: where its edge meets the shoulder.",
+        "Where the neck ends on this side: where its edge leaves its straight run and begins to curve out into the shoulder.",
     ),
     ask(
         "shoulder",
         "point",
         "shoulder line",
-        "The outer end of the shoulder on this side, where its top turns down into the arm.",
+        "The outer end of the shoulder on this side: where its outline stops running outward and starts down the arm.",
     ),
 ];
 
@@ -310,7 +310,7 @@ const IN_SIDE_VIEW: &[Ask] = &[
         "neck-back-base",
         "",
         "neck",
-        "Where the back of the neck ends: where its edge meets the shoulder.",
+        "Where the back of the neck ends: where its edge leaves its straight run and begins to curve out into the shoulder.",
     ),
     ask(
         "neck-front-base",
@@ -406,11 +406,14 @@ pub fn picture_size(bytes: &[u8]) -> Result<(u32, u32)> {
 
 /// What a reference is: said by whoever hands over the drawing, except the manner.
 pub const REFERENCE_FIELDS: &[(&str, &str)] = &[
-    ("work", "The work the drawing is from."),
-    ("designer", "Its character designer."),
+    (
+        "work",
+        "The work the drawing is from; for a drawing from no published work, what it is.",
+    ),
+    ("designer", "Its character designer, or who made it."),
     (
         "source",
-        "The official publication the picture was taken from.",
+        "Where the picture was taken from: for a reference, the official publication.",
     ),
     (
         "age_band",

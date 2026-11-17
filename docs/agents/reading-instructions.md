@@ -1,6 +1,6 @@
 # Reading a drawing
 
-Revision: 2026-11-17.1
+Revision: 2026-11-17.2
 
 A reading is one reader's placement of the landmarks on one drawing of a head, with the reader's judgement of the view, the turn and whether the head is level. Maquette takes proportions from readings. Every drawing is read twice, by two readers who do not see each other's reading, and Jon checks the result. You are one of the two readers.
 
@@ -30,7 +30,9 @@ You are done when every drawing you were given has a reading that passes its che
 - A position read off an enlargement is taken back to the picture before it is written. A grid's labels are already the picture's positions.
 - Left and right in a name are the character's own. Seen from the front, the character's left is toward the viewer's right. In a turned view the near side is the character's right when the head faces the viewer's right, and the character's left when it faces the viewer's left.
 - A landmark on a drawn line is on the middle of the line's thickness. A landmark on the edge of a filled shape is on the edge.
-- An end, a corner or a tip is the last point of the shape in that direction. A top, a bottom or a side extent is the point that reaches furthest that way.
+- An end, a corner or a tip is the last point of the shape in that direction. Where a band, such as a brow or a lid line, ends in a cut across its width, its end is the middle of the cut.
+- A top, a bottom or a side extent is the point that reaches furthest that way. Where the shape runs level along its top or its bottom, or upright along its side, it is the middle of that run.
+- **A landmark is a point of the feature itself.** Where another shape lies over part of a feature (hair over the face, an ear or a brow; the head over the far ear), the place where that shape's edge crosses the feature is not a landmark. An end, a corner or an extent that is covered is not seen, however near to it the feature comes back into view. A point that shows through a gap in the hair is seen, and is placed.
 - Place what is drawn. A point under the hair, behind the head or outside the picture is not seen: say which. Do not put a point where it ought to be, mirror it from the other side, or carry it over from another view.
 
 ## The three levels
@@ -45,6 +47,13 @@ Place the eyes, the nose mark and the mouth line first, work out the three heigh
 
 A drawing may show construction lines of its own, as an underdrawing does: a circle for the skull, level lines, a centre line. They are not read, and a drawn level line is not the level: work each level out from the features.
 
+## The face outline
+
+The face outline is the edge of the face itself: one unbroken curve from the temple down the cheek and the jaw to the chin. Two other edges are easily taken for it.
+
+- **The edge of hair that lies over the face.** Follow the outline up from the chin. Where hair crosses it, the edge beside the skin from there on is the hair's: it runs on straight past the face, or ends in the point of a lock, where the face's edge would curve with the cheek. A level that crosses a hair edge has no crossing with the face outline: that landmark is not seen.
+- **A construction line that runs beside the outline.** A drawn circle or guide may lie within a few pixels of the outline for a stretch. The outline is the edge that continues the curve of the cheek from below. Read that edge, and where the two cannot be told apart, state the landmark as not seen.
+
 ## The landmarks
 
 `<side>` is `left` or `right`. A front view and a three-quarter view ask for both sides; a side view asks for the near side only.
@@ -54,11 +63,11 @@ A drawing may show construction lines of its own, as an underdrawing does: a cir
 | `hair-top` | The highest point of the hair. Hair only: an ear or an ornament that stands higher does not count. |
 | `hair-<side>-extent` | The point of the hair furthest out on that side. |
 | `chin` | The lowest point of the face outline. |
-| `face-outline-<side>-top` | The temple: the top end of the face outline on that side, where the hair leaves it showing. Where the outline runs up under the hair with no visible end, it is not seen. |
+| `face-outline-<side>-top` | The temple: the top end of the face outline on that side, where the outline meets the hairline. It is seen only where that end itself shows, as with hair drawn back from the face. Where hair hangs over the outline, the outline runs up under it and its top end is not seen: the place where it goes under the hair is not the temple. |
 | `face-outline-<side>-at-eye-level` | Where the face outline on that side crosses the eye line. |
 | `face-outline-<side>-at-nose-level` | Where it crosses the nose level. |
 | `face-outline-<side>-at-mouth-level` | Where it crosses the mouth level. |
-| `face-outline-<side>-jaw` | The jaw point: between the mouth level and the chin, where the outline turns most sharply from the side of the jaw into the chin. |
+| `face-outline-<side>-jaw` | The jaw point: where the jaw turns into the chin. Below the cheek the outline may turn twice: first where the cheek turns into the slanted run of the jaw, and then, close to the chin, where that run turns into the chin's nearly level bottom. The jaw point is the second, lower turn: the last turn before the chin's lowest point. Where the outline is one even curve from the mouth level to the chin, with no place where it bends most, the jaw point is not seen. |
 | `eye-<side>-outer-corner` | The point of the eye opening furthest from the centre line. The opening is the shape the lids leave open, not the lashes or the lid line. |
 | `eye-<side>-inner-corner` | The point of the eye opening nearest the centre line. |
 | `eye-<side>-opening-top` | The highest point of the eye opening, under the upper lid. |
@@ -72,12 +81,12 @@ A drawing may show construction lines of its own, as an underdrawing does: a cir
 | `nose-mark-<side>-corner` | The nose mark is whatever is drawn for the nose. This is its point furthest toward that side. Where the mark is one dot or one stroke with no width, it has no corners: state both as not seen. |
 | `nose-mark-bottom` | The lowest point of the nose mark. |
 | `mouth-line-<side>-end` | The end of the mouth line on that side. |
-| `mouth-line-centre` | The point of the mouth line where the centre line of the face crosses it. In a front view it is midway between the two ends. |
-| `ear-<side>-base-outer`, `ear-<side>-base-inner` | The ear's base is the stretch along which it stands on the head, and its two base points are the ends of that stretch: the two points where the ear's outline meets the head. On an ear set on top of the head they lie side by side: the outer one is further from the centre line. On an ear at the side of the head, as a human ear is, they lie one above the other: the upper one is `base-outer` and the lower one `base-inner`. |
+| `mouth-line-centre` | The point of the mouth line where the centre line of the face crosses it. In a front view it is midway between the two ends. In a turned view the centre line is not drawn: take it as the straight line from the nose mark's bottom to the chin, and place the point where the mouth line crosses that line. |
+| `ear-<side>-base-outer`, `ear-<side>-base-inner` | The ear's base is the stretch along which it stands on the head, and its two base points are the ends of that stretch: the two corners of the ear's foot, where each side of the ear's own outline ends at the head. On an ear set on top of the head they lie side by side: the outer one is further from the centre line. On an ear at the side of the head, as a human ear is, they lie one above the other: the upper one is `base-outer` and the lower one `base-inner`. Where hair lies over the ear, a base point is the corner of the ear and never the place where the hair's edge crosses the ear: a corner that shows through the hair is placed, and one the hair covers is not seen. |
 | `ear-<side>-top` | The highest point of the ear. |
 | `ear-<side>-outer-extent`, `ear-<side>-inner-extent` | The points of the ear furthest from and nearest the centre line. |
-| `neck-<side>-base` | Where the neck ends on that side: where its edge turns into the shoulder. |
-| `shoulder-<side>-point` | The outer end of the shoulder on that side, where its top turns down into the arm. |
+| `neck-<side>-base` | Where the neck ends on that side. Going down the edge of the neck, it is the point where the edge leaves its straight run and begins to curve outward into the shoulder: the start of that curve, not its middle. |
+| `shoulder-<side>-point` | The outer end of the shoulder on that side. Going outward along the top of the shoulder, it is the point where the outline stops running outward and starts to run down the arm: on a rounded shoulder, the point of the round furthest to that side. Where the picture ends before the shoulder does, it is not seen. |
 
 **The skull is not read.** It lies under the hair, so maquette builds it by rule from the ears and the temples: the ear's two base points and `face-outline-<side>-top`. Read those with particular care, and never guess one that the hair covers.
 
@@ -87,7 +96,7 @@ Also not read, because maquette builds them: the middle of an eye opening, the c
 
 - Both sides are asked for. What the head, the nose or the hair hides on the far side is not seen.
 - The far side's outline is the cheek. The near side's outline is the side of the jaw, and it is asked for only at the nose level and the mouth level, and at the jaw point. It keeps the name `face-outline-<side>-…`.
-- An ear behind the head is placed only as far as it shows. A base point the head covers is not seen.
+- An ear behind the head is placed only as far as it shows. A base point or an extent that the head or the hair covers is not seen: where the ear's outline goes out of view is neither.
 
 ### In a side view
 
@@ -135,7 +144,8 @@ A head that is small in the picture is read less accurately. Readings were teste
 
 - `--left`, `--top`, `--width` and `--height` are the part to enlarge, in pixels of the picture. `--factor` is a whole number: each pixel becomes a block that many pixels across.
 - `--grid 10` draws a line where every tenth pixel of the picture begins and labels it with its position in the picture, across the top and down the left side. Read a position off the labels: a point a third of the way from the line labelled 410 to the line labelled 420 is at 413.3.
-- An enlargement may be at most 1568 pixels on an edge, because a larger picture is shown to you resized. Enlarge a smaller part instead: one eye, the nose and mouth, an ear.
+- Keep the grid's lines at least 50 pixels apart in the enlargement, or they crowd the drawing: `--grid 10` from a factor of 5 up, `--grid 20` at a factor of 3 or 4.
+- An enlargement may be at most 1568 pixels on an edge, because a larger picture is shown to you resized. The part's width times the factor, and its height times the factor, must each stay under about 1500: at most 300 pixels of the picture at a factor of 5, 375 at 4, 500 at 3. Enlarge a smaller part instead: one eye, the nose and mouth, an ear.
 - Without a grid, the command prints how a point in the enlargement is taken back to the picture.
 - Look at the whole picture as well. The judgement, and which feature is which, are read from the whole.
 
