@@ -318,7 +318,7 @@ pub fn head(set: &Set) -> Result<Head> {
     Ok(Head {
         landmarks,
         side_set_backs,
-        head_height: set.get("hair_top_rise") + 1.0,
+        head_height: head_height(set.get("hair_top_rise")),
         skull_radius: set.get("skull_radius"),
         iris_width: set.get("iris_width"),
         iris_height: set.get("iris_height"),
@@ -699,6 +699,146 @@ fn spec(stem: &str, point: &str) -> &'static Spec {
         .unwrap_or_else(|| panic!("the head model has no landmark {stem} {point}"))
 }
 
+/// The cosine of the turn a three-quarter view shows, from its left and right pairs: for
+/// each, how far apart the front view shows it and how far apart the three-quarter view
+/// does, each in its own view's unit.
+///
+/// A level head turned about an upright axis, drawn flat, shows two landmarks that mirror
+/// each other across the centre line cos(turn) times as far apart as the front view does,
+/// whatever their depth. The one turn for the head is the one that leaves the least squared
+/// misfit in spacing over the pairs: the sum of front times three-quarter over the sum of
+/// front squared.
+///
+/// This is the arithmetic only. Which pairs count is each caller's to state, on its own
+/// evidence. The result is not a number when no pair has a spacing in the front view, and
+/// above 1 when the three-quarter view shows the pairs wider apart: neither is a turn.
+pub fn turn_cosine(pairs: &[(f64, f64)]) -> f64 {
+    let front_by_turned: f64 = pairs.iter().map(|(front, turned)| front * turned).sum();
+    let front_squared: f64 = pairs.iter().map(|(front, _)| front * front).sum();
+    front_by_turned / front_squared
+}
+
+/// The turn, in degrees, that narrows a spacing to `cosine` of what the front view shows.
+/// A ratio outside -1 to 1 is no turn's, and is taken at the nearest end.
+pub fn turn_degrees(cosine: f64) -> f64 {
+    cosine.clamp(-1.0, 1.0).acos().to_degrees()
+}
+
+/// Where the skull of a head taken back from views came from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Skull {
+    /// A view shows a construction circle, as an underdrawing or a generated armature does:
+    /// the skull is that circle.
+    Drawn,
+    /// Nothing is drawn behind the skull, as in every published drawing: it is built by the
+    /// rule of [`skull_by_rule`].
+    ByRule,
+    /// Neither: no circle is drawn, and the views do not give what the rule builds from.
+    NotBuilt,
+}
+
+impl Skull {
+    pub fn words(self) -> &'static str {
+        match self {
+            Skull::Drawn => {
+                "the construction circle a view draws: its centre and half the height between its top and bottom"
+            }
+            Skull::ByRule => {
+                "built by rule, since no view draws it: centred at the height and the depth of the middle of the ear's base, and reaching the temples"
+            }
+            Skull::NotBuilt => {
+                "not built: no view draws it, and the views do not give the ears' base points and the temples the rule builds it from"
+            }
+        }
+    }
+}
+
+/// The three conventions of the skull, in units.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SkullBuilt {
+    pub centre_rise: f64,
+    pub centre_depth: f64,
+    pub radius: f64,
+}
+
+/// The proportions the skull rule builds from, in the order the rule uses them.
+pub const SKULL_RULE_USES: [&str; 7] = [
+    "ear_base_outer_rise",
+    "ear_base_inner_rise",
+    "ear_base_outer_depth",
+    "ear_base_inner_depth",
+    "face_top_half_width",
+    "face_top_rise",
+    "face_top_depth",
+];
+
+/// Builds the skull where nothing is drawn behind it, from features every reference draws:
+/// the ears and the temples. `proportions/list.toml` states the rule for a person.
+///
+/// - The centre stands at the ears: at the height and at the depth of the middle of the
+///   ear's base, midway between its two base points.
+/// - The sphere reaches the temples: its radius is the distance in space from that centre to
+///   the top end of the face outline.
+///
+/// The hair's top is not used. `value` gives a proportion by name; the error names the first
+/// one the rule needs and does not get.
+pub fn skull_by_rule(
+    value: impl Fn(&str) -> Option<f64>,
+) -> std::result::Result<SkullBuilt, String> {
+    let need = |name: &'static str| value(name).ok_or(name.to_string());
+    let [outer_rise, inner_rise, outer_depth, inner_depth] = [
+        need(SKULL_RULE_USES[0])?,
+        need(SKULL_RULE_USES[1])?,
+        need(SKULL_RULE_USES[2])?,
+        need(SKULL_RULE_USES[3])?,
+    ];
+    let centre_rise = (outer_rise + inner_rise) / 2.0;
+    let centre_depth = (outer_depth + inner_depth) / 2.0;
+    Ok(SkullBuilt {
+        centre_rise,
+        centre_depth,
+        radius: skull_radius_to_temple(&value, centre_rise, centre_depth)?,
+    })
+}
+
+/// The radius part of the skull rule by itself: the distance in space from a skull's centre,
+/// wherever it stands, to the temple, the top end of the face outline. [`skull_by_rule`]
+/// takes it from the rule's own centre; taken from a drawn centre, it tests that part of the
+/// rule alone. The error names the first proportion it needs and does not get.
+pub fn skull_radius_to_temple(
+    value: impl Fn(&str) -> Option<f64>,
+    centre_rise: f64,
+    centre_depth: f64,
+) -> std::result::Result<f64, String> {
+    let need = |name: &'static str| value(name).ok_or(name.to_string());
+    let [temple_offset, temple_rise, temple_depth] = [
+        need(SKULL_RULE_USES[4])?,
+        need(SKULL_RULE_USES[5])?,
+        need(SKULL_RULE_USES[6])?,
+    ];
+    Ok((temple_offset.powi(2)
+        + (temple_rise - centre_rise).powi(2)
+        + (temple_depth - centre_depth).powi(2))
+    .sqrt())
+}
+
+/// Head height in units, from the hair's top to the chin, of a head whose hair's top stands
+/// `hair_top_rise` above the eye line: the chin is one unit below it, by the unit's
+/// definition.
+pub fn head_height(hair_top_rise: f64) -> f64 {
+    hair_top_rise + 1.0
+}
+
+/// What two views give when they are taken back into proportions.
+#[derive(Debug, Clone)]
+pub struct Taken {
+    /// The proportions the views give.
+    pub values: BTreeMap<String, f64>,
+    /// The proportions they do not give, and why, in the order they were looked for.
+    pub not_given: Vec<(String, String)>,
+    pub skull: Skull,
+}
+
 /// Takes landmark positions read from a front view and a three-quarter view back into a set
 /// of proportions.
 ///
@@ -706,7 +846,28 @@ fn spec(stem: &str, point: &str) -> &'static Spec {
 /// `proportions/list.toml` and applied here: the three-quarter view gives heights, depths and
 /// the offsets of the pairs it shows whole; the front view gives what the three-quarter view
 /// does not show, and the widths of silhouettes, the neck and the shoulder line.
+///
+/// Every proportion must be given: a view that hides one is an error. [`take_proportions`]
+/// gives what there is.
 pub fn proportions_from_views(front: &Reading, three_quarter: &Reading) -> Result<Set> {
+    let taken = take_proportions(front, three_quarter)?;
+    if let Some((_, why)) = taken.not_given.first() {
+        return Err(Error::new(why.clone()));
+    }
+    Set::from_values(taken.values)
+}
+
+/// Takes landmark positions read from a front view and a three-quarter view back into the
+/// proportions they give, by the rules of [`proportions_from_views`], and lists the ones they
+/// do not give with the reason. A reading of a published drawing hides some: an ear under the
+/// hair, a brow under a fringe.
+///
+/// The skull is the drawn construction circle where a view has one. Where neither view has
+/// any of it, it is built by [`skull_by_rule`] from the proportions already taken.
+///
+/// An error is something no proportion can be taken without: a turn outside 0 to 90 degrees,
+/// or a three-quarter view with no eye line, chin or eye corners.
+pub fn take_proportions(front: &Reading, three_quarter: &Reading) -> Result<Taken> {
     let turn = three_quarter.turn_degrees;
     if !(turn > 0.0 && turn < 90.0) {
         return Err(Error::new(format!(
@@ -734,107 +895,165 @@ pub fn proportions_from_views(front: &Reading, three_quarter: &Reading) -> Resul
     };
 
     let mut values: BTreeMap<String, f64> = BTreeMap::new();
+    let mut not_given: Vec<(String, String)> = Vec::new();
+    let mut put = |name: &str, value: Result<f64>| match value {
+        Ok(value) => {
+            values.insert(name.to_string(), value);
+        }
+        Err(Error(why)) => not_given.push((name.to_string(), why)),
+    };
+
+    // A view that has any point of a construction circle draws the skull.
+    let skull_drawn = ["skull-centre", "skull-top", "skull-bottom"]
+        .iter()
+        .any(|name| front.get(name).is_some() || three_quarter.get(name).is_some());
+
     for spec in LANDMARKS {
+        if spec.stem == "skull-centre" && !skull_drawn {
+            continue;
+        }
         match spec.offset {
-            Plus(name) => {
-                values.insert(name.to_string(), views.offset(spec)?);
-            }
+            Plus(name) => put(name, views.offset(spec)),
             Rise(_) | Unit => unreachable!("an offset is never a rise or the unit"),
             Zero | Rule => {}
         }
         match spec.drop {
-            Plus(name) => {
-                values.insert(name.to_string(), views.drop(spec)?);
-            }
-            Rise(name) => {
-                values.insert(name.to_string(), -views.drop(spec)?);
-            }
+            Plus(name) => put(name, views.drop(spec)),
+            Rise(name) => put(name, views.drop(spec).map(|drop| -drop)),
             Zero | Unit | Rule => {}
         }
         match spec.depth {
-            Plus(name) => {
-                values.insert(name.to_string(), views.depth(spec)?);
-            }
+            Plus(name) => put(name, views.depth(spec)),
             Rise(_) | Unit => unreachable!("a depth is never a rise or the unit"),
             Zero | Rule => {}
         }
     }
 
     // The proportions the table cannot state.
-    values.insert(
-        "eye_opening_height".to_string(),
-        views.drop(spec("eye", "opening-bottom"))? - views.drop(spec("eye", "opening-top"))?,
+    put(
+        "eye_opening_height",
+        views
+            .drop(spec("eye", "opening-bottom"))
+            .and_then(|bottom| Ok(bottom - views.drop(spec("eye", "opening-top"))?)),
     );
-    values.insert(
-        "eye_wrap_depth".to_string(),
-        views.depth(spec("eye", "inner-corner"))? - views.depth(spec("eye", "outer-corner"))?,
+    put(
+        "eye_wrap_depth",
+        views
+            .depth(spec("eye", "inner-corner"))
+            .and_then(|inner| Ok(inner - views.depth(spec("eye", "outer-corner"))?)),
     );
-    values.insert(
-        "iris_height".to_string(),
-        views.span("iris", "top", "bottom", false)?,
-    );
-    values.insert(
-        "iris_width".to_string(),
-        views.span("iris", "inner-extent", "outer-extent", true)?,
+    put("iris_height", views.span("iris", "top", "bottom", false));
+    put(
+        "iris_width",
+        views.span("iris", "inner-extent", "outer-extent", true),
     );
 
-    // The skull: half the height of its circle, in the three-quarter view first.
-    let skull = |reading: &Reading, frame: Frame| -> Option<f64> {
-        let top = reading.get("skull-top")?;
-        let bottom = reading.get("skull-bottom")?;
-        Some((bottom[1] - top[1]) / 2.0 / frame.unit)
-    };
-    let radius = match skull(three_quarter, turned_frame) {
-        Some(radius) => radius,
-        None => skull(front, views.front_frame()?).ok_or_else(|| {
-            Error::new(
-                "neither view has `skull-top` and `skull-bottom`, so the skull's radius is unknown",
-            )
-        })?,
-    };
-    values.insert("skull_radius".to_string(), radius);
+    // A drawn skull: half the height of its circle, in the three-quarter view first.
+    if skull_drawn {
+        let skull = |reading: &Reading, frame: Frame| -> Option<f64> {
+            let top = reading.get("skull-top")?;
+            let bottom = reading.get("skull-bottom")?;
+            Some((bottom[1] - top[1]) / 2.0 / frame.unit)
+        };
+        let radius = match skull(three_quarter, turned_frame) {
+            Some(radius) => Ok(radius),
+            None => views.front_frame().and_then(|frame| {
+                skull(front, frame).ok_or_else(|| {
+                    Error::new(
+                        "neither view has `skull-top` and `skull-bottom`, so the skull's radius is unknown",
+                    )
+                })
+            }),
+        };
+        put("skull_radius", radius);
+    }
 
     // The hair: its half-width from the front view, its depth from how wide the
     // three-quarter view still shows it.
-    let front_frame = views.front_frame()?;
-    let hair_left = front.need("hair-left-extent", FRONT)?;
-    let hair_right = front.need("hair-right-extent", FRONT)?;
-    let half_width = (hair_left[0] - hair_right[0]) / 2.0 / front_frame.unit;
-    let hair_left = three_quarter.need("hair-left-extent", TURNED)?;
-    let hair_right = three_quarter.need("hair-right-extent", TURNED)?;
-    let shown = (hair_left[0] - hair_right[0]) / 2.0 / turned_frame.unit;
-    let flat = half_width * views.cos;
-    if shown <= flat {
-        return Err(Error::new(
-            "the hair is no wider in the three-quarter view than a flat shape of its front width would be, so it has no depth to give",
-        ));
-    }
-    values.insert("hair_half_width".to_string(), half_width);
-    values.insert(
-        "hair_half_depth".to_string(),
-        (shown * shown - flat * flat).sqrt() / views.sin,
-    );
-    values.insert(
-        "hair_centre_depth".to_string(),
-        views.depth_at((hair_left[0] + hair_right[0]) / 2.0, 0.0),
+    let half_width = views.front_frame().and_then(|frame| {
+        let left = front.need("hair-left-extent", FRONT)?;
+        let right = front.need("hair-right-extent", FRONT)?;
+        Ok((left[0] - right[0]) / 2.0 / frame.unit)
+    });
+    let turned_hair = || -> Result<([f64; 2], [f64; 2])> {
+        Ok((
+            three_quarter.need("hair-left-extent", TURNED)?,
+            three_quarter.need("hair-right-extent", TURNED)?,
+        ))
+    };
+    let half_depth = half_width.clone().and_then(|half_width| {
+        let (left, right) = turned_hair()?;
+        let shown = (left[0] - right[0]) / 2.0 / turned_frame.unit;
+        let flat = half_width * views.cos;
+        if shown <= flat {
+            return Err(Error::new(
+                "the hair is no wider in the three-quarter view than a flat shape of its front width would be, so it has no depth to give",
+            ));
+        }
+        Ok((shown * shown - flat * flat).sqrt() / views.sin)
+    });
+    put("hair_half_width", half_width);
+    put("hair_half_depth", half_depth);
+    put(
+        "hair_centre_depth",
+        turned_hair().map(|(left, right)| views.depth_at((left[0] + right[0]) / 2.0, 0.0)),
     );
 
     // The neck: a column, so its width is the front view's and does not narrow.
-    let neck_left = three_quarter.need("neck-left-base", TURNED)?;
-    let neck_right = three_quarter.need("neck-right-base", TURNED)?;
-    let neck_width = match (front.get("neck-left-base"), front.get("neck-right-base")) {
-        (Some(left), Some(right)) => (left[0] - right[0]) / 2.0 / front_frame.unit,
-        _ => (neck_left[0] - neck_right[0]) / 2.0 / turned_frame.unit,
+    let turned_neck = || -> Result<([f64; 2], [f64; 2])> {
+        Ok((
+            three_quarter.need("neck-left-base", TURNED)?,
+            three_quarter.need("neck-right-base", TURNED)?,
+        ))
     };
-    values.insert("neck_half_width".to_string(), neck_width);
-    values.insert(
-        "neck_depth".to_string(),
-        views.depth_at((neck_left[0] + neck_right[0]) / 2.0, 0.0),
+    put(
+        "neck_half_width",
+        match (front.get("neck-left-base"), front.get("neck-right-base")) {
+            (Some(left), Some(right)) => views
+                .front_frame()
+                .map(|frame| (left[0] - right[0]) / 2.0 / frame.unit),
+            _ => turned_neck().map(|(left, right)| (left[0] - right[0]) / 2.0 / turned_frame.unit),
+        },
     );
-    values.insert(
-        "neck_base_drop".to_string(),
-        ((neck_left[1] + neck_right[1]) / 2.0 - turned_frame.eye_line_y) / turned_frame.unit,
+    put(
+        "neck_depth",
+        turned_neck().map(|(left, right)| views.depth_at((left[0] + right[0]) / 2.0, 0.0)),
+    );
+    put(
+        "neck_base_drop",
+        turned_neck().map(|(left, right)| {
+            ((left[1] + right[1]) / 2.0 - turned_frame.eye_line_y) / turned_frame.unit
+        }),
     );
 
-    Set::from_values(values)
+    // No circle is drawn: the skull is built by rule from what was taken above.
+    let skull = if skull_drawn {
+        Skull::Drawn
+    } else {
+        match skull_by_rule(|name| values.get(name).copied()) {
+            Ok(built) => {
+                values.insert("skull_centre_rise".to_string(), built.centre_rise);
+                values.insert("skull_centre_depth".to_string(), built.centre_depth);
+                values.insert("skull_radius".to_string(), built.radius);
+                Skull::ByRule
+            }
+            Err(lacking) => {
+                for name in ["skull_radius", "skull_centre_rise", "skull_centre_depth"] {
+                    not_given.push((
+                        name.to_string(),
+                        format!(
+                            "no view draws the skull, and the rule that builds it from the ears' base points and the temples lacks `{lacking}`"
+                        ),
+                    ));
+                }
+                Skull::NotBuilt
+            }
+        }
+    };
+
+    Ok(Taken {
+        values,
+        not_given,
+        skull,
+    })
 }

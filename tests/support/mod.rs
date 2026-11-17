@@ -2,6 +2,8 @@
 //! Every test goes through the command line, files in and files out.
 #![allow(dead_code)]
 
+pub mod made_up_head;
+
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -48,6 +50,27 @@ pub fn scratch(name: &str) -> PathBuf {
         std::fs::remove_dir_all(&folder).expect("the old scratch folder can be removed");
     }
     std::fs::create_dir_all(&folder).expect("the scratch folder can be made");
+    folder
+}
+
+/// An empty made-up reference folder for one test. A reference folder is outside every
+/// repository, and `target/` is inside this one, so it is made in the system's temporary
+/// folder, under a name that is this checkout's own: two checkouts tested at once do not
+/// share it.
+pub fn references(name: &str) -> PathBuf {
+    use std::hash::{Hash, Hasher};
+    let mut checkout = std::collections::hash_map::DefaultHasher::new();
+    env!("CARGO_MANIFEST_DIR").hash(&mut checkout);
+    let folder = std::env::temp_dir()
+        .join(format!(
+            "maquette-made-up-references-{:016x}",
+            checkout.finish()
+        ))
+        .join(name);
+    if folder.exists() {
+        std::fs::remove_dir_all(&folder).expect("the old made-up reference folder can be removed");
+    }
+    std::fs::create_dir_all(&folder).expect("the made-up reference folder can be made");
     folder
 }
 
@@ -185,4 +208,152 @@ pub fn assert_close(actual: f64, expected: f64, tolerance: f64, what: &str) {
         (actual - expected).abs() <= tolerance,
         "{what}: expected {expected}, found {actual} (tolerance {tolerance})"
     );
+}
+
+/// Runs the program with the reference folder configured as `references`, or with no
+/// reference folder configured at all: the environment variable is set or removed for this
+/// one run, so a test never depends on the machine it runs on.
+pub fn maquette_in(references: Option<&Path>, arguments: &[&str]) -> Output {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_maquette"));
+    command.args(arguments).current_dir(repository());
+    match references {
+        Some(folder) => command.env("MAQUETTE_REFERENCES", folder),
+        None => command.env_remove("MAQUETTE_REFERENCES"),
+    };
+    command.output().expect("the program starts")
+}
+
+/// Runs a measuring command in a reference folder and insists that it succeeds, returning
+/// what it printed.
+pub fn measure_ok(references: &Path, arguments: &[&str]) -> String {
+    let output = maquette_in(Some(references), arguments);
+    assert!(
+        output.status.success(),
+        "`maquette {}` failed:\n{}",
+        arguments.join(" "),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    String::from_utf8(output.stdout).expect("the output is text")
+}
+
+/// What a command that failed wrote to its error output.
+pub fn failure(output: &Output) -> String {
+    assert!(
+        !output.status.success(),
+        "the command succeeded:\n{}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+    String::from_utf8_lossy(&output.stderr).into_owned()
+}
+
+/// A made-up picture for a made-up reference folder: plain grey with one darker block, so
+/// that a crop can be told from the whole. It shows no drawing.
+pub fn made_up_image(path: &Path, width: u32, height: u32) {
+    made_up_image_with_block(path, width, height, [40, 20]);
+}
+
+/// A made-up picture whose darker block stands at `block`, its left and its top: two
+/// pictures of one size with the block in two places are two pictures, with two digests.
+pub fn made_up_image_with_block(path: &Path, width: u32, height: u32, block: [u32; 2]) {
+    let [left, top] = block;
+    let picture = image::RgbImage::from_fn(width, height, |x, y| {
+        if (left..left + 20).contains(&x) && (top..top + 10).contains(&y) {
+            image::Rgb([40, 40, 40])
+        } else {
+            image::Rgb([200, 200, 200])
+        }
+    });
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).expect("the folder can be made");
+    }
+    picture.save(path).expect("the made-up picture is written");
+}
+
+/// The SHA-256 digest of a file, in lower-case hex, worked out by the test itself.
+pub fn sha256_of(path: &Path) -> String {
+    sha256_hex(&std::fs::read(path).unwrap_or_else(|error| panic!("{}: {error}", path.display())))
+}
+
+pub fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    sha2::Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
+/// The landmarks a reading template asks for, in its order: `maquette start-reading` writes
+/// a line to fill in for each.
+pub fn asked_by(template: &str) -> Vec<String> {
+    template
+        .lines()
+        .filter_map(|line| {
+            line.strip_prefix("# ")
+                .and_then(|rest| rest.strip_suffix(" = { x = , y = }"))
+                .map(str::to_string)
+        })
+        .collect()
+}
+
+/// The text a file gives a key on a line of its own, such as `sha256 = "…"`.
+pub fn said_by(file: &str, key: &str) -> String {
+    file.lines()
+        .find_map(|line| {
+            line.strip_prefix(&format!("{key} = \""))
+                .and_then(|rest| rest.strip_suffix('"'))
+        })
+        .unwrap_or_else(|| panic!("the file gives no `{key}`"))
+        .to_string()
+}
+
+/// The revision of the reading instructions the program carries.
+pub fn instructions_revision() -> String {
+    maquette_ok(&["reading-instructions"])
+        .lines()
+        .find_map(|line| line.strip_prefix("Revision: "))
+        .expect("the instructions state their revision")
+        .trim()
+        .to_string()
+}
+
+/// A reading template, as `maquette start-reading` writes it, filled in with made-up answers:
+/// every text given, the head called level, a turn of `turn_degrees` where one is asked, and
+/// every landmark placed where `place` puts it, or left for `[not_seen]` when it gives none.
+/// Nothing in it was read from a drawing.
+pub fn filled_in(
+    template: &str,
+    turn_degrees: f64,
+    place: &dyn Fn(&str) -> Option<[f64; 2]>,
+) -> String {
+    let mut out = String::new();
+    let mut not_seen = Vec::new();
+    for line in template.lines() {
+        if let Some(name) = line
+            .strip_prefix("# ")
+            .and_then(|rest| rest.strip_suffix(" = { x = , y = }"))
+        {
+            match place(name) {
+                Some([x, y]) => out.push_str(&format!("{name} = {{ x = {x:?}, y = {y:?} }}\n")),
+                None => not_seen.push(name.to_string()),
+            }
+        } else if line == "# level = " {
+            out.push_str("level = true\n");
+        } else if line == "# turn_degrees = " {
+            out.push_str(&format!("turn_degrees = {turn_degrees:?}\n"));
+        } else if let Some(key) = line.strip_suffix(" = \"\"") {
+            if key == "set_aside_why" {
+                out.push_str(line);
+            } else {
+                out.push_str(&format!("{key} = \"made up for a test\""));
+            }
+            out.push('\n');
+        } else {
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    for name in not_seen {
+        out.push_str(&format!("{name} = \"made up: left out for a test\"\n"));
+    }
+    out
 }

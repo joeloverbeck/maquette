@@ -98,7 +98,33 @@ The distance from the hair's top to the chin of a level head. Differences betwee
 A published drawing whose proportions are measured.
 
 **Reading**:
-One agent's placement of the landmarks on one reference.
+One agent's placement of the landmarks on one drawing, with its judgement of the view, the turn and whether the head is level. The drawing is a reference, or a hand-made drawing with known positions.
+
+**Reader**:
+The agent that makes a reading. Every drawing has two, and neither sees the other's reading.
+
+**Reading instructions**:
+What a reader follows: which landmarks a view asks for, and how the view, the turn and the level are judged. A reading names the revision it followed.
+
+**Picture**:
+The image file of one drawing that a reader is given and reads: its landmarks are placed in the picture's pixels, and the reading records the picture's digest. The drawing is the work; the picture is the file of it. A reference image is the picture of a reference. Commands and a reading's file call it `image`.
+_Avoid_: scan, screenshot
+
+**Reference folder**:
+The one folder, outside every repository, that holds reference images, readings and reference check sheets. Configuration that is not committed names it.
+
+**Set aside**:
+What a reader does with a drawing that should not be measured: the head is not level, it is in none of the three views, the expression pulls the features out of place, or too little of the head shows to read. It is not measured. Jon can overrule it.
+
+**Agreement**:
+How far apart two readings of one drawing put a landmark, as a share of head height. A disagreement above 1% is shown to Jon.
+
+**Fit**:
+As one figure, how far a character's views are from being drawings of one level, symmetric head: the largest misfit between them, as a share of head height. It is not a lay-over.
+_Avoid_: consistency, match
+
+**Known positions**:
+The positions of a hand-made drawing's landmarks, taken from the drawing's own file by arithmetic. A reading's error is its distance from them.
 
 **Proportion table**:
 For one group of characters, each proportion's valid range, measured on references from several works by several hands. Measurements from one series or one artist are not a table.
@@ -124,7 +150,7 @@ The layout shown to Jon at a look. An armature review sheet shows generated view
 
 **Difference**:
 How far a generated view puts a landmark from where the hand-made view puts it, once the one is laid over the other, as a share of head height. A list of differences judges none of them.
-_Avoid_: error, deviation, mismatch
+_Avoid_: error (that is a reading's distance from known positions), deviation, mismatch
 
 **Lay over**:
 To put a generated view on a hand-made one by one scale and one shift for the whole view, so that their units, eye lines and turn axes coincide. It is fitted to no single landmark.

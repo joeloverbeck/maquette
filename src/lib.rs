@@ -24,21 +24,40 @@
 //! - [`hard_case`]: the hard case the contract lists, run on a three-quarter view, with the
 //!   two spoiled copies the oracle must fail.
 //! - [`vectorcraft`]: how VectorCraft's server is started and spoken to.
+//! - [`reference_folder`]: where the folder of reference images, readings and reference
+//!   check sheets is configured, and what is inside it.
+//! - [`readings`]: the record of a reading: which landmarks a view asks a reader for, what
+//!   makes a reading complete, and how its positions are read by the head model.
+//! - [`measuring`]: what readings say when they are set against each other: the agreement
+//!   between two readings of a drawing, the turn a three-quarter drawing shows, the fit of a
+//!   character's views to one head, and the proportions the readings give.
+//! - [`known_positions`]: how a reading is scored against a drawing whose true positions
+//!   are on record.
+//! - [`enlargement`]: how a part of a picture is enlarged for a reader, and how a position
+//!   in the enlargement is taken back to the picture.
+//! - [`reference_check_sheet`]: how readings and the pictures they were read from are laid
+//!   out on a reference check sheet.
 //! - [`number`] and [`toml_text`]: how numbers and text are written, so that every file
 //!   agrees on them.
 
 pub mod armature;
 pub mod differences;
 pub mod drawing;
+pub mod enlargement;
 pub mod guides;
 pub mod hand_made_drawings;
 pub mod hand_made_views;
 pub mod hard_case;
 pub mod head_model;
+pub mod known_positions;
+pub mod measuring;
 pub mod number;
 pub mod overlay;
 pub mod proportions;
 pub mod read_back;
+pub mod readings;
+pub mod reference_check_sheet;
+pub mod reference_folder;
 pub mod toml_text;
 pub mod vectorcraft;
 pub mod views;

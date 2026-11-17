@@ -5,8 +5,10 @@
 # checked against it. Nothing else repeats a definition.
 #
 # It is the first list: what Saffi's front view and three-quarter view need, and how the side
-# view is drawn from the same proportions. How a proportion is taken from a side drawing is not
-# stated yet: the reading of published references is a later ticket, and it revises this list.
+# view is drawn from the same proportions. A convention states the rule that builds it where
+# nothing is drawn: the skull's three, since a published drawing shows no skull.
+# How a proportion is taken from a side drawing is not stated yet. The reading instructions say
+# what a reader places in a side view; the first side drawing that is read revises this list.
 
 [unit]
 name = "eye line to chin"
@@ -80,7 +82,7 @@ rule = "The neck and the shoulder line take their widths from the front view. A 
 # rule below says what is drawn instead.
 [[construction]]
 guide = "skull"
-rule = "A sphere centred on the upright axis the head turns about, so it is the same circle in every view. A convention: its radius and its centre are stated, not measured. In the side view the circle's point toward the viewer's right is the point where the centre line leaves the skull's surface level with its centre."
+rule = "A sphere centred on the upright axis the head turns about, so it is the same circle in every view. A convention: its radius and its centre are stated, not measured. Where a drawing shows a construction circle, as an underdrawing does, the skull is that circle. Where nothing is drawn, as in every published drawing, the skull lies under the hair and is built from features that are drawn: its centre stands at the ears, at the height and the depth of the middle of the ear's base, midway between its two base points, and it reaches the temples, so its radius is the distance in space from that centre to the top end of the face outline. The hair's top is not used, because the hair's thickness varies from work to work. In the side view the circle's point toward the viewer's right is the point where the centre line leaves the skull's surface level with its centre."
 [[construction]]
 guide = "hair-volume"
 rule = "A plain envelope, a convention: a half-ellipse dome from the hair's top down to the height of the skull's centre, then straight sides down to the height of the chin. Seen from above the envelope is an ellipse, so its half-width in a view is the root of (half-width times the cosine of the turn) squared plus (half-depth times the sine of the turn) squared. In the side view that is the hair's half-depth, and the dome stands over the middle of the hair. Behind the head its side runs straight down to the height of the chin. In front it stops where the dome ends, at the height of the skull's centre: a straight side there would run down across the face, and how far the hair comes down over the face is the painter's."
@@ -150,17 +152,19 @@ three_quarter = "The depth of the midpoint of the hair's two side extents."
 name = "skull_radius"
 kind = "convention"
 sign = "positive"
-what = "The radius of the skull. Nothing is drawn behind it in a reference; where an underdrawing shows a construction circle, it is that circle's."
-front = "Half the height between the construction circle's top and bottom."
+what = "The radius of the skull. Nothing is drawn behind it in a reference, so it is built by rule; where an underdrawing shows a construction circle, it is that circle's."
+front = "Where a construction circle is drawn: half the height between its top and bottom."
 three_quarter = "The same."
+rule = "The skull reaches the temples, where the face outline begins. The radius is the distance in space from the skull's centre, built first, to the top end of the face outline: the root of face_top_half_width squared plus (face_top_rise minus skull_centre_rise) squared plus (face_top_depth minus skull_centre_depth) squared. It is a distance in space and not within one view, because the temple stands both to the side of the centre and in front of it."
 
 [[proportion]]
 name = "skull_centre_rise"
 kind = "convention"
 sign = "positive"
 what = "How high the skull's centre stands above the eye line."
-front = "The eye line's height minus the height of the construction circle's centre."
+front = "Where a construction circle is drawn: the eye line's height minus the height of its centre."
 three_quarter = "The same."
+rule = "The centre stands at the ears: at the height of the middle of the ear's base, the mean of ear_base_outer_rise and ear_base_inner_rise."
 
 [[proportion]]
 name = "skull_centre_depth"
@@ -168,7 +172,8 @@ kind = "convention"
 sign = "any"
 what = "The depth of the skull's centre, and so of the upright axis the head turns about. It is behind the eyes, so it is negative."
 front = "Not seen."
-three_quarter = "The depth of the construction circle's centre."
+three_quarter = "Where a construction circle is drawn: the depth of its centre."
+rule = "The centre stands at the ears: at the depth of the middle of the ear's base, the mean of ear_base_outer_depth and ear_base_inner_depth. Drawing lessons put the ear at about the middle of the head's depth."
 
 # ---------------------------------------------------------------- Face outline
 
@@ -566,7 +571,7 @@ three_quarter = "The depth of the line's centre."
 name = "ear_base_outer_offset"
 kind = "measured"
 sign = "positive"
-what = "The offset of the ear's outer base point: where the side of the ear away from the centre line meets the head."
+what = "The offset of the ear's outer base point: where the side of the ear away from the centre line meets the head. The ear's base is the stretch along which it stands on the head, and its two base points are the ends of that stretch. On an ear at the side of the head, as a human ear is, they lie one above the other, and the outer base point is the upper one."
 front = "Half the spacing of the two outer base points."
 three_quarter = "Half the spacing of the two outer base points, over the cosine of the turn. When the head covers the far ear's base, the front view's."
 
@@ -590,7 +595,7 @@ three_quarter = "The depth of the midpoint of the two outer base points, or from
 name = "ear_base_inner_offset"
 kind = "measured"
 sign = "positive"
-what = "The offset of the ear's inner base point: where the side of the ear toward the centre line meets the head."
+what = "The offset of the ear's inner base point: where the side of the ear toward the centre line meets the head. On an ear at the side of the head it is the lower of the two base points."
 front = "Half the spacing of the two inner base points."
 three_quarter = "Half the spacing of the two inner base points, over the cosine of the turn. When the head covers the far ear's base, the front view's."
 
