@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <title>blank.svg</title>
+  <g id="paper">
+    <rect id="paper-fill" x="0" y="0" width="1000" height="1000" fill="#ffffff"/>
+    <path id="hair-bun" d="M405 268 C423 268 437 282 437 300 C437 318 423 332 405 332 C387 332 373 318 373 300 C373 282 387 268 405 268 Z" fill="#6e4d3c" stroke="#3a2a24" stroke-width="3" stroke-miterlimit="10"/>
+    <path id="skin" d="M686 318 C689 340 691 360 691 383 C691 410 680 430 683 450 C690 475 720 505 736 522 L704 538 C708 548 714 556 713 566 C712 572 707 576 704 578 C708 582 711 588 709 593 C707 603 699 610 697 616 C700 628 709 640 707 652 C706 665 700 676 694 680 L618 657.3 C621 700 624 760 628 798 L664 850 L380 850 L380 790 L452 768 C460 700 468 600 472 556 C462 545 456 535 458 522 L470 420 C500 330 600 300 686 318 Z" fill="#f7e1d3"/>
+    <path id="garment" d="M654.3 836 C600 846 480 828 420 777.8 L380 790 C345 800 330 840 325 1000 L700 1000 C700 920 690 870 664 850 Z" fill="#e8ebf1" stroke="#9aa0aa" stroke-width="2" stroke-miterlimit="10"/>
+    <path id="profile-and-jaw-line" d="M686 318 C689 340 691 360 691 383 C691 410 680 430 683 450 C690 475 720 505 736 522 L704 538 C708 548 714 556 713 566 C712 572 707 576 704 578 C708 582 711 588 709 593 C707 603 699 610 697 616 C700 628 709 640 707 652 C706 665 700 676 694 680 L618 657.3 L560 640 L553 508" fill="none" stroke="#3d2f33" stroke-width="3" stroke-linejoin="round"/>
+    <path id="neck-front-line" d="M618 657.3 C621 700 624 760 628 798 L664 850" fill="none" stroke="#3d2f33" stroke-width="3" stroke-linejoin="round"/>
+    <path id="neck-back-line" d="M380 790 L452 768 C460 700 468 600 472 556 C462 545 456 535 458 522" fill="none" stroke="#3d2f33" stroke-width="3" stroke-linejoin="round"/>
+    <path id="eye-white" d="M596 443 C606 432 618 428 630 428 C640 428 651 438 651 452 C651 466 642 472 632 472 C620 472 604 458 596 443 Z" fill="#ffffff"/>
+    <path id="iris" d="M627 452 C627 440 632 431 639 431 C644 431 647 440 647 452 C647 464 644 471 639 471 C632 471 627 464 627 452 Z" fill="#4b6e8a"/>
+    <ellipse id="pupil" cx="638" cy="452" rx="4.5" ry="10" fill="#1d2430"/>
+    <circle id="eye-highlight" cx="642" cy="442" r="2.2" fill="#ffffff"/>
+    <path id="lid-line" d="M650 433 C642 426 634 425 626 425 C614 425 601 428 590 432" fill="none" stroke="#2b2125" stroke-width="5" stroke-miterlimit="10"/>
+    <path id="brow" d="M655 383 C640 372 620 368 602 372" fill="none" stroke="#4a3328" stroke-width="4.5" stroke-miterlimit="10"/>
+    <path id="nose-wing" d="M698 524 C700 528 702 529.5 705.5 529.5 C709 529.5 711 528 713 524" fill="none" stroke="#3d2f33" stroke-width="2.4" stroke-miterlimit="10"/>
+    <line id="mouth-line" x1="683" y1="577" x2="704" y2="578" fill="none" stroke="#6a3b3b" stroke-width="2.4" stroke-miterlimit="10"/>
+    <path id="hair" d="M696 348 C694 320 692 300 686 280 C676 235 625 205 548 205 C470 205 418 240 410 290 C402 350 405 430 420 470 C430 495 444 512 458 522 C470 500 488 450 505 425 C520 400 540 390 560 390 C572 390 578 396 578 408 C584 385 598 360 625 345 C650 336 680 345 696 348 Z" fill="#6e4d3c" stroke="#3a2a24" stroke-width="3" stroke-linejoin="round"/>
+    <path id="hair-strands" d="M640 240 C600 260 565 300 545 360 M600 225 C560 245 522 290 502 352" fill="none" stroke="#4a3328" stroke-width="1.5" stroke-miterlimit="10"/>
+    <path id="ear" d="M556 418 C546 410 540 398 528 398 C514 398 497 425 497 455 C497 485 512 520 530 520 C542 520 549 514 553 508 C557 495 560 478 560 462 C560 446 558 430 556 418 Z" fill="#f7e1d3" stroke="#3d2f33" stroke-width="2.5" stroke-linejoin="round"/>
+    <path id="ear-inner" d="M540 418 C520 420 512 445 518 470 C522 485 532 490 540 488" fill="none" stroke="#c79a8a" stroke-width="2" stroke-miterlimit="10"/>
+  </g>
+</svg>
