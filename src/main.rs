@@ -144,7 +144,8 @@ picture still the one that was read. The two readings of a drawing are two files
 readers under two labels, and follow one revision of the reading instructions. A reading
 under an earlier revision is measured, and what is written says which it followed.
 A picture is a PNG or a JPEG. It is read as it was published and never converted: a reading
-records the digest of the file it was read from.
+records the digest of the file it was read from. One whose file says it is shown turned or
+mirrored, by an EXIF orientation, is refused.
 
   maquette start-reading --image <picture> --view front|three-quarter|side
                          [--faces right|left] --reader <label> --out <reading>
@@ -183,8 +184,9 @@ records the digest of the file it was read from.
       Say, as one figure, how far a character's views are from being drawings of one level,
       symmetric head: the largest misfit in level, in spacing against the turn, and from the
       front view's centre line, as a share of head height. The front view is set against a
-      three-quarter view, a side view or both. A side view is compared in height, and with
-      no three-quarter view there is no turn and no spacing to compare.
+      three-quarter view, a side view or both. A side view is compared in height, but for
+      the nose mark's bottom and corner, which a profile puts on other points of the nose;
+      with no three-quarter view there is no turn and no spacing to compare.
 
   maquette proportions-from-readings --front <readings>
                                      [--three-quarter <readings> | --side <readings>]
