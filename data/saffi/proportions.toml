@@ -39,6 +39,7 @@ disagreement_rules = [
   "A depth is taken from the three-quarter view: from the pair's midpoint, or, when it shows one point of the pair, from that point and the offset.",
   "What the three-quarter view does not show is taken from the front view: a point's height, a pair's offset when one of its points is missing, and the half-width of a silhouette.",
   "The neck and the shoulder line take their widths from the front view. A neck is a column, whose width does not narrow as it turns, and the widest span of the figure is read where nothing foreshortens it.",
+  "The tip of the nose stands at the nose mark's bottom: nose_tip_drop is nose_mark_bottom_drop. Nothing in a front or a three-quarter drawing is read as the tip, so without a side view the two are one point.",
 ]
 # The share of the chin's full amount at which the named correction `lower_face_set_back`, at the
 # end of this file, was worked out from this set's own depths. The list of proportions states the
@@ -108,6 +109,7 @@ nose_mark_corner_drop = 0.352914
 nose_mark_corner_depth = 0.324941
 nose_mark_bottom_drop = 0.440219
 nose_mark_bottom_depth = 0.324941
+nose_tip_drop = 0.440219
 mouth_end_offset = 0.140924
 mouth_end_drop = 0.650779
 mouth_end_depth = 0.208418

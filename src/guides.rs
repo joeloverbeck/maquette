@@ -348,6 +348,9 @@ const NEAR: &str = "right";
 
 /// Builds every guide of the side view. `proportions/list.toml` states each construction.
 fn build_side(head: &Head, seen: &Seen) -> Guides {
+    // The nose point of a turned view: the tip of the nose, or the nose mark's bottom where
+    // the two are one point.
+    let nose_point = head.nose_point();
     let mut guides = Guides {
         guides: Vec::new(),
         view_points: Vec::new(),
@@ -425,7 +428,7 @@ fn build_side(head: &Head, seen: &Seen) -> Guides {
     let mut outline_anchors = names(&[
         "skull-front",
         "centre-line-at-eye-level",
-        "nose-mark-bottom",
+        nose_point,
         "mouth-line-centre",
         "chin",
     ]);
@@ -450,7 +453,7 @@ fn build_side(head: &Head, seen: &Seen) -> Guides {
         let nose_y = guides.position(&format!("jaw-line-{NEAR}-at-nose-level"))[1];
         // The front of the outline is its first four stretches, down to the chin.
         let front_x = furthest_crossing(&outline[..5], &outline_stretches[..4], 1, nose_y)
-            .unwrap_or_else(|| guides.position("nose-mark-bottom")[0]);
+            .unwrap_or_else(|| guides.position(nose_point)[0]);
         let nose_front = guides.view_point(
             "face-outline-front-at-nose-level".to_string(),
             front_x,
@@ -502,10 +505,7 @@ fn build_side(head: &Head, seen: &Seen) -> Guides {
         None,
         Paint::Form,
         Shape::Line,
-        vec![
-            format!("nose-mark-{NEAR}-corner"),
-            "nose-mark-bottom".to_string(),
-        ],
+        vec![format!("nose-mark-{NEAR}-corner"), nose_point.to_string()],
     );
     guides.add(
         "mouth-line",
@@ -572,6 +572,14 @@ pub fn build(head: &Head, seen: &Seen) -> Guides {
     if seen.view == View::Side {
         return build_side(head, seen);
     }
+    // The three-quarter view's centre line and nose mark run through the nose point of a
+    // turned view, the tip of the nose. The front view's run through the nose mark's bottom:
+    // the base of the nose is what a front view marks.
+    let nose_point = if seen.view == View::ThreeQuarter {
+        head.nose_point()
+    } else {
+        "nose-mark-bottom"
+    };
     let mut guides = Guides {
         guides: Vec::new(),
         view_points: Vec::new(),
@@ -693,7 +701,7 @@ pub fn build(head: &Head, seen: &Seen) -> Guides {
             "skull-top",
             "skull-front",
             "centre-line-at-eye-level",
-            "nose-mark-bottom",
+            nose_point,
             "mouth-line-centre",
             "chin",
         ]);
@@ -780,7 +788,7 @@ pub fn build(head: &Head, seen: &Seen) -> Guides {
         Shape::Polyline,
         names(&[
             "nose-mark-right-corner",
-            "nose-mark-bottom",
+            nose_point,
             "nose-mark-left-corner",
         ]),
     );

@@ -1,4 +1,4 @@
-//! The first table as it is put to Jon at look 5, and the head drawn from it: what the
+//! The first table as it is put to Jon at look 6, and the head drawn from it: what the
 //! committed files say of themselves, and that they agree with each other.
 //!
 //! The table was built from readings in the reference folder, which no clean clone has, so
@@ -15,7 +15,7 @@ use support::{
 };
 
 const TABLE: &str = "tables/adult-women/table.toml";
-const HEAD: &str = "design/look-5-first-table/saffi-with-table-values.toml";
+const HEAD: &str = "design/look-6-first-table/saffi-with-table-values.toml";
 const SAFFIS: &str = "data/saffi/proportions.toml";
 
 fn toml_of(path: &str) -> toml::Table {
@@ -43,7 +43,7 @@ fn the_table_states_a_number_only_where_five_works_give_a_range() {
     let stated = table["table"].as_table().expect("a [table]");
     assert_eq!(stated["works"].as_integer(), Some(6));
     let entries = entries(&table);
-    assert_eq!(entries.len(), 73);
+    assert_eq!(entries.len(), 74);
     let mut counted: BTreeMap<&str, i64> = BTreeMap::new();
     for (name, entry) in &entries {
         let standing = entry["standing"].as_str().expect("a standing");
@@ -152,7 +152,7 @@ fn the_table_lists_its_works_by_work_and_designer_and_names_nothing_else() {
 }
 
 #[test]
-fn saffi_is_inside_nineteen_ranges_outside_eight_and_has_none_for_the_rest() {
+fn saffi_is_inside_nineteen_ranges_outside_six_and_has_none_for_the_rest() {
     let printed = maquette_ok(&[
         "set-against-table",
         "--proportions",
@@ -162,10 +162,10 @@ fn saffi_is_inside_nineteen_ranges_outside_eight_and_has_none_for_the_rest() {
     ]);
     let against: toml::Table = printed.parse().expect("the comparison is TOML");
     let summary = against["summary"].as_table().expect("a summary");
-    assert_eq!(summary["set_against"].as_integer(), Some(73));
+    assert_eq!(summary["set_against"].as_integer(), Some(74));
     assert_eq!(summary["inside"].as_integer(), Some(19));
-    assert_eq!(summary["outside"].as_integer(), Some(8));
-    assert_eq!(summary["no_range"].as_integer(), Some(46));
+    assert_eq!(summary["outside"].as_integer(), Some(6));
+    assert_eq!(summary["no_range"].as_integer(), Some(49));
     // Her numbers are in no range's ends: the table was not built on her.
     let table = entries(&toml_of(TABLE));
     let hers = proportions(&repository().join(SAFFIS));
@@ -190,7 +190,7 @@ fn the_head_takes_the_tables_middles_and_borrows_saffis_numbers_as_it_says() {
     let sources = head["sources"]
         .as_table()
         .expect("the head says its sources");
-    assert_eq!(sources.len(), 73);
+    assert_eq!(sources.len(), 74);
     let mut counted = [0_i64; 3];
     for (name, said) in sources {
         let said = said.as_str().expect("a source is text");
@@ -213,15 +213,18 @@ fn the_head_takes_the_tables_middles_and_borrows_saffis_numbers_as_it_says() {
             assert_close(values[name], hers[name], 1e-9, name);
         }
     }
-    assert_eq!(counted, [27, 17, 29]);
+    assert_eq!(counted, [25, 16, 33]);
     let stated = head["source"].as_table().expect("a [source]");
-    assert_eq!(stated["from_the_table"].as_integer(), Some(27));
-    assert_eq!(stated["thin_averages"].as_integer(), Some(17));
-    assert_eq!(stated["borrowed"].as_integer(), Some(29));
+    assert_eq!(stated["from_the_table"].as_integer(), Some(25));
+    assert_eq!(stated["thin_averages"].as_integer(), Some(16));
+    assert_eq!(stated["borrowed"].as_integer(), Some(33));
     assert_eq!(stated["borrowed_from"].as_str(), Some(SAFFIS));
-    // The ear is hers whole, and the head carries no correction.
+    // The ear, the neck and the jaw point are hers whole, and the head carries no correction.
     for (name, said) in sources {
-        if name.starts_with("ear_") {
+        if ["ear_", "neck_", "jaw_"]
+            .iter()
+            .any(|form| name.starts_with(form))
+        {
             assert!(
                 said.as_str()
                     .is_some_and(|said| said.starts_with("borrowed"))

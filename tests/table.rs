@@ -287,7 +287,7 @@ fn a_table_gives_each_proportion_its_lowest_middle_and_highest_value_and_its_cou
                 .map(str::to_string)
         })
         .collect();
-    assert_eq!(listed.len(), 73);
+    assert_eq!(listed.len(), 74);
     let entries: Vec<&str> = table["proportion"]
         .as_array()
         .expect("the table lists its proportions")
@@ -387,7 +387,7 @@ fn a_view_or_a_proportion_with_fewer_than_five_works_is_too_thin_and_has_no_rang
             .count() as i64
     };
     let stated = table["table"].as_table().expect("a [table]");
-    assert_eq!(stated["proportions"].as_integer(), Some(73));
+    assert_eq!(stated["proportions"].as_integer(), Some(74));
     assert_eq!(stated["given"].as_integer(), Some(counted("given")));
     assert_eq!(stated["too_thin"].as_integer(), Some(counted("too thin")));
     assert_eq!(stated["no_work"].as_integer(), Some(counted("no work")));
@@ -825,7 +825,7 @@ fn a_set_of_proportions_is_told_inside_outside_or_no_range_for_each_proportion()
     assert_eq!(summary["inside"].as_integer(), Some(2));
     assert_eq!(summary["outside"].as_integer(), Some(2));
     assert_eq!(summary["no_range"].as_integer(), Some(3));
-    assert_eq!(summary["not_in_the_set"].as_integer(), Some(66));
+    assert_eq!(summary["not_in_the_set"].as_integer(), Some(67));
     assert_eq!(against["proportion"].as_array().expect("entries").len(), 7);
     // A correction is no proportion: the table has no range for it, and the file says so.
     assert_eq!(
@@ -1021,7 +1021,7 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
 
     // The counts are those of the sources, and every proportion of the list has one.
     let sources = set["sources"].as_table().expect("the sources");
-    assert_eq!(sources.len(), 73);
+    assert_eq!(sources.len(), 74);
     let counted = |kind: &str| {
         sources
             .values()
@@ -1040,7 +1040,7 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
     assert_eq!(stated["borrowed"].as_integer(), Some(counted("borrowed:")));
     assert_eq!(
         counted("the table:") + counted("a thin average:") + counted("borrowed:"),
-        73
+        74
     );
     assert_eq!(stated["borrowed_from"].as_str(), Some(support::MADE_UP));
 

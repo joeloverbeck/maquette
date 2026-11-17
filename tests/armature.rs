@@ -1641,3 +1641,129 @@ fn a_correction_the_list_does_not_define_or_with_a_wrong_amount_is_refused_in_pl
         );
     }
 }
+
+/// Draws the made-up set with the tip of the nose given a height of its own: a tenth of a
+/// unit above the nose mark's bottom, which stands 0.4629 below the eye line.
+fn draw_with_a_nose_tip(name: &str) -> PathBuf {
+    let set = scratch(&format!("{name}-set")).join("proportions.toml");
+    let made_up = text(&support::repository().join(MADE_UP));
+    assert!(made_up.contains("\nnose_tip_drop = 0.4629\n"));
+    std::fs::write(
+        &set,
+        made_up.replace("\nnose_tip_drop = 0.4629\n", "\nnose_tip_drop = 0.3629\n"),
+    )
+    .expect("the set is written");
+    draw(name, path_text(&set), &[])
+}
+
+#[test]
+fn a_nose_tip_of_its_own_is_drawn_in_the_turned_views_and_the_front_view_keeps_its_nose_mark() {
+    let plain = draw("nose-tip-at-the-nose-mark", MADE_UP, &[]);
+    let folder = draw_with_a_nose_tip("nose-tip-of-its-own");
+
+    // The tip is one point in space: on the centre line, at its own height, 0.3629 units
+    // below the eye line, and at the depth the nose mark's bottom is given. Every view
+    // lists it, and the nose mark's bottom stays where it was.
+    for view in VIEWS {
+        let file = landmark_file(&folder, view);
+        let tip = file.landmarks["nose-tip"];
+        let bottom = file.landmarks["nose-mark-bottom"];
+        assert_close(
+            tip.y,
+            400.0 + 0.3629 * 200.0,
+            0.0011,
+            &format!("{view}: the tip"),
+        );
+        assert_close(
+            bottom.y,
+            400.0 + 0.4629 * 200.0,
+            0.0011,
+            &format!("{view}: the mark"),
+        );
+        assert_close(
+            tip.x,
+            bottom.x,
+            1e-9,
+            &format!("{view}: on one upright line"),
+        );
+        assert_eq!(tip.depth, bottom.depth, "{view}");
+    }
+    // In the side view a point stands sideways at its depth: 0.3377 in front of the eyes,
+    // from an axis at the skull's centre, 0.6375 behind them.
+    let side = landmark_file(&folder, "side");
+    assert_close(
+        side.landmarks["nose-tip"].x,
+        500.0 + (0.3377 + 0.6375) * 200.0,
+        0.0011,
+        "the tip in the side view",
+    );
+
+    // The turned views run through the tip: the side view's face outline and nose mark, and
+    // the three-quarter view's centre line and nose mark. No guide of theirs runs through
+    // the nose mark's bottom.
+    let through = |file: &LandmarkFile, guide: &str| file.guides[guide].passes_through.clone();
+    assert_eq!(
+        through(&side, "nose-mark"),
+        ["nose-mark-right-corner", "nose-tip"]
+    );
+    assert!(through(&side, "face-outline").contains(&"nose-tip".to_string()));
+    let three_quarter = landmark_file(&folder, "three-quarter");
+    assert_eq!(
+        through(&three_quarter, "nose-mark"),
+        [
+            "nose-mark-right-corner",
+            "nose-tip",
+            "nose-mark-left-corner"
+        ]
+    );
+    assert!(through(&three_quarter, "centre-line").contains(&"nose-tip".to_string()));
+    for file in [&side, &three_quarter] {
+        for (name, guide) in &file.guides {
+            assert!(
+                !guide
+                    .passes_through
+                    .contains(&"nose-mark-bottom".to_string()),
+                "{name} runs through the nose mark's bottom in a turned view"
+            );
+        }
+    }
+    // The front view marks the base of the nose, and is drawn as it was: the same bytes.
+    let front = landmark_file(&folder, "front");
+    assert_eq!(
+        through(&front, "nose-mark"),
+        [
+            "nose-mark-right-corner",
+            "nose-mark-bottom",
+            "nose-mark-left-corner"
+        ]
+    );
+    assert_eq!(svg_text(&folder, "front"), svg_text(&plain, "front"));
+    // The turned views are not: the tip stands 20 units higher than the mark's bottom.
+    assert_ne!(svg_text(&folder, "side"), svg_text(&plain, "side"));
+    assert_ne!(
+        svg_text(&folder, "three-quarter"),
+        svg_text(&plain, "three-quarter")
+    );
+
+    // A set that gives the tip the height of the nose mark's bottom has one point for both:
+    // none of its files names a tip.
+    for view in VIEWS {
+        let file = landmark_file(&plain, view);
+        assert!(!file.landmarks.contains_key("nose-tip"), "{view}");
+        assert!(
+            !text(&plain.join(format!("{view}.landmarks.toml"))).contains("nose-tip"),
+            "{view}"
+        );
+    }
+
+    // Taken back from the landmark files, the tip has its own height and the mark its own.
+    let taken_back = take_back(&folder, false);
+    let came_back = support::proportions(&taken_back);
+    assert_close(came_back["nose_tip_drop"], 0.3629, 1e-4, "the tip");
+    assert_close(came_back["nose_mark_bottom_drop"], 0.4629, 1e-4, "the mark");
+    let plain_back = support::proportions(&take_back(&plain, false));
+    assert_eq!(
+        plain_back["nose_tip_drop"],
+        plain_back["nose_mark_bottom_drop"]
+    );
+}

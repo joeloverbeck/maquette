@@ -505,7 +505,7 @@ pub const SET_RULES: &[(&str, &str)] = &[
     ),
     (
         "taken_whole",
-        "An ear is taken whole. It is one form built on its two base points, so unless the table and the thin averages give every one of its proportions, all of them are borrowed.",
+        "An ear and the neck are each taken whole. An ear is one form built on its two base points, and the neck one column: its width, where it ends and how far back it stands belong together, and a width from one source on a depth from another sets the head forward on a post. So unless the table and the thin averages give every one of a form's proportions, all of them are borrowed.",
     ),
     (
         "no_correction",
@@ -513,9 +513,18 @@ pub const SET_RULES: &[(&str, &str)] = &[
     ),
 ];
 
-/// The proportions of a form that is taken whole from one source, by the start of their
-/// names: the rule `taken_whole`.
-const TAKEN_WHOLE: &str = "ear_";
+/// The forms that are taken whole from one source, each by the start of its proportions'
+/// names, with what a proportion borrowed for that reason says: the rule `taken_whole`.
+const TAKEN_WHOLE: &[(&str, &str)] = &[
+    (
+        "ear_",
+        "the ear is taken whole, and the works do not give all of it",
+    ),
+    (
+        "neck_",
+        "the neck is taken whole, and the works do not give all of it",
+    ),
+];
 
 /// Where a proportion of a set made from a table comes from.
 #[derive(Debug, Clone, PartialEq)]
@@ -602,17 +611,17 @@ impl Table {
             })
             .collect();
         // The rule `taken_whole`.
-        let whole = |name: &str| name.starts_with(TAKEN_WHOLE);
-        if made
-            .iter()
-            .any(|(name, _, source)| whole(name) && matches!(source, Source::Borrowed(_)))
-        {
-            for (name, value, source) in &mut made {
-                if whole(name) && !matches!(source, Source::Borrowed(_)) {
-                    *value = borrowed.get(name);
-                    *source = Source::Borrowed(
-                        "the ear is taken whole, and the works do not give all of it",
-                    );
+        for (start, why) in TAKEN_WHOLE {
+            let whole = |name: &str| name.starts_with(start);
+            if made
+                .iter()
+                .any(|(name, _, source)| whole(name) && matches!(source, Source::Borrowed(_)))
+            {
+                for (name, value, source) in &mut made {
+                    if whole(name) && !matches!(source, Source::Borrowed(_)) {
+                        *value = borrowed.get(name);
+                        *source = Source::Borrowed(why);
+                    }
                 }
             }
         }

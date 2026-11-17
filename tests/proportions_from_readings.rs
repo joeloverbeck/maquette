@@ -208,6 +208,10 @@ const DEPTHS_NOT_FROM_A_SIDE_VIEW: [&str; 5] = [
     "jaw_depth",
 ];
 
+/// How far above the front view's nose mark a made-up side reading places the tip of the
+/// nose, in units: the generator draws the made-up head at 200 pixels to the unit.
+const TIP_ABOVE_THE_NOSE_MARK: f64 = 0.1;
+
 /// A made-up reading of the made-up head's side view, as the generator draws it, on a
 /// picture of its own: drawn `scale` times the size of the front view and moved by `shift`,
 /// and facing the viewer's left when `faces_left`, which flips the picture left to right.
@@ -255,7 +259,14 @@ fn side_reading(folder: &Path, name: &str, scale: f64, shift: [f64; 2], faces_le
         let point = file.point(&generated);
         let x = shift[0] + scale * point.x;
         let x = if faces_left { 1000.0 - x } else { x };
-        Some([x, shift[1] + scale * point.y])
+        // A reader of a profile places `nose-mark-bottom` under the tip of the nose, which
+        // stands above the front view's nose mark: made up here as a tenth of a unit higher.
+        let y = if landmark == "nose-mark-bottom" {
+            point.y - TIP_ABOVE_THE_NOSE_MARK * 200.0
+        } else {
+            point.y
+        };
+        Some([x, shift[1] + scale * y])
     };
     let filled = filled_in(&text(&folder.join(&out)), 90.0, &place);
     std::fs::write(folder.join(&out), filled).expect("the reading is written");
@@ -287,7 +298,14 @@ fn a_front_view_alone_gives_the_heights_and_the_widths_and_says_why_no_depth() {
         .chain(&DEPTHS_NOT_FROM_A_SIDE_VIEW)
         .copied()
         .collect();
-    assert_eq!(not_given.len(), depths.len() + SKULL.len(), "{not_given:?}");
+    // Nor the tip of the nose: a front view draws the nose mark, at the base of the nose.
+    assert_eq!(
+        not_given.len(),
+        depths.len() + SKULL.len() + 1,
+        "{not_given:?}"
+    );
+    let why = not_given["nose_tip_drop"].as_str().expect("a reason");
+    assert!(why.contains("not the tip of the nose"), "{why}");
     for name in &depths {
         let why = not_given[*name].as_str().expect("a reason");
         assert!(why.contains("a front view shows no depth"), "{name}: {why}");
@@ -357,16 +375,19 @@ fn a_front_and_a_side_view_give_depth_whatever_size_and_way_the_side_view_is_dra
             DEPTHS_NOT_FROM_A_SIDE_VIEW.len() + SKULL.len(),
             "{side}: {not_given:?}"
         );
-        // Heights and widths are the front view's.
+        // Heights and widths are the front view's. The tip of the nose is the one height a
+        // side view gives of its own: where it places `nose-mark-bottom`, in its own unit,
+        // while the nose mark's bottom keeps the front view's height.
         assert_eq!(given.len(), put_in.len() - not_given.len());
         for (name, value) in given {
-            assert_close(
-                number(value),
-                put_in[name],
-                4e-4,
-                &format!("{side}: {name}"),
-            );
+            let expected = if name == "nose_tip_drop" {
+                put_in["nose_mark_bottom_drop"] - TIP_ABOVE_THE_NOSE_MARK
+            } else {
+                put_in[name]
+            };
+            assert_close(number(value), expected, 4e-4, &format!("{side}: {name}"));
         }
+        assert!(given.contains_key("nose_tip_drop"), "{side}");
         let source = found["source"].as_table().expect("[source]");
         assert!(
             source["depth_from"]

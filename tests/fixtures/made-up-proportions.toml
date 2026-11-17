@@ -55,6 +55,7 @@ nose_mark_corner_drop = 0.3873
 nose_mark_corner_depth = 0.3121
 nose_mark_bottom_drop = 0.4629
 nose_mark_bottom_depth = 0.3377
+nose_tip_drop = 0.4629
 mouth_end_offset = 0.1623
 mouth_end_drop = 0.6627
 mouth_end_depth = 0.2129
