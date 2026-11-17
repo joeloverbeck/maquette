@@ -155,9 +155,12 @@ Usage:
       Print the reading instructions: what a reader judges and places on a drawing.
 
 Measuring. The commands below read and write in the reference folder, the one folder
-outside every repository that holds reference images, readings and reference check sheets.
+outside every repository but a private store of references, that holds reference images,
+readings and reference check sheets.
 Each of them takes --references <folder>, which names it; without that option the environment
-variable MAQUETTE_REFERENCES names it. A folder inside a Git repository is refused. Every path given to them is taken from that folder, and one that leaves it, by its
+variable MAQUETTE_REFERENCES names it. A folder inside a Git repository is refused, unless
+the repository has a file .maquette-reference-store at its root and is no checkout of
+maquette. Every path given to them is taken from that folder, and one that leaves it, by its
 own steps or through a link, is refused; with no folder they stop and say so.
 Where a view is asked for, <readings> is one reading, or the two readings of the drawing
 with a comma between them: a landmark then stands midway between the two.

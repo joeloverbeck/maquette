@@ -953,7 +953,8 @@ fn a_path_that_leaves_the_reference_folder_is_refused() {
     assert!(failure(&output).contains("outside the reference folder"));
 }
 
-/// References are kept outside every repository, so that none can be committed. A scratch
+/// References are kept outside every repository but a private store of references, so that none
+/// can be committed where it may be published. A scratch
 /// folder under `target/` is inside this one.
 #[test]
 fn a_reference_folder_inside_a_git_repository_is_refused() {
@@ -1013,6 +1014,52 @@ fn a_reference_folder_inside_a_git_repository_is_refused() {
     .expect("written");
     std::fs::create_dir(outside.join(".git")).expect("made");
     start(&outside, "front", &[], "front.toml");
+}
+
+/// A private repository of references declares itself with a file at its root, and a folder in
+/// it is a reference folder: at its root, or deeper, as a reader's own folder is. A checkout of
+/// maquette is never one, whatever file it holds: maquette is public.
+#[test]
+fn a_private_repository_that_declares_itself_a_reference_store_holds_reference_folders() {
+    let store = references("readings-folder-in-a-store");
+    std::fs::create_dir_all(store.join(".git")).expect("made");
+    std::fs::write(store.join(".git/HEAD"), "ref: refs/heads/made-up\n").expect("written");
+    std::fs::write(
+        store.join(".maquette-reference-store"),
+        "made up for a test: a private repository of references\n",
+    )
+    .expect("written");
+    made_up_image(&store.join("picture.png"), 800, 900);
+    start(&store, "front", &[], "front.toml");
+    let deeper = store.join("readers/first-reader");
+    made_up_image(&deeper.join("picture.png"), 800, 900);
+    start(&deeper, "front", &[], "front.toml");
+
+    // The same file in a checkout of maquette, which has the list of proportions, is refused.
+    let checkout = references("readings-folder-in-a-marked-checkout");
+    std::fs::create_dir_all(checkout.join(".git")).expect("made");
+    std::fs::write(checkout.join(".git/HEAD"), "ref: refs/heads/made-up\n").expect("written");
+    std::fs::write(
+        checkout.join(".maquette-reference-store"),
+        "made up for a test\n",
+    )
+    .expect("written");
+    std::fs::create_dir_all(checkout.join("proportions")).expect("made");
+    std::fs::write(
+        checkout.join("proportions/list.toml"),
+        "# made up for a test\n",
+    )
+    .expect("written");
+    made_up_image(&checkout.join("picture.png"), 800, 900);
+    let output = maquette_in(
+        Some(&checkout),
+        &["check-reading", "--reading", "front.toml"],
+    );
+    let message = failure(&output);
+    assert!(
+        message.contains("is a Git repository") && message.contains("a checkout of maquette"),
+        "{message}"
+    );
 }
 
 /// A link inside the reference folder that leads out of it is a way out of it like any other.

@@ -111,7 +111,7 @@ The image file of one drawing that a reader is given and reads: its landmarks ar
 _Avoid_: scan, screenshot
 
 **Reference folder**:
-The one folder, outside every repository, that holds reference images, readings and reference check sheets. Configuration that is not committed names it.
+The one folder, outside every repository but a private store of references, that holds reference images, readings and reference check sheets. Configuration that is not committed names it. A private store of references is a Git repository of its own that declares itself one with a file `.maquette-reference-store` at its root.
 
 **Set aside**:
 What a reader does with a drawing that should not be measured: the head is not level, it is in none of the three views, the expression pulls the features out of place, or too little of the head shows to read. It is not measured. Jon can overrule it.
