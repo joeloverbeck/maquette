@@ -11,6 +11,7 @@
 
 use std::collections::BTreeMap;
 
+use crate::hand_made_drawings::SKULL;
 use crate::head_model::{self, Reading};
 use crate::number::toml as toml_number;
 use crate::proportions;
@@ -289,11 +290,7 @@ fn read_view(
         let covered_by_head = entry
             .get("under")
             .and_then(toml::Value::as_array)
-            .is_some_and(|shapes| {
-                shapes
-                    .iter()
-                    .any(|shape| shape.as_str() == Some("face/cranium"))
-            });
+            .is_some_and(|shapes| shapes.iter().any(|shape| shape.as_str() == Some(SKULL)));
         if is_final {
             from_final_drawings.push(name.clone());
         }

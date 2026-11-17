@@ -138,6 +138,7 @@ cargo test --test read_back_in_vectorcraft -- --ignored
 | `Cargo.toml`, `src/` | The Rust package: the list and sets of proportions, the head model, the three views, the guides, the armature writer, the reading of a hand-made drawing, the differences from a hand-made armature and the read-back in VectorCraft, under a thin command line |
 | `tests/` | Tests that drive the command line, files in and files out. `tests/fixtures/` holds made-up proportions, made-up views and a made-up drawing that say so, and recordings of VectorCraft's replies that say so |
 | `.github/workflows/checks.yml` | Formatting, lints and tests on every pull request |
+| `.gitattributes` | Keeps Git from converting line endings in `armatures/`, so that a checkout cannot change the pinned bytes |
 | `GLOSSARY.md` | The words maquette uses for armatures, views and proportions |
 | `docs/research/` | The research behind the founding and the reorientation. Evidence only |
 

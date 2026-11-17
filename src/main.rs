@@ -477,8 +477,9 @@ fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
     let record_path = required(&found, "--record")?;
     let final_record = final_record(&found)?;
     let lower_face_set_back = match found.get(SET_BACK) {
-        Some(value) => match value.parse::<f64>() {
-            Ok(share) if (0.0..=1.0).contains(&share) => Some(share),
+        // The head model says what a share is; a value it refuses is named here by its option.
+        Some(value) => match value.parse::<f64>().map(head_model::set_back_share) {
+            Ok(Ok(share)) => Some(share),
             _ => {
                 return Err(Error::new(format!(
                     "`{SET_BACK}` needs a share from 0 to 1, and `{value}` is not one"
