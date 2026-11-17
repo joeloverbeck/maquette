@@ -1,0 +1,15 @@
+# Every revision of `reading-instructions.md` that readers have been given, and the SHA-256
+# digest of the file at that revision. A reading names the revision it was made under, so the
+# text of a revision never changes: a change to the file is a new revision, on its own
+# `Revision:` line, with a new entry here. `tests/reading_instructions_revision.rs` fails when
+# the file's revision has no entry, or its entry is not the file's digest.
+#
+# 2026-11-17.1 was given to the readers of the dry run and never reached `main`. Its text was
+# changed once without a new revision, at commit df4c684, which said that a drawing's own
+# construction lines are not read; the first text, at f965e8c, had the digest
+# df45c33d9fb1f49576c801b79da29a8aa56a0cac185cb0fb67e079d61c4e5c42. The entry is the second.
+
+[revisions]
+"2026-11-17.1" = "7b4c0e831b3f9ad7c59fae261f7d5863868e0eaf406fb12006231ca4b5c6bb4c"
+"2026-11-17.2" = "92d19b07ee0836a71bbbb6362ea8f1640e9c08614385447b65c381114cdcac66"
+"2026-11-17.3" = "f4d930e7cbe729c6ae2e366793c26ee1b44bfbd9bb32522df775ccf028da3324"

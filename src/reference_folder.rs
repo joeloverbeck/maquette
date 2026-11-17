@@ -10,6 +10,7 @@
 //! does not exist, a measuring command stops with [`Folder::configured`]'s message, and
 //! everything else still works.
 
+use std::ffi::OsStr;
 use std::path::{Component, Path, PathBuf};
 
 use crate::{Error, Result};
@@ -18,9 +19,14 @@ use crate::{Error, Result};
 /// set on the machine that has the folder and written in no committed file.
 pub const VARIABLE: &str = "MAQUETTE_REFERENCES";
 
+/// The option that names the reference folder on a measuring command's line, and wins over
+/// [`VARIABLE`]. A command that names its folder this way begins with the program's own name,
+/// which a permission rule can match; one that begins by setting a variable cannot be.
+pub const OPTION: &str = "--references";
+
 /// What every message about a missing folder ends with: where it is configured, and what
 /// still works without it.
-const HOW: &str = "Measuring keeps reference images, readings and reference check sheets in one folder outside every repository, and nowhere else. Name that folder in the environment variable MAQUETTE_REFERENCES; nothing committed names it. README.md, \"The reference folder\", says what it holds. Drawing an armature and its checks need no reference folder.";
+const HOW: &str = "Measuring keeps reference images, readings and reference check sheets in one folder outside every repository, and nowhere else. Name that folder with the option --references <folder>, or in the environment variable MAQUETTE_REFERENCES; the option wins, and nothing committed names it. README.md, \"The reference folder\", says what it holds. Drawing an armature and its checks need no reference folder.";
 
 /// Where a path leads once every link in it is followed. The part of it that exists is
 /// followed, and what is named beyond that part, which a command is about to write, is kept
@@ -58,13 +64,21 @@ pub struct Folder {
 }
 
 impl Folder {
-    /// The folder the environment names, or the plain message that says what is missing and
-    /// where it is configured.
-    pub fn configured() -> Result<Folder> {
-        Folder::named_by(std::env::var_os(VARIABLE).as_deref())
+    /// The folder that `--references` names when it is given, or else the folder the
+    /// environment names; or the plain message that says what is missing and where it is
+    /// configured.
+    pub fn configured(option: Option<&str>) -> Result<Folder> {
+        match option {
+            Some(named) => Folder::named_by(Some(OsStr::new(named)), &format!("`{OPTION}`")),
+            None => Folder::named_by(
+                std::env::var_os(VARIABLE).as_deref(),
+                &format!("the environment variable {VARIABLE}"),
+            ),
+        }
     }
 
-    fn named_by(value: Option<&std::ffi::OsStr>) -> Result<Folder> {
+    /// The folder `value` names. `by` says what named it, for the messages.
+    fn named_by(value: Option<&OsStr>, by: &str) -> Result<Folder> {
         let Some(value) = value.filter(|value| !value.is_empty()) else {
             return Err(Error::new(format!(
                 "the reference folder is not configured, so nothing can be measured. {HOW}"
@@ -73,7 +87,7 @@ impl Folder {
         let named = PathBuf::from(value);
         if !named.is_dir() {
             return Err(Error::new(format!(
-                "the reference folder `{}`, which the environment variable {VARIABLE} names, does not exist, so nothing can be measured. {HOW}",
+                "the reference folder `{}`, which {by} names, does not exist, so nothing can be measured. {HOW}",
                 named.display()
             )));
         }
@@ -90,7 +104,7 @@ impl Folder {
                 format!("is inside the Git repository `{}`", repository.display())
             };
             return Err(Error::new(format!(
-                "the reference folder `{}`, which the environment variable {VARIABLE} names, {where_it_is}, so nothing can be measured there. References are kept outside every repository, so that no image, reading or sheet can be committed: name a folder that is in no repository. {HOW}",
+                "the reference folder `{}`, which {by} names, {where_it_is}, so nothing can be measured there. References are kept outside every repository, so that no image, reading or sheet can be committed: name a folder that is in no repository. {HOW}",
                 named.display()
             )));
         }

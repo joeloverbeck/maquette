@@ -137,15 +137,16 @@ Measuring takes proportions from drawings. A reader, which is an agent, judges a
 
 Reference images, the readings of them, everything worked out from one reading and the reference check sheets are kept in one folder outside every repository, and nowhere else: this repository is public and the drawings are other people's.
 
-- **Where it is configured.** The environment variable `MAQUETTE_REFERENCES` names the folder. Nothing committed names it, and there is no default. A folder inside a Git repository, this one or any other, is refused: nothing kept there could then be committed.
+- **Where it is configured.** Every measuring command takes `--references <folder>`, which names the folder; without it, the environment variable `MAQUETTE_REFERENCES` names it. The option wins. Nothing committed names the folder, and there is no default. A folder inside a Git repository, this one or any other, is refused: nothing kept there could then be committed.
+- **How an agent runs the program.** The program is installed at a lasting path with `cargo install --path . --root ~/.local --locked`, which puts it at `~/.local/bin/maquette`, and agents are given that path. Each command an agent runs is one line that begins with that path and names the folder with `--references`, so that a permission rule can match it: a rule cannot match a command that begins by setting a variable. Install again after the program changes.
 - **What is inside it.** Whatever the work needs: pictures, readings, results, sheets. Every path a measuring command is given for one of these is taken from the folder. A path that leaves it is refused, whether by its own steps or through a link inside the folder that leads out of it, so nothing can be read into a reading from the repository or written into it by accident.
-- **When it is absent.** Every measuring command stops and says that the folder is not configured, or that the folder named does not exist, and where it is configured. Drawing an armature, its checks and `cargo test` need no reference folder: the tests make scratch folders of their own with made-up pictures. They make them in the system's temporary folder, because `target/` is inside this repository.
+- **When it is absent.** Every measuring command stops and says that the folder is not configured, or that the folder named does not exist, and how it is configured. Drawing an armature, its checks and `cargo test` need no reference folder: the tests make scratch folders of their own with made-up pictures. They make them in the system's temporary folder, because `target/` is inside this repository.
 - **What is never committed.** A reference image or a crop of one, a reading, anything worked out from the readings of one reference, and a reference check sheet ([`docs/foundation/04-evidence-and-references.md`](docs/foundation/04-evidence-and-references.md)).
 
 ### Reading a drawing
 
 ```sh
-export MAQUETTE_REFERENCES=<the reference folder>
+export MAQUETTE_REFERENCES=<the reference folder>   # or give each command --references <the reference folder>
 cargo run -- start-reading --image <picture> --view front --reader <label> --out <reading>
 cargo run -- enlarge-image --image <picture> --left 400 --top 300 --width 200 --height 120 --factor 6 --grid 10 --out <enlargement>
 cargo run -- check-reading --reading <reading>
@@ -253,13 +254,15 @@ cargo run -- compare-proportions --first <set> --second <set>
 | `.claude/skills/` | The engineering and productivity skills from `mattpocock/skills` (MIT), copied unchanged at its commit `5863806`; `.agents/skills/` holds a symlink to each |
 | `.mcp.json` | Registers the VectorCraft and FigCraft MCP servers for Claude Code |
 | `design/` | Designs made by hand in those two tools; the only folder their servers may write to |
-| `docs/agents/` | How agents use the issue tracker and the triage labels, and the reading instructions a reader of a drawing follows |
+| `CODING_STANDARDS.md` | The judgements a reviewer makes of code, each with where it comes from; read at review |
+| `docs/agents/` | How agents use the issue tracker and the triage labels; the reading instructions a reader of a drawing follows, with the digest of each revision; the brief a reader is given; how a sheet is put to Jon (`looks.md`); what running a spec here takes; and the constitution's rules quoted by job, for briefs |
+| `.claude/workflows/read-batch.js` | Reads a batch of drawings: one fresh reader per filled-in brief, and one compact result |
 | `data/saffi/` | The hand-made front and three-quarter views of the comparison case, as landmark positions: her S2 underdrawings, and the ears and lids of her final drawings that replace theirs. Also her set of proportions worked out from them, and the list of her drawings in mudsong that these numbers rest on. Numbers only; they never enter a proportion table |
 | `armatures/saffi/` | Saffi's accepted armature: the six files `maquette draw` writes from her set of proportions, as Jon accepted them at look 3. Generated output, not a design and not a table. A test pins their bytes |
 | `tables/adult-women/` | The first proportion table, with the list of works it was measured on. A proposal until Jon has accepted it |
 | `proportions/list.toml` | The list of proportions: the unit, and every proportion's name, definition for each view, and mark as measured or a convention, how each guide is built in each view, and each named correction with the rule of its amounts. The program reads this same file |
 | `Cargo.toml`, `src/` | The Rust package: the list and sets of proportions, the head model, the three views, the guides, the armature writer, the reading of a hand-made drawing, the differences from a hand-made armature, the read-back in VectorCraft, and measuring: the reference folder, the record of a reading, what readings say when set against each other, the scoring of a reading against known positions, the enlarging of a picture, the reference check sheet, the record of Jon's check, the proportion table, the setting of a set of proportions against one, the making of a whole set from one and the marking of where a drawn head's numbers come from, under a thin command line |
-| `tests/` | Tests that drive the command line, files in and files out. `tests/fixtures/` holds made-up proportions, made-up views, a made-up drawing and a made-up record of known positions that say so, and recordings of VectorCraft's replies that say so. The readings and pictures the measuring tests use are made up by the tests themselves, in the system's temporary folder |
+| `tests/` | Tests that drive the command line, files in and files out, and three that guard the repository: nothing private is committed, the reading instructions change only with a new revision, and the rule quotations match the constitution. `tests/fixtures/` holds made-up proportions, made-up views, a made-up drawing and a made-up record of known positions that say so, and recordings of VectorCraft's replies that say so. The readings and pictures the measuring tests use are made up by the tests themselves, in the system's temporary folder |
 | `.github/workflows/checks.yml` | Formatting, lints and tests on every pull request |
 | `.gitattributes` | Keeps Git from converting line endings in `armatures/`, so that a checkout cannot change the pinned bytes |
 | `GLOSSARY.md` | The words maquette uses for armatures, views and proportions |
