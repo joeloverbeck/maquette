@@ -68,8 +68,8 @@ lid-line-right-crest = { x = 631.912, y = 381.238, depth = -6.486 }
 lid-line-left-crest = { x = 631.912, y = 381.238, depth = -6.486 }
 lid-line-right-outer-end = { x = 622.955, y = 389.055, depth = -15.443 }
 lid-line-left-outer-end = { x = 622.955, y = 389.055, depth = -15.443 }
-brow-line-right-inner-end = { x = 650.401, y = 361.194, depth = 12.003 }
-brow-line-left-inner-end = { x = 650.401, y = 361.194, depth = 12.003 }
+brow-line-right-inner-end = { x = 650.401, y = 351.194, depth = 12.003 }
+brow-line-left-inner-end = { x = 650.401, y = 351.194, depth = 12.003 }
 brow-line-right-outer-end = { x = 626.151, y = 347.585, depth = -12.247 }
 brow-line-left-outer-end = { x = 626.151, y = 347.585, depth = -12.247 }
 nose-mark-right-corner = { x = 703.386, y = 470.583, depth = 64.988 }
