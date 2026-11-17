@@ -10,7 +10,7 @@
 
 use crate::armature::{self, File};
 use crate::differences::{self, Differences, Input, ViewDifferences};
-use crate::hand_made_views::{self, Provenance};
+use crate::hand_made_views::Provenance;
 use crate::number::{plain, plain3};
 use crate::views::View;
 use crate::{Error, Result};
@@ -39,11 +39,16 @@ pub fn file_name(view: View) -> String {
 }
 
 /// Writes the overlays of a generated front view and three-quarter view: one SVG for each,
-/// in that view's units, over the record of a hand-made armature's views.
-pub fn draw(front: Input, three_quarter: Input, record: Input) -> Result<Vec<File>> {
-    let found = differences::compare(front, three_quarter, record)?;
-    let hand_made = hand_made_views::read(record.text)
-        .map_err(|error| Error::new(format!("{}: {error}", record.path)))?;
+/// in that view's units, over the record of a hand-made armature's views. Given the record of
+/// the final drawings as well, the positions it replaces are the ones marked.
+pub fn draw(
+    front: Input,
+    three_quarter: Input,
+    record: Input,
+    final_drawings: Option<Input>,
+) -> Result<Vec<File>> {
+    let found = differences::compare(front, three_quarter, record, final_drawings)?;
+    let hand_made = differences::read_record(record, final_drawings)?;
     Ok(vec![
         view_overlay(&found, &found.front, front, &hand_made.front_record)?,
         view_overlay(

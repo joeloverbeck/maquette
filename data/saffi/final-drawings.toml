@@ -1,0 +1,446 @@
+# Saffi's final drawings as numbers: the ears and the lids of her front view and her
+# three-quarter view, which her comparison case takes in place of the S2 underdrawings'.
+#
+# Written by `maquette record-hand-made-drawings` from two private drawings; see README.md
+# beside this file. Do not edit by hand: run the command again where the drawings are.
+# These numbers are the comparison case. They never enter a proportion table.
+
+[source]
+what = "The front of the S6 model sheet and the S8 final rig, a three-quarter view: two finished drawings of Saffi's bust, made by hand in mudsong's portrait study on 2026-11-16 over the construction of the S2 underdrawings."
+owner = "Jon. Saffi is his own character."
+held_in = "mudsong's study folder, which Git ignores there, so the SHA-256 digest of each file is its only identity. They are recorded where they stay: no private copy is kept."
+read_on = 2026-11-17
+ruling = "Jon, 2026-11-16: Saffi's comparison case takes the larger ears and the hooded upper lids of her final drawings, not those of the grey S2 underdrawing. Everything else stays as recorded from S2."
+taken_by = "Arithmetic on the files' own coordinates: path nodes, shape attributes, and curve arithmetic on cubic segments. Nothing was estimated from a rendered picture."
+
+[supersedes]
+record = "hand-made-views.toml"
+rule = "A landmark of a view here replaces the landmark of the same name in the same view of that record. Each view's ears and lids come from its own drawing, so nothing is worked out through the turn."
+ears = "Each ear whole: the `back` shape's two base points, its top, its two side extents and its two other nodes."
+lids = "Each eye's lids: the opening they leave, which is the `white` shape (its two corners, its top, its bottom and its centre), and the lid line, which is the dark `lashes` band along the upper lid. The S2 underdrawings draw the lid line as the `lid_upper` shape; in these drawings that shape is a blink lid with no opacity, and the band is `lashes`."
+kept_from_s2 = "Everything else. The iris and the pupil stay as S2 has them: the final front view sets its pupils 3 units further out on each side than the S2 front view, and the final three-quarter view keeps the S2 pupils, so taking the front view's would make the two final views disagree. An S2 iris therefore stands 3 to 4.4 units above the top of a final opening: the hooded lid covers that much of it."
+
+[coordinates]
+units = "SVG user units of the source files. Both have viewBox 0 0 1000 1000 at 1000 by 1000 pixels, as the S2 underdrawings have."
+frame = "Each drawing's skull circle and chin are its S2 underdrawing's exactly, which the command checks before it writes. So a position here and a position of hand-made-views.toml in the same view stand in one frame."
+transforms = "None. Neither file has a transform on any element, so the numbers are the files' own."
+rounding = "Positions are rounded to 0.001 unit. Node positions are exact."
+left_right = "Left and right in a name are the character's own. Her right is toward the viewer's left in both views."
+
+[kinds]
+node = "An on-curve node, exactly as the path data gives it. It marks a point of a feature."
+outline_node = "An on-curve node of a silhouette that marks no feature of its own. It is not the same point of the head in the other view."
+highest = "The top of an outline, or of one edge of the lid band: the least y among its nodes and the points where a cubic segment's dy/dt is zero."
+lowest = "The bottom of an outline, found the same way."
+side_extent = "The sideways extreme of an outline, found like its top with dx/dt in place of dy/dt. It is a silhouette point: another view shows a different point of the head there."
+centre = "Midway between other recorded landmarks, as its `how` says."
+
+[fields]
+element = "The source element, as the id of its enclosing group, a slash, and its name in the file."
+how = "Which node or segment, and the arithmetic. Nodes and segments are numbered from 0 in path order; segment k runs from node k to node k + 1."
+under = "Present when the skull, painted later, covers the point, so it cannot be seen in the drawing. Only the skull is tested: these drawings are painted, and the clothing, gear and hair over them are no part of an armature. A `centre` is not tested."
+
+# ---------------------------------------------------------------- Front view
+
+[views.front]
+file = "s6-front.svg"
+sha256 = "15d6fe02177427db7b0ae956411b97295f250d3328554f598134bb8e91c8136e"
+stage = "S6, the model sheet's front"
+# The skull circle and the chin, which are the S2 underdrawing's exactly: the two drawings stand in one frame.
+skull_centre = { x = 500.0, y = 301.5 }
+skull_radius = 191.5
+chin = { x = 500.0, y = 567.0 }
+landmark_count = 36
+
+[views.front.landmarks]
+
+# Left eye: the opening (the `white` shape) and the lid line (the `lashes` band along the upper lid).
+eye_left_outer_corner = { x = 616.0, y = 368.5, kind = "node", element = "eye_L/white", how = "node 0" }
+eye_left_inner_corner = { x = 538.7, y = 376.3, kind = "node", element = "eye_L/white", how = "node 3" }
+eye_left_opening_top = { x = 594.42, y = 353.785, kind = "highest", element = "eye_L/white", how = "highest point of the outline: segment 0 (node 0 to node 1), where dy/dt = 0 at t = 0.9033" }
+eye_left_opening_bottom = { x = 577.0, y = 390.0, kind = "lowest", element = "eye_L/white", how = "lowest point of the outline: node 4" }
+eye_left_opening_centre = { x = 577.35, y = 371.893, kind = "centre", element = "eye_L/white", how = "midway between eye_left_outer_corner and eye_left_inner_corner sideways, and between eye_left_opening_top and eye_left_opening_bottom in height" }
+lid_line_left_inner_lower = { x = 535.0, y = 380.0, kind = "node", element = "eye_L/lashes", how = "node 0" }
+lid_line_left_lower_mid = { x = 597.654, y = 358.632, kind = "highest", element = "eye_L/lashes", how = "highest point of the band's lower edge, segments 0 to 2: segment 2 (node 2 to node 3), where dy/dt = 0 at t = 0.0909" }
+lid_line_left_outer_lower = { x = 618.0, y = 364.5, kind = "node", element = "eye_L/lashes", how = "node 3" }
+lid_line_left_outer_tip = { x = 632.0, y = 359.5, kind = "node", element = "eye_L/lashes", how = "node 4" }
+lid_line_left_upper_mid = { x = 594.289, y = 347.692, kind = "highest", element = "eye_L/lashes", how = "highest point of the band's upper edge, segments 4 to 6: segment 4 (node 4 to node 5), where dy/dt = 0 at t = 0.8628" }
+lid_line_left_inner_upper = { x = 530.0, y = 377.0, kind = "node", element = "eye_L/lashes", how = "node 7" }
+
+# Right eye.
+eye_right_outer_corner = { x = 384.0, y = 368.5, kind = "node", element = "eye_R/white", how = "node 0" }
+eye_right_inner_corner = { x = 461.3, y = 376.3, kind = "node", element = "eye_R/white", how = "node 3" }
+eye_right_opening_top = { x = 405.58, y = 353.785, kind = "highest", element = "eye_R/white", how = "highest point of the outline: segment 0 (node 0 to node 1), where dy/dt = 0 at t = 0.9033" }
+eye_right_opening_bottom = { x = 423.0, y = 390.0, kind = "lowest", element = "eye_R/white", how = "lowest point of the outline: node 4" }
+eye_right_opening_centre = { x = 422.65, y = 371.893, kind = "centre", element = "eye_R/white", how = "midway between eye_right_outer_corner and eye_right_inner_corner sideways, and between eye_right_opening_top and eye_right_opening_bottom in height" }
+lid_line_right_inner_lower = { x = 465.0, y = 380.0, kind = "node", element = "eye_R/lashes", how = "node 0" }
+lid_line_right_lower_mid = { x = 402.346, y = 358.632, kind = "highest", element = "eye_R/lashes", how = "highest point of the band's lower edge, segments 0 to 2: segment 2 (node 2 to node 3), where dy/dt = 0 at t = 0.0909" }
+lid_line_right_outer_lower = { x = 382.0, y = 364.5, kind = "node", element = "eye_R/lashes", how = "node 3" }
+lid_line_right_outer_tip = { x = 368.0, y = 359.5, kind = "node", element = "eye_R/lashes", how = "node 4" }
+lid_line_right_upper_mid = { x = 405.711, y = 347.692, kind = "highest", element = "eye_R/lashes", how = "highest point of the band's upper edge, segments 4 to 6: segment 4 (node 4 to node 5), where dy/dt = 0 at t = 0.8628" }
+lid_line_right_inner_upper = { x = 470.0, y = 377.0, kind = "node", element = "eye_R/lashes", how = "node 7" }
+
+# Ears: the `back` shape of each. `outer` is away from the centre line, `inner` toward it.
+ear_left_base_outer = { x = 667.004, y = 186.989, kind = "node", element = "ear_L/back", how = "node 0" }
+ear_left_upper_node = { x = 668.062, y = 78.827, kind = "node", element = "ear_L/back", how = "node 1" }
+ear_left_inner_side_node = { x = 598.683, y = 94.014, kind = "outline_node", element = "ear_L/back", how = "node 2" }
+ear_left_base_inner = { x = 584.996, y = 155.011, kind = "node", element = "ear_L/back", how = "node 3" }
+ear_left_top = { x = 640.191, y = 68.194, kind = "highest", element = "ear_L/back", how = "highest point of the outline: segment 1 (node 1 to node 2), where dy/dt = 0 at t = 0.3889" }
+ear_left_outer_extent = { x = 685.437, y = 127.615, kind = "side_extent", element = "ear_L/back", how = "the outline's furthest point toward the viewer's right: segment 0 (node 0 to node 1), where dx/dt = 0 at t = 0.5190" }
+ear_left_inner_extent = { x = 584.73, y = 147.302, kind = "side_extent", element = "ear_L/back", how = "the outline's furthest point toward the viewer's left: segment 2 (node 2 to node 3), where dx/dt = 0 at t = 0.8711" }
+ear_right_base_outer = { x = 332.996, y = 186.989, kind = "node", element = "ear_R/back", how = "node 0" }
+ear_right_upper_node = { x = 331.938, y = 78.827, kind = "node", element = "ear_R/back", how = "node 1" }
+ear_right_inner_side_node = { x = 401.317, y = 94.014, kind = "outline_node", element = "ear_R/back", how = "node 2" }
+ear_right_base_inner = { x = 415.004, y = 155.011, kind = "node", element = "ear_R/back", how = "node 3" }
+ear_right_top = { x = 359.809, y = 68.194, kind = "highest", element = "ear_R/back", how = "highest point of the outline: segment 1 (node 1 to node 2), where dy/dt = 0 at t = 0.3889" }
+ear_right_outer_extent = { x = 314.563, y = 127.615, kind = "side_extent", element = "ear_R/back", how = "the outline's furthest point toward the viewer's left: segment 0 (node 0 to node 1), where dx/dt = 0 at t = 0.5190" }
+ear_right_inner_extent = { x = 415.27, y = 147.302, kind = "side_extent", element = "ear_R/back", how = "the outline's furthest point toward the viewer's right: segment 2 (node 2 to node 3), where dx/dt = 0 at t = 0.8711" }
+
+# How far each of these stands from the S2 underdrawing's landmark of the same name: this drawing's
+# position minus that one's. Positive dx is toward the viewer's right, positive dy is lower.
+[views.front.moved_from_s2]
+eye_left_outer_corner = { dx = 0.0, dy = -0.5 }
+eye_left_inner_corner = { dx = -0.3, dy = 2.3 }
+eye_left_opening_top = { dx = 23.42, dy = 3.785 }
+eye_left_opening_bottom = { dx = 0.0, dy = 0.0 }
+eye_left_opening_centre = { dx = -0.15, dy = 1.893 }
+lid_line_left_inner_lower = { dx = -1.0, dy = 4.0 }
+lid_line_left_lower_mid = { dx = 26.654, dy = 11.632 }
+lid_line_left_outer_lower = { dx = 1.0, dy = -1.5 }
+lid_line_left_outer_tip = { dx = 5.0, dy = -4.5 }
+lid_line_left_upper_mid = { dx = 23.289, dy = 10.692 }
+lid_line_left_inner_upper = { dx = -1.0, dy = 5.0 }
+eye_right_outer_corner = { dx = 0.0, dy = -0.5 }
+eye_right_inner_corner = { dx = 0.3, dy = 2.3 }
+eye_right_opening_top = { dx = -23.42, dy = 3.785 }
+eye_right_opening_bottom = { dx = 0.0, dy = 0.0 }
+eye_right_opening_centre = { dx = 0.15, dy = 1.893 }
+lid_line_right_inner_lower = { dx = 1.0, dy = 4.0 }
+lid_line_right_lower_mid = { dx = -26.654, dy = 11.632 }
+lid_line_right_outer_lower = { dx = -1.0, dy = -1.5 }
+lid_line_right_outer_tip = { dx = -5.0, dy = -4.5 }
+lid_line_right_upper_mid = { dx = -23.289, dy = 10.692 }
+lid_line_right_inner_upper = { dx = 1.0, dy = 5.0 }
+ear_left_base_outer = { dx = -2.996, dy = 14.989 }
+ear_left_upper_node = { dx = 34.062, dy = 8.827 }
+ear_left_inner_side_node = { dx = 24.683, dy = -13.986 }
+ear_left_base_inner = { dx = 2.996, dy = -14.989 }
+ear_left_top = { dx = 21.839, dy = 1.154 }
+ear_left_outer_extent = { dx = 12.256, dy = -18.226 }
+ear_left_inner_extent = { dx = 12.299, dy = 21.694 }
+ear_right_base_outer = { dx = 2.996, dy = 14.989 }
+ear_right_upper_node = { dx = -34.062, dy = 8.827 }
+ear_right_inner_side_node = { dx = -24.683, dy = -13.986 }
+ear_right_base_inner = { dx = -2.996, dy = -14.989 }
+ear_right_top = { dx = -21.839, dy = 1.154 }
+ear_right_outer_extent = { dx = -12.256, dy = -18.226 }
+ear_right_inner_extent = { dx = -12.299, dy = 21.694 }
+
+# ---------------------------------------------------------------- Three-quarter view
+
+[views.three_quarter]
+file = "s8-final-rig.svg"
+sha256 = "23251a2e5c196738514f324cec1c25c171fb0785112044d45168541d060d304a"
+stage = "S8, the final rig"
+# The skull circle and the chin, which are the S2 underdrawing's exactly: the two drawings stand in one frame.
+skull_centre = { x = 495.0, y = 301.5 }
+skull_radius = 191.5
+chin = { x = 576.0, y = 567.0 }
+landmark_count = 36
+
+[views.three_quarter.landmarks]
+
+# Left eye, on the far side: the opening (the `white` shape) and the lid line (the `lashes` band along the upper lid).
+eye_left_outer_corner = { x = 656.0, y = 367.0, kind = "node", element = "eye_L/white", how = "node 3" }
+eye_left_inner_corner = { x = 602.0, y = 377.0, kind = "node", element = "eye_L/white", how = "node 0" }
+eye_left_opening_top = { x = 642.931, y = 355.176, kind = "highest", element = "eye_L/white", how = "highest point of the outline: segment 2 (node 2 to node 3), where dy/dt = 0 at t = 0.0396" }
+eye_left_opening_bottom = { x = 626.189, y = 390.163, kind = "lowest", element = "eye_L/white", how = "lowest point of the outline: segment 4 (node 4 to node 5), where dy/dt = 0 at t = 0.1079" }
+eye_left_opening_centre = { x = 629.0, y = 372.67, kind = "centre", element = "eye_L/white", how = "midway between eye_left_outer_corner and eye_left_inner_corner sideways, and between eye_left_opening_top and eye_left_opening_bottom in height" }
+lid_line_left_inner_lower = { x = 598.0, y = 380.0, kind = "node", element = "eye_L/lashes", how = "node 0" }
+lid_line_left_lower_mid = { x = 645.427, y = 360.343, kind = "highest", element = "eye_L/lashes", how = "highest point of the band's lower edge, segments 0 to 2: segment 2 (node 2 to node 3), where dy/dt = 0 at t = 0.1511" }
+lid_line_left_outer_lower = { x = 659.0, y = 364.5, kind = "node", element = "eye_L/lashes", how = "node 3" }
+lid_line_left_outer_tip = { x = 668.0, y = 358.0, kind = "node", element = "eye_L/lashes", how = "node 4" }
+lid_line_left_upper_mid = { x = 644.342, y = 349.392, kind = "highest", element = "eye_L/lashes", how = "highest point of the band's upper edge, segments 4 to 6: segment 4 (node 4 to node 5), where dy/dt = 0 at t = 0.8977" }
+lid_line_left_inner_upper = { x = 595.0, y = 377.0, kind = "node", element = "eye_L/lashes", how = "node 7" }
+
+# Right eye, on the near side.
+eye_right_outer_corner = { x = 453.0, y = 368.5, kind = "node", element = "eye_R/white", how = "node 0" }
+eye_right_inner_corner = { x = 530.3, y = 376.3, kind = "node", element = "eye_R/white", how = "node 3" }
+eye_right_opening_top = { x = 474.58, y = 353.785, kind = "highest", element = "eye_R/white", how = "highest point of the outline: segment 0 (node 0 to node 1), where dy/dt = 0 at t = 0.9033" }
+eye_right_opening_bottom = { x = 492.0, y = 390.0, kind = "lowest", element = "eye_R/white", how = "lowest point of the outline: node 4" }
+eye_right_opening_centre = { x = 491.65, y = 371.893, kind = "centre", element = "eye_R/white", how = "midway between eye_right_outer_corner and eye_right_inner_corner sideways, and between eye_right_opening_top and eye_right_opening_bottom in height" }
+lid_line_right_inner_lower = { x = 534.0, y = 380.0, kind = "node", element = "eye_R/lashes", how = "node 0" }
+lid_line_right_lower_mid = { x = 471.346, y = 358.632, kind = "highest", element = "eye_R/lashes", how = "highest point of the band's lower edge, segments 0 to 2: segment 2 (node 2 to node 3), where dy/dt = 0 at t = 0.0909" }
+lid_line_right_outer_lower = { x = 451.0, y = 364.5, kind = "node", element = "eye_R/lashes", how = "node 3" }
+lid_line_right_outer_tip = { x = 437.0, y = 359.5, kind = "node", element = "eye_R/lashes", how = "node 4" }
+lid_line_right_upper_mid = { x = 474.711, y = 347.692, kind = "highest", element = "eye_R/lashes", how = "highest point of the band's upper edge, segments 4 to 6: segment 4 (node 4 to node 5), where dy/dt = 0 at t = 0.8628" }
+lid_line_right_inner_upper = { x = 539.0, y = 377.0, kind = "node", element = "eye_R/lashes", how = "node 7" }
+
+# Ears: the `back` shape of each. `outer` is away from the centre line, `inner` toward it. The left ear is the far one and is painted first, behind the head.
+ear_left_base_outer = { x = 618.903, y = 167.565, kind = "node", element = "ear_L/back", how = "node 3", under = ["face/cranium"] }
+ear_left_upper_node = { x = 632.259, y = 72.393, kind = "node", element = "ear_L/back", how = "node 1" }
+ear_left_outer_side_node = { x = 645.401, y = 124.0, kind = "outline_node", element = "ear_L/back", how = "node 2" }
+ear_left_base_inner = { x = 579.097, y = 142.435, kind = "node", element = "ear_L/back", how = "node 0", under = ["face/cranium"] }
+ear_left_top = { x = 632.259, y = 72.393, kind = "highest", element = "ear_L/back", how = "highest point of the outline: node 1" }
+ear_left_outer_extent = { x = 650.316, y = 98.86, kind = "side_extent", element = "ear_L/back", how = "the outline's furthest point toward the viewer's right: segment 1 (node 1 to node 2), where dx/dt = 0 at t = 0.6576" }
+ear_left_inner_extent = { x = 579.097, y = 142.435, kind = "side_extent", element = "ear_L/back", how = "the outline's furthest point toward the viewer's left: node 0", under = ["face/cranium"] }
+ear_right_base_outer = { x = 340.203, y = 191.834, kind = "node", element = "ear_R/back", how = "node 0" }
+ear_right_upper_node = { x = 331.455, y = 80.086, kind = "node", element = "ear_R/back", how = "node 1" }
+ear_right_inner_side_node = { x = 409.546, y = 89.974, kind = "outline_node", element = "ear_R/back", how = "node 2" }
+ear_right_base_inner = { x = 425.797, y = 152.166, kind = "node", element = "ear_R/back", how = "node 3" }
+ear_right_top = { x = 365.846, y = 65.231, kind = "highest", element = "ear_R/back", how = "highest point of the outline: segment 1 (node 1 to node 2), where dy/dt = 0 at t = 0.4360" }
+ear_right_outer_extent = { x = 315.906, y = 126.139, kind = "side_extent", element = "ear_R/back", how = "the outline's furthest point toward the viewer's left: segment 0 (node 0 to node 1), where dx/dt = 0 at t = 0.5746" }
+ear_right_inner_extent = { x = 425.852, y = 148.695, kind = "side_extent", element = "ear_R/back", how = "the outline's furthest point toward the viewer's right: segment 2 (node 2 to node 3), where dx/dt = 0 at t = 0.9462" }
+
+# How far each of these stands from the S2 underdrawing's landmark of the same name: this drawing's
+# position minus that one's. Positive dx is toward the viewer's right, positive dy is lower.
+[views.three_quarter.moved_from_s2]
+eye_left_outer_corner = { dx = 1.0, dy = 1.0 }
+eye_left_inner_corner = { dx = 0.0, dy = 3.0 }
+eye_left_opening_top = { dx = 12.931, dy = 5.176 }
+eye_left_opening_bottom = { dx = -1.245, dy = 0.055 }
+eye_left_opening_centre = { dx = 0.5, dy = 2.616 }
+lid_line_left_inner_lower = { dx = -1.0, dy = 4.0 }
+lid_line_left_lower_mid = { dx = 15.427, dy = 14.343 }
+lid_line_left_outer_lower = { dx = 1.0, dy = 0.5 }
+lid_line_left_outer_tip = { dx = 4.0, dy = -2.0 }
+lid_line_left_upper_mid = { dx = 14.342, dy = 11.392 }
+lid_line_left_inner_upper = { dx = 0.0, dy = 3.0 }
+eye_right_outer_corner = { dx = 0.0, dy = -0.5 }
+eye_right_inner_corner = { dx = 0.3, dy = 2.3 }
+eye_right_opening_top = { dx = -23.42, dy = 3.785 }
+eye_right_opening_bottom = { dx = 0.0, dy = 0.0 }
+eye_right_opening_centre = { dx = 0.15, dy = 1.893 }
+lid_line_right_inner_lower = { dx = 1.0, dy = 4.0 }
+lid_line_right_lower_mid = { dx = -26.654, dy = 11.632 }
+lid_line_right_outer_lower = { dx = -1.0, dy = -1.5 }
+lid_line_right_outer_tip = { dx = -5.0, dy = -4.5 }
+lid_line_right_upper_mid = { dx = -23.289, dy = 10.692 }
+lid_line_right_inner_upper = { dx = 1.0, dy = 5.0 }
+ear_left_base_outer = { dx = -3.097, dy = 7.565 }
+ear_left_upper_node = { dx = 30.259, dy = 6.393 }
+ear_left_outer_side_node = { dx = 13.401, dy = 14.0 }
+ear_left_base_inner = { dx = 3.097, dy = -7.565 }
+ear_left_top = { dx = 25.763, dy = 6.903 }
+ear_left_outer_extent = { dx = 18.316, dy = -11.14 }
+ear_left_inner_extent = { dx = 3.966, dy = 8.117 }
+ear_right_base_outer = { dx = 4.203, dy = 15.834 }
+ear_right_upper_node = { dx = -34.545, dy = 12.086 }
+ear_right_inner_side_node = { dx = -26.454, dy = -14.026 }
+ear_right_base_inner = { dx = -4.203, dy = -15.834 }
+ear_right_top = { dx = -21.377, dy = 2.295 }
+ear_right_outer_extent = { dx = -13.969, dy = -13.713 }
+ear_right_inner_extent = { dx = -12.148, dy = 22.769 }
+
+# ---------------------------------------------------------------- The two views compared
+
+# Levels. A level head turning about an upright axis keeps every point at its height. So every
+# landmark above recorded in both views under one name, except side extents and outline nodes,
+# should have one y. Shares are of the S2 front view's head height, as in views-compared.toml.
+# These differences are reported and not corrected.
+[levels]
+head_height = 480.318  # the S2 front view, hair_top to chin
+compared = 30
+equal = 14
+different = 16
+above_one_percent = 4
+
+[[levels.difference]]
+landmark = "ear_left_base_outer"
+front_y = 186.989
+three_quarter_y = 167.565
+difference = -19.424  # positive is lower in the three-quarter view
+percent_of_head_height = 4.04
+above_one_percent = true
+covered_in = ["three_quarter"]
+
+[[levels.difference]]
+landmark = "ear_left_base_inner"
+front_y = 155.011
+three_quarter_y = 142.435
+difference = -12.576  # positive is lower in the three-quarter view
+percent_of_head_height = 2.62
+above_one_percent = true
+covered_in = ["three_quarter"]
+
+[[levels.difference]]
+landmark = "ear_left_upper_node"
+front_y = 78.827
+three_quarter_y = 72.393
+difference = -6.434  # positive is lower in the three-quarter view
+percent_of_head_height = 1.34
+above_one_percent = true
+
+[[levels.difference]]
+landmark = "ear_right_base_outer"
+front_y = 186.989
+three_quarter_y = 191.834
+difference = 4.845  # positive is lower in the three-quarter view
+percent_of_head_height = 1.01
+above_one_percent = true
+
+[[levels.difference]]
+landmark = "ear_left_top"
+front_y = 68.194
+three_quarter_y = 72.393
+difference = 4.199  # positive is lower in the three-quarter view
+percent_of_head_height = 0.87
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "ear_right_top"
+front_y = 68.194
+three_quarter_y = 65.231
+difference = -2.963  # positive is lower in the three-quarter view
+percent_of_head_height = 0.62
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "ear_right_base_inner"
+front_y = 155.011
+three_quarter_y = 152.166
+difference = -2.845  # positive is lower in the three-quarter view
+percent_of_head_height = 0.59
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "lid_line_left_lower_mid"
+front_y = 358.632
+three_quarter_y = 360.343
+difference = 1.711  # positive is lower in the three-quarter view
+percent_of_head_height = 0.36
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "lid_line_left_upper_mid"
+front_y = 347.692
+three_quarter_y = 349.392
+difference = 1.7  # positive is lower in the three-quarter view
+percent_of_head_height = 0.35
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "eye_left_outer_corner"
+front_y = 368.5
+three_quarter_y = 367.0
+difference = -1.5  # positive is lower in the three-quarter view
+percent_of_head_height = 0.31
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "lid_line_left_outer_tip"
+front_y = 359.5
+three_quarter_y = 358.0
+difference = -1.5  # positive is lower in the three-quarter view
+percent_of_head_height = 0.31
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "eye_left_opening_top"
+front_y = 353.785
+three_quarter_y = 355.176
+difference = 1.391  # positive is lower in the three-quarter view
+percent_of_head_height = 0.29
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "ear_right_upper_node"
+front_y = 78.827
+three_quarter_y = 80.086
+difference = 1.259  # positive is lower in the three-quarter view
+percent_of_head_height = 0.26
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "eye_left_opening_centre"
+front_y = 371.893
+three_quarter_y = 372.67
+difference = 0.777  # positive is lower in the three-quarter view
+percent_of_head_height = 0.16
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "eye_left_inner_corner"
+front_y = 376.3
+three_quarter_y = 377.0
+difference = 0.7  # positive is lower in the three-quarter view
+percent_of_head_height = 0.15
+above_one_percent = false
+
+[[levels.difference]]
+landmark = "eye_left_opening_bottom"
+front_y = 390.0
+three_quarter_y = 390.163
+difference = 0.163  # positive is lower in the three-quarter view
+percent_of_head_height = 0.03
+above_one_percent = false
+
+# Spacings. Two landmarks that mirror each other across the centre line stand cos(turn) times as
+# far apart in the three-quarter view as in the front view, so each pair gives a turn of its own.
+# One entry for each left and right pair of kind `node` or `centre` recorded in both views.
+# `covered` names the points of a pair that the skull covers.
+
+[[spacing.pair]]
+name = "eye_outer_corner"
+front_spacing = 232.0
+three_quarter_spacing = 203.0
+ratio = 0.875
+turn_degrees = 28.96
+
+[[spacing.pair]]
+name = "eye_inner_corner"
+front_spacing = 77.4
+three_quarter_spacing = 71.7
+ratio = 0.9264
+turn_degrees = 22.13
+
+[[spacing.pair]]
+name = "lid_line_inner_lower"
+front_spacing = 70.0
+three_quarter_spacing = 64.0
+ratio = 0.9143
+turn_degrees = 23.9
+
+[[spacing.pair]]
+name = "lid_line_outer_lower"
+front_spacing = 236.0
+three_quarter_spacing = 208.0
+ratio = 0.8814
+turn_degrees = 28.19
+
+[[spacing.pair]]
+name = "lid_line_outer_tip"
+front_spacing = 264.0
+three_quarter_spacing = 231.0
+ratio = 0.875
+turn_degrees = 28.96
+
+[[spacing.pair]]
+name = "lid_line_inner_upper"
+front_spacing = 60.0
+three_quarter_spacing = 56.0
+ratio = 0.9333
+turn_degrees = 21.04
+
+[[spacing.pair]]
+name = "ear_base_outer"
+front_spacing = 334.008
+three_quarter_spacing = 278.7
+ratio = 0.8344
+turn_degrees = 33.45
+covered = ["ear_left_base_outer in the three-quarter view"]
+
+[[spacing.pair]]
+name = "ear_upper_node"
+front_spacing = 336.124
+three_quarter_spacing = 300.804
+ratio = 0.8949
+turn_degrees = 26.5
+
+[[spacing.pair]]
+name = "ear_base_inner"
+front_spacing = 169.992
+three_quarter_spacing = 153.3
+ratio = 0.9018
+turn_degrees = 25.6
+covered = ["ear_left_base_inner in the three-quarter view"]

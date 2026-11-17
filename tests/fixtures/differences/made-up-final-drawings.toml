@@ -1,0 +1,29 @@
+# A made-up record of final drawings, for the tests in tests/differences.rs.
+#
+# Every number here was invented so that the differences can be worked out by hand.
+# There is no drawing behind it, it is no character's, and it is no part of a table.
+# It has the shape of data/saffi/final-drawings.toml and only the entries the tests need.
+# Each landmark replaces the landmark of the same name in the same view of
+# made-up-hand-made-views.toml.
+
+[source]
+what = "Made-up final positions for the tests. No drawing stands behind them."
+
+[supersedes]
+rule = "A made-up landmark here replaces the made-up landmark of the same name in the same view."
+
+[views.front]
+sha256 = "made-up: there is no final drawing"
+
+[views.front.landmarks]
+# The other record has this corner at 650, 300, where the generated view puts it exactly.
+# Here it is 4 to the left and 3 lower: 5 units away, 1.25% of the head height of 400.
+eye_left_outer_corner = { x = 646.0, y = 303.0, kind = "node" }
+
+[views.three_quarter]
+sha256 = "made-up: there is no final drawing"
+
+[views.three_quarter.landmarks]
+# The other record has the band's lower corner at 600, 310. With its upper corner still at
+# 600, 300, the lid line's inner end is now midway between 604, 312 and 600, 300: 602, 306.
+lid_line_left_inner_lower = { x = 604.0, y = 312.0, kind = "node" }
