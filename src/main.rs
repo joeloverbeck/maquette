@@ -848,23 +848,32 @@ fn reference_check_sheet(arguments: &[String]) -> Result<()> {
         .map_err(|error| Error::new(format!("{sheet}: {error}")))?;
     let mut pictures = BTreeMap::new();
     let mut characters = Vec::new();
-    for (label, named) in &description.characters {
+    for character in &description.characters {
+        let label = &character.label;
         let of_character = |error: Error| Error::new(format!("the character `{label}`: {error}"));
-        let paths: Vec<&str> = named.iter().map(String::as_str).collect();
+        let paths: Vec<&str> = character
+            .drawings
+            .iter()
+            .flat_map(|drawing| drawing.readings.iter().map(String::as_str))
+            .collect();
         separate_files(&folder, &paths).map_err(of_character)?;
-        let mut reads = Vec::new();
-        for path in named {
-            // A sheet shows the picture that was read, and no other: the check says so.
-            let (record, picture) = checked_reading(&folder, path).map_err(of_character)?;
-            if let Some(bytes) = picture {
-                pictures.insert(record.picture.sha256.clone(), bytes);
+        let mut drawings = Vec::new();
+        for drawing in &character.drawings {
+            let mut reads = Vec::new();
+            for path in &drawing.readings {
+                // A sheet shows the picture that was read, and no other: the check says so.
+                let (record, picture) = checked_reading(&folder, path).map_err(of_character)?;
+                if let Some(bytes) = picture {
+                    pictures.insert(record.picture.sha256.clone(), bytes);
+                }
+                reads.push(reference_check_sheet::Read {
+                    path: path.clone(),
+                    record,
+                });
             }
-            reads.push(reference_check_sheet::Read {
-                path: path.clone(),
-                record,
-            });
+            drawings.push(reads);
         }
-        characters.push((label.clone(), reads));
+        characters.push(drawings);
     }
     let svg = reference_check_sheet::render(&description, &characters, &pictures)?;
     folder.write(out, svg.as_bytes())?;
