@@ -25,7 +25,7 @@ One decision: which side view, if either, is right to paint over. Jon said at lo
 
 - **Top row:** the front and three-quarter views on shared level lines, the same files as at look 2. Beside them, on the same level lines, the two candidate side views, A and B. Then look 2's side view at half size, as "before", over a table of the depths of the forehead, the centre line at the eye line, the nose mark, the mouth and the chin in each of the three.
 - **Second row:** the front and three-quarter views over her hand-made landmarks with the list of differences, unchanged since look 2 and shown again because the choice accepts all three views. Then the correction: its name, what it moves, the rule each amount comes from, and the amounts of A and of B.
-- **Third row:** what the drawing lessons say about a profile and what the agent's own look found, which accepts nothing; the decision asked, why no check can make it, what it covers and when it stops; and which candidate the agent recommends, with its reasons.
+- **Third row:** what the drawing lessons say about a side view and what the agent's own look found, which accepts nothing; the decision asked, why no check can make it, what it covers and when it stops; and which candidate the agent recommends, with its reasons.
 - **Foot:** the proportions against a table's ranges, which do not exist yet.
 
 The sheet says it is look 3 of 8, that look 1 was accepted and look 2 was not.
@@ -34,7 +34,7 @@ The sheet says it is look 3 of 8, that look 1 was accepted and look 2 was not.
 
 `lower_face_set_back` is the first named correction. `proportions/list.toml` defines it: in the side view only, the chin and the mouth are drawn further back than their depths, which stay as measured. The front and three-quarter views do not change by a byte.
 
-No drawing lesson gives a distance for a profile, so each amount comes from a rule. The lessons are those of `docs/research/2026-11-16-views-and-measuring/notes/head_construction_in_three_views.md`, section 1, which names them by letter. Those letters are not the candidates' letters, so the sheet leaves them out.
+No drawing lesson gives a distance for a side view, so each amount comes from a rule. The lessons are those of `docs/research/2026-11-16-views-and-measuring/notes/head_construction_in_three_views.md`, section 1, which names them by letter. Those letters are not the candidates' letters, so the sheet leaves them out.
 
 - **Chin.** The full amount draws the chin straight below the iris's centre: `chin_depth` minus `iris_depth`. The note's lesson B puts the chin's tip straight below the pupil, and it is the only lesson that places the chin against a point the armature has. The pupil is the painter's, so the iris's centre stands for it; her pupil's centre is 0.4 unit from it. A candidate takes a share of the full amount.
 - **Mouth.** Whatever the share, the mouth line's centre is drawn on the straight line from the nose mark's bottom to the chin as drawn. The note's lessons A, C, F and H put the lips on the line from the nose tip to the chin or just behind it. Lesson G draws that line and names a chin that sticks out as a mistake. Lesson B lets the lips pass it slightly.

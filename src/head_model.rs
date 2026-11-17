@@ -31,15 +31,17 @@ pub struct Landmark {
     pub depth: f64,
 }
 
-/// One amount of a named correction as a head carries it: the landmarks the side view draws
-/// further back than their depth, and by how much. The landmarks keep their place in space.
+/// One amount of a named correction: the landmarks the side view draws further back than
+/// their depth, and by how much. The landmarks keep their place in space. A head carries it
+/// in units, and a view that shows the head carries it in the SVG's own units.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SetBack {
     /// The correction's name in the list of proportions.
     pub correction: &'static str,
     /// The amount's name there.
     pub amount: &'static str,
-    /// How far behind their depth the side view draws the landmarks, in units.
+    /// How far behind their depth the side view draws the landmarks: in units on a [`Head`],
+    /// in SVG units on a view.
     pub by: f64,
     pub landmarks: Vec<String>,
 }
@@ -328,6 +330,18 @@ pub fn head(set: &Set) -> Result<Head> {
     })
 }
 
+/// Checks a share of the chin's full amount: a number from 0 to 1. The one place that says
+/// what a share is, for the command line that takes one and for the set worked out at it.
+pub fn set_back_share(share: f64) -> Result<f64> {
+    if (0.0..=1.0).contains(&share) {
+        Ok(share)
+    } else {
+        Err(Error::new(format!(
+            "the share of the lower face's set-back is {share}, and it is a share from 0 to 1"
+        )))
+    }
+}
+
 /// The set carrying the named correction `lower_face_set_back`, with its amounts worked out
 /// from the set's own depths as `proportions/list.toml` states their rules.
 ///
@@ -336,11 +350,7 @@ pub fn head(set: &Set) -> Result<Head> {
 /// centre onto the straight line from the nose mark's bottom to the chin as drawn. Neither
 /// amount is below zero: a point that is already there or behind it is left alone.
 pub fn with_lower_face_set_back(set: Set, share: f64) -> Result<Set> {
-    if !(0.0..=1.0).contains(&share) {
-        return Err(Error::new(format!(
-            "the share of the lower face's set-back is {share}, and it is a share from 0 to 1"
-        )));
-    }
+    let share = set_back_share(share)?;
     let chin = (share * (set.get("chin_depth") - set.get("iris_depth"))).max(0.0);
     let nose_drop = set.get("nose_mark_bottom_drop");
     let mouth_drop = set.get("mouth_centre_drop");

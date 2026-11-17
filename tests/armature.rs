@@ -88,7 +88,7 @@ fn groups_of(view: &str) -> BTreeSet<&'static str> {
 /// support 27.9 to 29.4 (`data/saffi/views-compared.toml`).
 const TURN_DEGREES: f64 = 29.0;
 
-/// The side view is the same turn carried to a full profile.
+/// The side view is the same turn carried to 90 degrees.
 const SIDE_TURN_DEGREES: f64 = 90.0;
 
 /// The sine and the cosine of a view's turn. The front and the side view are exact.
@@ -494,6 +494,136 @@ fn a_named_correction_sets_the_lower_face_back_in_the_side_view() {
         "the x of the nose mark's bottom",
     );
     assert_eq!(nose.drawn_at_depth, None);
+}
+
+#[test]
+fn the_correction_moves_no_landmark_above_the_mouth_and_bends_the_outline_beside_what_it_moves() {
+    // The list of proportions says what the correction changes besides the landmarks it
+    // moves. This holds the drawing to that statement, on the made-up set.
+    let flat = draw("correction-reach-flat", MADE_UP, &[]);
+    let corrected = draw_made_up_with("correction-reach", MADE_UP_SET_BACK, &[]);
+    let (before, after) = (
+        landmark_file(&flat, "side"),
+        landmark_file(&corrected, "side"),
+    );
+
+    // Landmarks: only the six the correction names stand elsewhere.
+    let moved: BTreeSet<&str> = after
+        .landmarks
+        .iter()
+        .filter(|(name, point)| {
+            (point.x, point.y) != (before.landmarks[*name].x, before.landmarks[*name].y)
+        })
+        .map(|(name, _)| name.as_str())
+        .collect();
+    let named: BTreeSet<&str> = SET_BACK
+        .iter()
+        .flat_map(|(_, landmarks)| landmarks.iter().copied())
+        .collect();
+    assert_eq!(moved, named, "the landmarks that stand elsewhere");
+
+    // View points: two that are read off the face outline shift with its bend, though both
+    // are above the mouth. Where the nose level line meets the outline's front goes forward,
+    // and where the neck's front line starts goes up.
+    let shifted: BTreeSet<&str> = after
+        .view_points
+        .iter()
+        .filter(|(name, point)| **point != before.view_points[*name])
+        .map(|(name, _)| name.as_str())
+        .collect();
+    assert_eq!(
+        shifted,
+        BTreeSet::from(["face-outline-front-at-nose-level", "neck-front-top"]),
+        "the view points that stand elsewhere"
+    );
+    let mouth_level = after.point("mouth-line-centre").y;
+    for name in &shifted {
+        assert!(
+            after.point(name).y < mouth_level,
+            "{name} is not above the mouth"
+        );
+    }
+    let (nose_before, nose_after) = (
+        before.point("face-outline-front-at-nose-level"),
+        after.point("face-outline-front-at-nose-level"),
+    );
+    assert!(nose_after.x > nose_before.x && nose_after.y == nose_before.y);
+    let (neck_before, neck_after) = (
+        before.point("neck-front-top"),
+        after.point("neck-front-top"),
+    );
+    assert!(neck_after.y < neck_before.y && neck_after.x == neck_before.x);
+
+    // Guides: the five built on a moved landmark or on one of those two view points.
+    let (svg_before, svg_after) = (svg_text(&flat, "side"), svg_text(&corrected, "side"));
+    let elements = |svg: &str| -> BTreeMap<String, String> {
+        svg.lines()
+            .filter(|line| !line.trim_start().starts_with("<g") && line.contains(" id=\""))
+            .map(|line| {
+                let id = line.split(" id=\"").nth(1).expect("an id");
+                let id = id.split('"').next().expect("the id's end");
+                (id.to_string(), line.trim().to_string())
+            })
+            .collect()
+    };
+    let (guides_before, guides_after) = (elements(&svg_before), elements(&svg_after));
+    assert_eq!(guides_before.len(), SIDE_GUIDES.len());
+    let redrawn: BTreeSet<&str> = guides_after
+        .iter()
+        .filter(|(name, element)| guides_before[*name] != **element)
+        .map(|(name, _)| name.as_str())
+        .collect();
+    assert_eq!(
+        redrawn,
+        BTreeSet::from([
+            "face-outline",
+            "mouth-level-line",
+            "mouth-line",
+            "neck-front",
+            "nose-level-line",
+        ]),
+        "the guides that are drawn differently"
+    );
+
+    // The face outline between the eye line and the nose mark's bottom, where no landmark is
+    // moved: it leaves the eye line as before and arrives at the nose mark from elsewhere,
+    // because a smooth curve's direction at a point follows the point's two neighbours, and
+    // the nose mark's lower neighbour is the mouth.
+    let stretch_to_nose = |svg: &str| -> Vec<f64> {
+        let document = roxmltree::Document::parse(svg).expect("the SVG is XML");
+        let outline = document
+            .descendants()
+            .find(|node| node.attribute("id") == Some("face-outline"))
+            .expect("the face outline");
+        let commands = path_commands(outline.attribute("d").expect("d"));
+        // M at the skull's front, then a curve to the eye line, then the curve to the nose mark.
+        let (command, values) = &commands[2];
+        assert_eq!(*command, 'C');
+        values.clone()
+    };
+    let (stretch_before, stretch_after) =
+        (stretch_to_nose(&svg_before), stretch_to_nose(&svg_after));
+    let nose = after.point("nose-mark-bottom");
+    assert_eq!(
+        stretch_after[4..],
+        [nose.x, nose.y],
+        "the stretch ends at the nose mark"
+    );
+    assert_eq!(
+        stretch_after[4..],
+        stretch_before[4..],
+        "the nose mark stands where it did"
+    );
+    assert_eq!(
+        stretch_after[..2],
+        stretch_before[..2],
+        "it leaves the eye line as before"
+    );
+    assert_ne!(
+        stretch_after[2..4],
+        stretch_before[2..4],
+        "it arrives at the nose mark as before"
+    );
 }
 
 #[test]
@@ -1231,6 +1361,155 @@ fn the_proportions_taken_back_from_the_landmark_files_equal_the_ones_put_in() {
     for (name, value) in &put_in {
         assert_close(came_back[name], *value, 1e-4, name);
     }
+}
+
+/// The corrections a set of proportions carries, as its file gives them: each amount in units.
+fn corrections_of(path: &Path) -> BTreeMap<String, BTreeMap<String, f64>> {
+    let table: toml::Table = text(path).parse().expect("the set of proportions is TOML");
+    let Some(corrections) = table.get("corrections") else {
+        return BTreeMap::new();
+    };
+    corrections
+        .as_table()
+        .expect("a [corrections] table")
+        .iter()
+        .map(|(name, amounts)| {
+            let amounts = amounts
+                .as_table()
+                .expect("a correction's amounts")
+                .iter()
+                .map(|(amount, value)| (amount.clone(), support::number(value)))
+                .collect();
+            (name.clone(), amounts)
+        })
+        .collect()
+}
+
+/// Takes the landmark files of a drawn folder back into a set of proportions, with the side
+/// view's file when `with_side` is set, and returns the set's path.
+fn take_back(folder: &Path, with_side: bool) -> PathBuf {
+    let taken_back = folder.join(if with_side {
+        "taken-back-with-side.toml"
+    } else {
+        "taken-back.toml"
+    });
+    let (front, three_quarter, side) = (
+        folder.join("front.landmarks.toml"),
+        folder.join("three-quarter.landmarks.toml"),
+        folder.join("side.landmarks.toml"),
+    );
+    let mut arguments = vec![
+        "proportions-from-landmarks",
+        "--front",
+        path_text(&front),
+        "--three-quarter",
+        path_text(&three_quarter),
+        "--out",
+        path_text(&taken_back),
+    ];
+    if with_side {
+        arguments.extend(["--side", path_text(&side)]);
+    }
+    support::maquette_ok(&arguments);
+    taken_back
+}
+
+#[test]
+fn a_correction_the_side_view_carries_is_taken_back_with_the_proportions() {
+    // The made-up set with its made-up correction: the chin set back by 0.0625 of a unit and
+    // the mouth by 0.0375. At a unit of 173.3 the side view's landmark file gives them as
+    // 10.831 and 6.499 SVG units, which is 0.0625 and 0.0375 again to within 0.00001.
+    let placement = ["--unit", "173.3", "--eye-line-y", "412.7"];
+    let folder = draw_made_up_with("taken-back-correction", MADE_UP_SET_BACK, &placement);
+    let came_back = take_back(&folder, true);
+    let corrections = corrections_of(&came_back);
+    assert_eq!(
+        corrections.keys().collect::<Vec<_>>(),
+        ["lower_face_set_back"],
+        "the corrections taken back"
+    );
+    let amounts = &corrections["lower_face_set_back"];
+    assert_eq!(amounts.keys().collect::<Vec<_>>(), ["chin", "mouth"]);
+    assert_close(amounts["chin"], 0.0625, 1e-4, "the chin's amount");
+    assert_close(amounts["mouth"], 0.0375, 1e-4, "the mouth's amount");
+    // The proportions come back as they do without the side view.
+    let put_in = support::proportions(&support::repository().join(MADE_UP));
+    for (name, value) in &put_in {
+        assert_close(support::proportions(&came_back)[name], *value, 1e-4, name);
+    }
+
+    // Drawn again, the set taken back puts the chin and the mouth where the first drawing
+    // has them in the side view: to within 0.05 SVG unit, because each proportion came back
+    // to 0.0001 of a unit of 173.3 and a sideways position there is the sum of two.
+    let again = draw(
+        "taken-back-correction-again",
+        path_text(&came_back),
+        &placement,
+    );
+    let (first, second) = (
+        landmark_file(&folder, "side"),
+        landmark_file(&again, "side"),
+    );
+    for name in ["chin", "mouth-line-centre", "nose-mark-bottom"] {
+        assert_close(
+            second.point(name).x,
+            first.point(name).x,
+            0.05,
+            &format!("the x of {name} drawn again"),
+        );
+    }
+    assert!(second.table.contains_key("corrections"));
+}
+
+#[test]
+fn a_side_view_that_carries_no_correction_gives_none_back() {
+    let folder = draw("taken-back-flat", MADE_UP, &[]);
+    let came_back = take_back(&folder, true);
+    assert!(corrections_of(&came_back).is_empty());
+    assert!(
+        !text(&came_back).contains("not taken back"),
+        "the side view was given, and the file says a correction was not taken back"
+    );
+}
+
+#[test]
+fn without_the_side_view_the_set_taken_back_says_that_no_correction_was() {
+    // A correction stands in the side view's landmark file and in no other, so two files
+    // cannot give it back. The set must say so and not pass for the whole set put in.
+    let folder = draw_made_up_with("taken-back-without-side", MADE_UP_SET_BACK, &[]);
+    let came_back = take_back(&folder, false);
+    assert!(corrections_of(&came_back).is_empty());
+    let said = text(&came_back);
+    assert!(
+        said.contains("No side view was given") && said.contains("not taken back"),
+        "{said}"
+    );
+}
+
+#[test]
+fn a_file_given_as_the_side_view_that_is_another_views_is_refused() {
+    let folder = draw_made_up_with("taken-back-wrong-side", MADE_UP_SET_BACK, &[]);
+    let (front, three_quarter) = (
+        folder.join("front.landmarks.toml"),
+        folder.join("three-quarter.landmarks.toml"),
+    );
+    let output = support::maquette(&[
+        "proportions-from-landmarks",
+        "--front",
+        path_text(&front),
+        "--three-quarter",
+        path_text(&three_quarter),
+        "--side",
+        path_text(&three_quarter),
+    ]);
+    assert!(!output.status.success());
+    let message = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        message.contains("three-quarter.landmarks.toml")
+            && message.contains("three-quarter view, not of a side view"),
+        "{message}"
+    );
+    assert!(output.stdout.is_empty(), "a set was written all the same");
 }
 
 #[test]

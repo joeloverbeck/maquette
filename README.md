@@ -33,6 +33,17 @@ Every landmark is one point in space and each view is a flat projection of the s
 
 A departure from flat projection is a named correction with an amount. The list of proportions defines each, a set of proportions carries it in a `[corrections.<name>]` table, and the review sheet shows it. There is one, `lower_face_set_back`: in the side view only, the mouth and the chin are drawn further back than their depths, and the landmark file gives each moved landmark's depth in space beside the depth it is drawn at. The front and three-quarter views are the same bytes with it and without it, and a set that carries no correction is drawn flat in every view.
 
+It moves no landmark above the mouth. It does change guides there: the face outline is one smooth curve, so it bends differently between the eye line and the nose mark, and behind the mouth up to the nose level, and the two view points read off it there shift. In Saffi's side view, where the nose level line meets the outline's front stands 1.0 unit further forward, and the neck's front line starts 1.1 units higher. The list of proportions says this where it defines the correction.
+
+```sh
+cargo run -- proportions-from-landmarks \
+  --front target/saffi/front.landmarks.toml \
+  --three-quarter target/saffi/three-quarter.landmarks.toml \
+  --side target/saffi/side.landmarks.toml
+```
+
+This takes an armature's landmark files back into the set of proportions it was drawn from: the proportions from the front and three-quarter views, and a correction from the side view, whose landmark file is the only one that states it. Without `--side` no correction is taken back, and the set written says so.
+
 Saffi's set carries it because all her depths come from her three-quarter view, which puts the mouth almost straight below the nose mark and the chin close behind, and a side view drawn from that has a muzzle. Her set is written by:
 
 ```sh
@@ -83,7 +94,7 @@ cargo run -- record-hand-made-drawings \
   --out <a folder>
 ```
 
-`list-drawing` prints what any hand-made drawing holds: every group, and every shape under its address, with its nodes numbered in path order and how far it reaches. It is what a reading of a new drawing is written from, in place of searching the file by hand. A drawing is read as written: one that moves its coordinates with a transform, or draws a path with anything but the absolute `M`, `L`, `C` and `Z`, is refused.
+`list-drawing` prints what any hand-made drawing holds: every group, and every shape under its address, with its nodes numbered in path order and how far it reaches. It is what a reading of a new drawing is written from, in place of searching the file by hand. A drawing is read as written: one that moves its coordinates with a transform, draws a path with anything but the absolute `M`, `L`, `C` and `Z`, or draws on after `Z` without a new `M`, is refused. A shape is listed as filled or not as SVG has it: by its own `fill`, in its `style` or as an attribute, or else by its group's.
 
 `record-hand-made-drawings` reads Saffi's four hand-made drawings and writes the three records of them in `data/saffi/`. The drawings are private and no clean clone has them: [`data/saffi/README.md`](data/saffi/README.md) lists each with its digest and where it is kept. Each is read only when its SHA-256 digest is the recorded one. Where a folder or a drawing is absent, or a digest differs, the command says so and writes nothing, and the committed numbers stand as recorded. Nothing else in the repository needs the drawings.
 
@@ -127,6 +138,7 @@ cargo test --test read_back_in_vectorcraft -- --ignored
 | `Cargo.toml`, `src/` | The Rust package: the list and sets of proportions, the head model, the three views, the guides, the armature writer, the reading of a hand-made drawing, the differences from a hand-made armature and the read-back in VectorCraft, under a thin command line |
 | `tests/` | Tests that drive the command line, files in and files out. `tests/fixtures/` holds made-up proportions, made-up views and a made-up drawing that say so, and recordings of VectorCraft's replies that say so |
 | `.github/workflows/checks.yml` | Formatting, lints and tests on every pull request |
+| `.gitattributes` | Keeps Git from converting line endings in `armatures/`, so that a checkout cannot change the pinned bytes |
 | `GLOSSARY.md` | The words maquette uses for armatures, views and proportions |
 | `docs/research/` | The research behind the founding and the reorientation. Evidence only |
 

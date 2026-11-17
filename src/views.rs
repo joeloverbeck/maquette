@@ -11,7 +11,7 @@
 //! and the chin are drawn further back than their depths. A landmark it moves keeps its depth
 //! and says beside it where the view draws it. A set that carries no correction is drawn flat.
 
-use crate::head_model::Head;
+use crate::head_model::{Head, SetBack};
 use crate::number::round3;
 use crate::{Error, Result};
 
@@ -23,7 +23,7 @@ use crate::{Error, Result};
 /// one by one support 27.9 to 29.4 degrees. This is the only place the turn is written.
 pub const THREE_QUARTER_TURN_DEGREES: f64 = 29.0;
 
-/// How far the side view is turned: the three-quarter view's turn carried to a full profile.
+/// How far the side view is turned: the three-quarter view's turn carried to 90 degrees.
 pub const SIDE_TURN_DEGREES: f64 = 90.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -137,18 +137,6 @@ pub struct Placed {
     pub drawn_at_depth: Option<f64>,
 }
 
-/// One amount of a named correction as a view carries it.
-#[derive(Debug, Clone, PartialEq)]
-pub struct SetBack {
-    /// The correction's name in the list of proportions.
-    pub correction: &'static str,
-    /// The amount's name there.
-    pub amount: &'static str,
-    /// How far behind their depth the view draws the landmarks, in SVG units.
-    pub by: f64,
-    pub landmarks: Vec<String>,
-}
-
 /// A head as one view shows it.
 #[derive(Debug, Clone)]
 pub struct Seen {
@@ -165,7 +153,8 @@ pub struct Seen {
     /// Hair top to chin, in SVG units.
     pub head_height: f64,
     pub landmarks: Vec<Placed>,
-    /// The amounts of the named corrections this view carries. Only the side view carries any.
+    /// The amounts of the named corrections this view carries, each `by` in SVG units. Only
+    /// the side view carries any.
     pub set_backs: Vec<SetBack>,
     cos: f64,
     sin: f64,
@@ -231,7 +220,7 @@ pub fn show(head: &Head, view: View, placement: &Placement) -> Seen {
         View::Side => placement.side_axis_x,
     };
     // The named corrections set landmarks back in the side view and in no other.
-    let set_backs: &[crate::head_model::SetBack] = if view == View::Side {
+    let set_backs: &[SetBack] = if view == View::Side {
         &head.side_set_backs
     } else {
         &[]
@@ -261,10 +250,8 @@ pub fn show(head: &Head, view: View, placement: &Placement) -> Seen {
     let set_backs = set_backs
         .iter()
         .map(|set_back| SetBack {
-            correction: set_back.correction,
-            amount: set_back.amount,
             by: round3(set_back.by * placement.unit),
-            landmarks: set_back.landmarks.clone(),
+            ..set_back.clone()
         })
         .collect();
     Seen {

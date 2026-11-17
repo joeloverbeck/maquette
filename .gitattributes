@@ -1,0 +1,3 @@
+# Git converts no line endings in the accepted armatures. A test pins their bytes, and a
+# checkout that rewrote a line ending would change what Jon accepted.
+armatures/** -text

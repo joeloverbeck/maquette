@@ -11,7 +11,10 @@ mod support;
 
 use std::collections::BTreeMap;
 
-use support::{assert_close, maquette, maquette_ok, number, path_text, repository, scratch, text};
+use support::{
+    MADE_UP, assert_close, draw, maquette, maquette_ok, number, path_text, repository, scratch,
+    text,
+};
 
 const MADE_UP_DRAWING: &str = "tests/fixtures/drawings/made-up-drawing.svg";
 const RECORD: &str = "data/saffi/hand-made-views.toml";
@@ -96,6 +99,176 @@ fn a_drawing_that_moves_its_coordinates_or_curves_another_way_is_refused_in_plai
     assert!(
         message.contains("lid-2") && message.contains("`A`"),
         "{message}"
+    );
+}
+
+#[test]
+fn a_path_that_goes_on_after_closing_without_a_new_start_is_refused() {
+    // SVG lets a path draw on after `Z` from the subpath's first point, as a new subpath that
+    // no `M` starts. The reading does not follow that, so it refuses the path: listing it as
+    // one closed outline would put the stretch after `Z` on the wrong side of the closing.
+    let folder = scratch("drawings-on-after-closing");
+    let made_up = text(&repository().join(MADE_UP_DRAWING));
+    let closed = "M20 40 C20 30 40 30 40 40 C40 50 20 50 20 40 Z";
+    assert!(made_up.contains(closed), "the made-up drawing has changed");
+
+    for (name, more) in [("line", " L30 45"), ("curve", " C25 41 28 43 30 45")] {
+        let drawing = folder.join(format!("{name}.svg"));
+        std::fs::write(
+            &drawing,
+            made_up.replace(closed, &format!("{closed}{more}")),
+        )
+        .expect("written");
+        let output = maquette(&["list-drawing", "--svg", path_text(&drawing)]);
+        assert!(!output.status.success(), "{name}: the path was read");
+        let message = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            message.contains("white") && message.contains("`Z`") && message.contains("`M`"),
+            "{name}: {message}"
+        );
+        assert!(output.stdout.is_empty(), "a refused drawing was listed");
+    }
+
+    // A new `M` after `Z` starts a second subpath, which is read.
+    let drawing = folder.join("two-subpaths.svg");
+    std::fs::write(
+        &drawing,
+        made_up.replace(closed, &format!("{closed} M25 40 L35 40 L30 45 Z")),
+    )
+    .expect("written");
+    let listed = maquette_ok(&["list-drawing", "--svg", path_text(&drawing)]);
+    assert!(
+        listed.contains("subpath 1\n        node 0: 25, 40\n"),
+        "{listed}"
+    );
+}
+
+/// Lists a drawing written for one test, and returns the line that names each shape.
+fn shapes_listed(name: &str, svg: &str) -> Vec<String> {
+    let folder = scratch(name);
+    let drawing = folder.join("drawing.svg");
+    std::fs::write(&drawing, svg).expect("written");
+    maquette_ok(&["list-drawing", "--svg", path_text(&drawing)])
+        .lines()
+        .map(str::trim)
+        .filter(|line| line.ends_with(')') && line.contains("  ("))
+        .map(str::to_string)
+        .collect()
+}
+
+#[test]
+fn an_armature_maquette_draws_is_listed_with_no_guide_filled() {
+    // The SVG contract has every guide stroked and unfilled, and the generator says so once,
+    // on the layer's group. A listing that called the guides filled would send a reading to
+    // look for cover that is not there.
+    let folder = draw("drawings-own-armature", MADE_UP, &[]);
+    for view in ["front", "three-quarter", "side"] {
+        let svg = folder.join(format!("{view}.svg"));
+        let listed = maquette_ok(&["list-drawing", "--svg", path_text(&svg)]);
+        let filled: Vec<&str> = listed
+            .lines()
+            .filter(|line| line.contains("(filled"))
+            .collect();
+        assert!(
+            listed.contains("(not filled)"),
+            "the {view} view lists no shape"
+        );
+        assert!(
+            filled.is_empty(),
+            "the {view} view has guides listed as filled: {filled:?}"
+        );
+    }
+}
+
+#[test]
+fn a_shape_takes_its_fill_from_the_group_it_is_in_unless_it_gives_its_own() {
+    // A made-up drawing: nobody is drawn in it. SVG hands a `fill` down from a group to the
+    // shapes inside it, and a shape's own `fill` stands over the group's.
+    let listed = shapes_listed(
+        "drawings-fill-handed-down",
+        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <g id="lines" fill="none" stroke="#000000">
+    <circle id="ring" cx="50" cy="50" r="30"/>
+    <g id="inner">
+      <rect id="frame" x="10" y="10" width="20" height="20"/>
+      <rect id="plate" x="40" y="40" width="20" height="20" fill="#cccccc"/>
+    </g>
+  </g>
+  <g id="paint">
+    <circle id="disc" cx="50" cy="50" r="10"/>
+  </g>
+</svg>
+"##,
+    );
+    assert_eq!(
+        listed,
+        [
+            "circle lines/ring  (not filled)",
+            "rect inner/frame  (not filled)",
+            "rect inner/plate  (filled)",
+            "circle paint/disc  (filled)",
+        ]
+    );
+}
+
+#[test]
+fn a_fill_given_in_a_style_is_read_and_stands_over_one_given_as_an_attribute() {
+    // A made-up drawing: nobody is drawn in it. An SVG may give a paint in `style`, and where
+    // an element gives it both ways the one in `style` is what is drawn.
+    let listed = shapes_listed(
+        "drawings-fill-in-style",
+        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <g id="styled">
+    <circle id="ring" cx="50" cy="50" r="30" style="stroke:#000000; fill : none ;stroke-width:2"/>
+    <circle id="disc" cx="50" cy="50" r="10" style="stroke:none;fill:#cccccc"/>
+    <rect id="both" x="10" y="10" width="20" height="20" fill="#cccccc" style="fill:none"/>
+    <rect id="neither" x="40" y="40" width="20" height="20" style="stroke:#000000"/>
+  </g>
+  <g id="lines" style="fill:none">
+    <circle id="handed" cx="50" cy="50" r="5"/>
+    <circle id="own" cx="50" cy="50" r="5" style="fill:#333333"/>
+  </g>
+</svg>
+"##,
+    );
+    assert_eq!(
+        listed,
+        [
+            "circle styled/ring  (not filled)",
+            "circle styled/disc  (filled)",
+            "rect styled/both  (not filled)",
+            "rect styled/neither  (filled)",
+            "circle lines/handed  (not filled)",
+            "circle lines/own  (filled)",
+        ]
+    );
+}
+
+#[test]
+fn a_shape_whose_opacity_is_nothing_is_listed_so_however_the_nought_is_written() {
+    // A made-up drawing: nobody is drawn in it.
+    let listed = shapes_listed(
+        "drawings-opacity-nought",
+        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <g id="head">
+    <circle id="a" cx="50" cy="50" r="30" opacity="0"/>
+    <circle id="b" cx="50" cy="50" r="30" opacity="0.0"/>
+    <circle id="c" cx="50" cy="50" r="30" opacity=" 0.00 "/>
+    <circle id="d" cx="50" cy="50" r="30" opacity="0.5"/>
+    <circle id="e" cx="50" cy="50" r="30"/>
+  </g>
+</svg>
+"##,
+    );
+    assert_eq!(
+        listed,
+        [
+            "circle head/a  (filled, opacity 0)",
+            "circle head/b  (filled, opacity 0)",
+            "circle head/c  (filled, opacity 0)",
+            "circle head/d  (filled)",
+            "circle head/e  (filled)",
+        ]
     );
 }
 
