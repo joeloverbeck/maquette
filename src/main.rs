@@ -11,7 +11,7 @@ use maquette::views::Placement;
 use maquette::{
     Error, Result, armature, differences, enlargement, hand_made_drawings, hand_made_views,
     hard_case, jons_check, known_positions, measuring, overlay, proportions, read_back, readings,
-    reference_check_sheet, vectorcraft,
+    reference_check_sheet, table, vectorcraft,
 };
 
 const USAGE: &str = "\
@@ -129,6 +129,16 @@ Usage:
       depths and the conventions summed up apart. A file that lacks some proportions is
       compared in the ones it has.
 
+  maquette set-against-table --proportions <file> --table <file> [--out <file>]
+      Set a set of proportions against a proportion table, such as one that
+      `maquette table-from-readings` writes: each proportion of the set as inside or outside
+      its valid range, with how far beyond, or as having no range to be set against, because
+      the table has fewer than five works behind it, or none, or because it is a convention.
+      The set need not be whole. Outside is a finding and not a fault: nothing in the set
+      or the table is changed. With --out the file is written there and the proportions
+      outside are printed. Both files are read from where they are named, and no reference
+      folder is needed.
+
   maquette reading-instructions
       Print the reading instructions: what a reader judges and places on a drawing.
 
@@ -244,6 +254,22 @@ mirrored, by an EXIF orientation, is refused.
       out, and the number of accepted works for each view, with a view under five reported
       as too thin. Exit status 0 when the record is complete, 1 when it is not.
 
+  maquette table-from-readings --check <check> [--out <table>]
+      Build a proportion table from a record of Jon's check that is complete, and from
+      nothing else: for each proportion of the list, the lowest, the middle (the median)
+      and the highest value among the works whose readings he accepted, and the number of
+      works behind it. A drawing that is set aside or not called level is left out, and so
+      is a rejected character. A proportion with five works or more behind it is given, and
+      has a valid range; one with fewer is too thin, with what its few works give stated,
+      and has none, also in a view that has five works; a convention has none. A view with
+      fewer than five works is reported as too thin and is not called a table. The table
+      lists the works it was measured on, and states that its ranges are separate and do
+      not rule on which combinations go together, and that a lowest and a highest value is
+      one reference's number. It takes no set of proportions, and refuses a record's
+      positions written as a reading: a comparison case's numbers never enter a table.
+      A table is a proposal until Jon has accepted it, and stays in the reference folder
+      until then.
+
 turn-from-readings, fit-of-views and proportions-from-readings take `--check <check>`, the
 record of Jon's check. A record that is not complete measures nothing. With a complete one
 only the readings of a character he accepted are measured, each drawing from all the
@@ -329,6 +355,8 @@ fn run(arguments: &[String]) -> Result<Ended> {
         "reference-check-sheet" => reference_check_sheet(rest)?,
         "start-jons-check" => start_jons_check(rest)?,
         "jons-check" => return jons_check_command(rest),
+        "table-from-readings" => table_from_readings(rest)?,
+        "set-against-table" => set_against_table(rest)?,
         "compare-proportions" => compare_proportions(rest)?,
         "read-back" => return read_back_command(rest),
         "read-back-hard-case" => return read_back_hard_case(rest),
@@ -1091,6 +1119,44 @@ fn jons_check_command(arguments: &[String]) -> Result<Ended> {
     } else {
         Ended::CheckFailed
     })
+}
+
+fn table_from_readings(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(arguments, &["--check", "--out"])?;
+    let path = required(&found, "--check")?;
+    let check = check_record(&folder, path)?;
+    let review = check.review(path, &|reading| reading_now(&folder, reading));
+    if !review.complete() {
+        return Err(Error::new(format!(
+            "the record of Jon's check `{path}` is not complete, so no table is built from it: {}. `maquette jons-check --check {path}` says what it does and lacks",
+            review.problems.join("; ")
+        )));
+    }
+    // Each reading that is measured is still held to what `check-reading` checks, against
+    // its picture as it is now.
+    for accepted in review.accepted() {
+        for (drawing, outcome) in &accepted.drawings {
+            if matches!(outcome, jons_check::Outcome::Measured { .. }) {
+                for named in &drawing.readings {
+                    checked_reading(&folder, &named.path)?;
+                }
+            }
+        }
+    }
+    let table = table::build(&review)?;
+    deliver_measured(&folder, &found, &table.file(), &table.summary())
+}
+
+fn set_against_table(arguments: &[String]) -> Result<()> {
+    let found = options(arguments, &["--proportions", "--table", "--out"])?;
+    let set = required(&found, "--proportions")?;
+    let named = required(&found, "--table")?;
+    let against = table::set_against(set, &read(set)?, named, &read(named)?)?;
+    deliver(&found, &against.file())?;
+    if found.contains_key("--out") {
+        print!("{}", against.summary());
+    }
+    Ok(())
 }
 
 fn score_reading(arguments: &[String]) -> Result<()> {

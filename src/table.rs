@@ -1,0 +1,914 @@
+//! The proportion table, and the setting of a set of proportions against one.
+//!
+//! This module hides what a table is built from, what it states of each proportion, when a
+//! proportion has a valid range, and what a set of proportions is told when it is set against
+//! one. `maquette table-from-readings` builds a table from the record of Jon's check, and
+//! `maquette set-against-table` sets a set of proportions against a table.
+//!
+//! A table is a proposal until Jon has accepted it, and stays in the reference folder until
+//! then. Nothing here judges a head: the program reports what the accepted readings give.
+
+use std::collections::BTreeMap;
+
+use crate::jons_check::{Accepted, Outcome, Review, WORKS_FOR_A_TABLE};
+use crate::known_positions::{NOT_A_READER, dimension};
+use crate::measuring::{self, Given};
+use crate::number::{counted, median, toml as toml_number};
+use crate::proportions::{self, Kind};
+use crate::readings::Drawing;
+use crate::toml_text::{quoted, quoted_lines, tables, words};
+use crate::views::View;
+use crate::{Error, Result};
+
+/// What a table is and does, by name, as the table's own file states it.
+pub const RULES: &[(&str, &str)] = &[
+    (
+        "built_from",
+        "A table is built from the record of Jon's check and from nothing else: the readings of each character he accepted, each drawing as the record rules it, with what he marked as off left out. A drawing that is set aside or not called level is left out, and so is a character he rejected.",
+    ),
+    (
+        "a_work",
+        "Each accepted character is one work, and a table counts works. Heights and widths are taken from a work's front view, so a work with no measured front view gives nothing. Depth is taken from its side view where one is measured, and otherwise from its three-quarter view at the turn the readings show.",
+    ),
+    (
+        "values",
+        "For each proportion: the lowest, the middle and the highest value among the works that give it, and the number of those works. The middle is the median: the middle value in order, or midway between the two middle values of an even number of works. Every value is in units, a length over the height from the eye line down to the chin.",
+    ),
+    (
+        "floor",
+        "A proportion with five works or more behind it is given: its valid range runs from its lowest value to its highest. A proportion with fewer is too thin: what its few works give is stated, it is no range, and nothing is set against it. The floor is held proportion by proportion. In a view that has five works, a proportion that hair or a mark of Jon's leaves with fewer is too thin all the same: the floor is there so that no range is one hand's habit, and a range is backed only by the works that show that feature. A view with fewer than five works is reported as too thin and is not a table.",
+    ),
+    (
+        "conventions",
+        "A convention is built by a stated rule and is never a measurement: it has no valid range, however many works the rule could be run on. What the rule built is stated for what it is.",
+    ),
+    (
+        "separate_ranges",
+        "Each range is separate. The table does not rule on which combinations of proportions go together: a head with every proportion inside its range may still be one that no reference shows.",
+    ),
+    (
+        "single_references",
+        "A lowest value and a highest value are each one reference's number. The table does not tie them to a work.",
+    ),
+    (
+        "comparison_case",
+        "No comparison case's numbers are in a table. The command that builds one takes the record of Jon's check and no set of proportions, reads only from the reference folder, and refuses what is not a reader's reading of a drawing.",
+    ),
+];
+
+fn rule(name: &str) -> &'static str {
+    RULES
+        .iter()
+        .find(|(known, _)| *known == name)
+        .map(|(_, text)| *text)
+        .unwrap_or_else(|| panic!("the table has no rule named {name}"))
+}
+
+/// Where a proportion stands in a table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Standing {
+    /// Five works or more: its lowest and highest value are its valid range.
+    Given,
+    /// One to four works: what they give is stated and is no range.
+    TooThin,
+    /// No work gives it.
+    NoWork,
+    /// Built by rule and never measured: no range.
+    Convention,
+}
+
+impl Standing {
+    fn of(kind: Kind, works: usize) -> Standing {
+        match (kind, works) {
+            (Kind::Convention, _) => Standing::Convention,
+            (Kind::Measured, 0) => Standing::NoWork,
+            (Kind::Measured, works) if works < WORKS_FOR_A_TABLE => Standing::TooThin,
+            (Kind::Measured, _) => Standing::Given,
+        }
+    }
+
+    pub fn word(self) -> &'static str {
+        match self {
+            Standing::Given => "given",
+            Standing::TooThin => "too thin",
+            Standing::NoWork => "no work",
+            Standing::Convention => "convention",
+        }
+    }
+
+    fn named(word: &str) -> Option<Standing> {
+        [
+            Standing::Given,
+            Standing::TooThin,
+            Standing::NoWork,
+            Standing::Convention,
+        ]
+        .into_iter()
+        .find(|standing| standing.word() == word)
+    }
+}
+
+/// One work a table was measured on, as the table lists it.
+#[derive(Debug, Clone)]
+struct Work {
+    /// What its readings say the reference is, field by field.
+    reference: BTreeMap<String, String>,
+    /// The views measured of it.
+    views: Vec<View>,
+    /// Where its depth is taken from, in words.
+    depth_from: &'static str,
+}
+
+/// One proportion of a table.
+#[derive(Debug, Clone)]
+struct Line {
+    name: String,
+    kind: Kind,
+    /// The values the works give, in order from the lowest.
+    values: Vec<f64>,
+    /// Why the other works do not give it, each reason with the number of works it is said of.
+    not_given: Vec<(String, usize)>,
+}
+
+impl Line {
+    fn standing(&self) -> Standing {
+        Standing::of(self.kind, self.values.len())
+    }
+}
+
+/// A proportion table as it is built from the record of Jon's check.
+#[derive(Debug, Clone)]
+pub struct Table {
+    /// The record it was built from, as [`Review::named`] says it.
+    built_from: String,
+    works: Vec<Work>,
+    /// The number of accepted works for each view and each route to depth.
+    views: Vec<(String, usize)>,
+    /// What was accepted and gives nothing, in words: a drawing that is not measured.
+    left_out: Vec<String>,
+    lines: Vec<Line>,
+}
+
+/// The fields of a reference a table lists a work by. Two are left in the readings: where a
+/// picture was taken from, since an address can name a character and a table is written to
+/// be published, and the reader's own account of the manner it is drawn in, which is one
+/// reading's.
+const WORK_FIELDS: [&str; 5] = ["work", "designer", "age_band", "sex", "species"];
+
+/// The one measured drawing of a view among a character's, or none. Two are refused: which
+/// of them gives the character's proportions is not decided anywhere.
+fn of_view<'a>(accepted: &Accepted<'a>, view: View) -> Result<Option<(Vec<&'a str>, &'a Drawing)>> {
+    let mut found = None;
+    for (checked, outcome) in &accepted.drawings {
+        let Outcome::Measured { drawing, .. } = outcome else {
+            continue;
+        };
+        if drawing.view != view {
+            continue;
+        }
+        if found.is_some() {
+            return Err(Error::new(format!(
+                "the character `{}` has two measured {} views in the record of Jon's check: a table takes one drawing of a view from a work, and which of the two it is has not been decided",
+                accepted.character.label,
+                view.name()
+            )));
+        }
+        let paths: Vec<&str> = checked
+            .readings
+            .iter()
+            .map(|named| named.path.as_str())
+            .collect();
+        found = Some((paths, drawing.as_ref()));
+    }
+    Ok(found)
+}
+
+/// Builds a table from a record of Jon's check that is complete: the rules `built_from`,
+/// `a_work`, `values` and `floor`.
+pub fn build(review: &Review) -> Result<Table> {
+    if !review.complete() {
+        return Err(Error::new(format!(
+            "the record of Jon's check is not complete, so no table is built from it: {}",
+            review.problems.join("; ")
+        )));
+    }
+    let list = proportions::list()?;
+    let mut works: Vec<Work> = Vec::new();
+    let mut left_out = Vec::new();
+    // For each proportion, the values the works give and why the others do not.
+    let mut values: BTreeMap<&str, Vec<f64>> = BTreeMap::new();
+    let mut not_given: BTreeMap<&str, Vec<(String, usize)>> = BTreeMap::new();
+
+    for accepted in review.accepted() {
+        let label = &accepted.character.label;
+        let of_character = |error: Error| Error::new(format!("the character `{label}`: {error}"));
+        for (checked, outcome) in &accepted.drawings {
+            match outcome {
+                Outcome::NotMeasured(_) => left_out.push(format!(
+                    "the {} view of `{label}` is not measured",
+                    checked.counts_as().name()
+                )),
+                Outcome::Measured { drawing, .. } => {
+                    if drawing.readers.iter().any(|reader| reader == NOT_A_READER) {
+                        return Err(Error::new(format!(
+                            "the {} view of `{label}` is not a reading: it is the positions of a record of known positions, written as a reading, and nobody read them from a drawing. A table is measured on readings of references. What is known beforehand, as a comparison case's numbers are, never enters one",
+                            drawing.view.name()
+                        )));
+                    }
+                }
+            }
+        }
+        let Some((front_paths, front)) = of_view(&accepted, View::Front)? else {
+            left_out.push(format!(
+                "`{label}` has no measured front view, and heights and widths are the front view's: nothing is taken from it"
+            ));
+            continue;
+        };
+        let side = of_view(&accepted, View::Side)?;
+        let three_quarter = of_view(&accepted, View::ThreeQuarter)?;
+        let front_named = front_paths.join(",");
+        let front_given = Given {
+            named: &front_named,
+            drawing: front,
+        };
+        let mut views = vec![View::Front];
+        let (mut taken, depth_from) = match (side, three_quarter) {
+            (Some((paths, side)), three_quarter) => {
+                views.push(View::Side);
+                if three_quarter.is_some() {
+                    left_out.push(format!(
+                        "the three-quarter view of `{label}` is not used: its depth is taken from its side view"
+                    ));
+                }
+                let named = paths.join(",");
+                let side = Given {
+                    named: &named,
+                    drawing: side,
+                };
+                (
+                    measuring::proportions(&front_given, None, Some(&side))
+                        .map_err(of_character)?,
+                    "its side view",
+                )
+            }
+            (None, Some((paths, three_quarter))) => {
+                views.push(View::ThreeQuarter);
+                let named = paths.join(",");
+                let three_quarter = Given {
+                    named: &named,
+                    drawing: three_quarter,
+                };
+                (
+                    measuring::proportions(&front_given, Some(&three_quarter), None)
+                        .map_err(of_character)?,
+                    "its three-quarter view, at the turn the readings show",
+                )
+            }
+            (None, None) => (
+                measuring::proportions(&front_given, None, None).map_err(of_character)?,
+                "no view: it gives no depth",
+            ),
+        };
+        taken.leave_out(&accepted.character.proportions_off);
+
+        let reference = accepted.reference.clone();
+        let said = |field: &str| reference.get(field).cloned().unwrap_or_default();
+        if said("work").is_empty() {
+            return Err(Error::new(format!(
+                "the readings of `{label}` do not say which work the drawing is from: a table lists the works it was measured on"
+            )));
+        }
+        if works
+            .iter()
+            .any(|work| work.reference.get("work") == reference.get("work"))
+        {
+            return Err(Error::new(format!(
+                "`{label}` is a second accepted character of the work \"{}\": a batch takes one character from a work, and a table counts works",
+                said("work")
+            )));
+        }
+        for proportion in &list.proportions {
+            let name = proportion.name.as_str();
+            if let Some(value) = taken.taken.values.get(name) {
+                values.entry(name).or_default().push(*value);
+            }
+        }
+        for (name, why) in &taken.taken.not_given {
+            let Some(proportion) = list.find(name) else {
+                continue;
+            };
+            let reasons = not_given.entry(proportion.name.as_str()).or_default();
+            match reasons.iter_mut().find(|(known, _)| known == why) {
+                Some((_, count)) => *count += 1,
+                None => reasons.push((why.clone(), 1)),
+            }
+        }
+        works.push(Work {
+            reference,
+            views,
+            depth_from,
+        });
+    }
+
+    let lines = list
+        .proportions
+        .iter()
+        .map(|proportion| {
+            let mut values = values.remove(proportion.name.as_str()).unwrap_or_default();
+            values.sort_by(f64::total_cmp);
+            Line {
+                name: proportion.name.clone(),
+                kind: proportion.kind,
+                values,
+                not_given: not_given
+                    .remove(proportion.name.as_str())
+                    .unwrap_or_default(),
+            }
+        })
+        .collect();
+    Ok(Table {
+        built_from: review.named(),
+        works,
+        views: review.counts(),
+        left_out,
+        lines,
+    })
+}
+
+fn six(value: f64) -> String {
+    toml_number(value, 6)
+}
+
+impl Table {
+    fn count(&self, standing: Standing) -> usize {
+        self.lines
+            .iter()
+            .filter(|line| line.standing() == standing)
+            .count()
+    }
+
+    /// The table as the text of its file.
+    pub fn file(&self) -> String {
+        let mut out = String::from(
+            "\
+# A proportion table, by `maquette table-from-readings`: for each proportion of the list, the
+# lowest, the middle and the highest value among the works whose readings Jon accepted, and
+# the number of works behind it. `maquette list-proportions` defines each proportion.
+#
+# It is a proposal until Jon has accepted it, and stays in the reference folder until then.
+# [rules] says what it is built from, when a proportion has a valid range, and what the
+# table does not say.
+",
+        );
+        out.push_str("\n[table]\n");
+        out.push_str(&format!(
+            "built_from = {}\n",
+            quoted(&format!("the record of Jon's check {}", self.built_from))
+        ));
+        out.push_str(&format!("works = {}\n", self.works.len()));
+        out.push_str(&format!("works_for_a_table = {WORKS_FOR_A_TABLE}\n"));
+        out.push_str(&format!(
+            "proportions = {}\ngiven = {}\ntoo_thin = {}\nno_work = {}\nconventions = {}\n",
+            self.lines.len(),
+            self.count(Standing::Given),
+            self.count(Standing::TooThin),
+            self.count(Standing::NoWork),
+            self.count(Standing::Convention)
+        ));
+        if !self.left_out.is_empty() {
+            out.push_str(&format!(
+                "# Accepted and not measured. `maquette jons-check` says why.\nleft_out = {}\n",
+                quoted_lines(&self.left_out)
+            ));
+        }
+
+        out.push_str("\n[rules]\n");
+        for (name, text) in RULES {
+            out.push_str(&format!("{name} = {}\n", quoted(text)));
+        }
+
+        out.push_str(
+            "\n# The accepted works behind each view, and behind depth, which takes two views of one\n# character. A view with fewer than five is too thin, and is not a table.\n",
+        );
+        for (what, count) in &self.views {
+            out.push_str(&format!(
+                "[[view]]\nview = {}\nworks = {count}\nstanding = {}\n",
+                quoted(what),
+                quoted(if *count < WORKS_FOR_A_TABLE {
+                    "too thin: not a table"
+                } else {
+                    "a table"
+                })
+            ));
+        }
+
+        out.push_str(
+            "\n# The works the table was measured on, as their readings name them. Where each picture\n# was taken from is in its readings, in the reference folder.\n",
+        );
+        for work in &self.works {
+            out.push_str("[[work]]\n");
+            for field in WORK_FIELDS {
+                if let Some(said) = work.reference.get(field) {
+                    out.push_str(&format!("{field} = {}\n", quoted(said)));
+                }
+            }
+            let views: Vec<String> = work.views.iter().map(|view| quoted(view.name())).collect();
+            out.push_str(&format!("views = [{}]\n", views.join(", ")));
+            out.push_str(&format!("depth_from = {}\n", quoted(work.depth_from)));
+        }
+
+        out.push_str(
+            "\n# Every proportion of the list, in the list's order. Only a proportion whose standing\n# is \"given\" has a valid range.\n",
+        );
+        for line in &self.lines {
+            out.push_str("[[proportion]]\n");
+            out.push_str(&format!("name = {}\n", quoted(&line.name)));
+            out.push_str(&format!("kind = {}\n", quoted(line.kind.word())));
+            out.push_str(&format!(
+                "dimension = {}\n",
+                quoted(dimension(&line.name).trim_end_matches('s'))
+            ));
+            out.push_str(&format!("works = {}\n", line.values.len()));
+            out.push_str(&format!("standing = {}\n", quoted(line.standing().word())));
+            if let (Some(lowest), Some(highest)) = (line.values.first(), line.values.last()) {
+                // Where the numbers are no range, the file says so beside them.
+                match line.standing() {
+                    Standing::TooThin => out.push_str(&format!(
+                        "# What its {} give{}. It is no range.\n",
+                        counted(line.values.len(), "work"),
+                        if line.values.len() == 1 { "s" } else { "" }
+                    )),
+                    Standing::Convention => out.push_str(
+                        "# What the rule built in the works that give it what it needs. It is no measurement and no range.\n",
+                    ),
+                    Standing::Given | Standing::NoWork => {}
+                }
+                out.push_str(&format!("lowest = {}\n", six(*lowest)));
+                out.push_str(&format!("middle = {}\n", six(median(&line.values))));
+                out.push_str(&format!("highest = {}\n", six(*highest)));
+            }
+            if !line.not_given.is_empty() {
+                let reasons: Vec<String> = line
+                    .not_given
+                    .iter()
+                    .map(|(why, count)| format!("{}: {why}", counted(*count, "work")))
+                    .collect();
+                out.push_str(&format!("not_given_by = {}\n", quoted_lines(&reasons)));
+            }
+        }
+        out
+    }
+
+    /// What was built, in a few lines, for a person.
+    pub fn summary(&self) -> String {
+        let mut out = format!(
+            "A table of {} proportions from {}, by the record of Jon's check {}.\n",
+            self.lines.len(),
+            counted(self.works.len(), "work"),
+            self.built_from
+        );
+        out.push_str(&format!(
+            "  {} given: five works or more, with a valid range.\n  {} too thin: one to four works, and no range.\n  {} with no work.\n  {}, built by rule and never measured: no range.\n",
+            self.count(Standing::Given),
+            self.count(Standing::TooThin),
+            self.count(Standing::NoWork),
+            counted(self.count(Standing::Convention), "convention")
+        ));
+        out.push_str("Accepted works for each view:\n");
+        for (what, count) in &self.views {
+            out.push_str(&format!("  {what}: {}\n", crate::jons_check::works(*count)));
+        }
+        for left_out in &self.left_out {
+            out.push_str(&format!("Left out: {left_out}.\n"));
+        }
+        out.push_str(&format!(
+            "{}\n{}\n",
+            rule("separate_ranges"),
+            rule("single_references")
+        ));
+        out.push_str(
+            "It is a proposal until Jon has accepted it, and stays in the reference folder until then.\n",
+        );
+        out
+    }
+}
+
+// ---------------------------------------------------------------- a set against a table
+
+/// What a set of proportions is told when it is set against a table, by name, as the file
+/// of the comparison states it.
+pub const AGAINST_RULES: &[(&str, &str)] = &[
+    (
+        "inside",
+        "A proportion is inside its valid range when its value is not below the table's lowest value and not above its highest. A value on either end is inside.",
+    ),
+    (
+        "outside",
+        "A proportion is outside when it is below the lowest value or above the highest. How far beyond is stated in units, and as a share of the set's own head height, from the hair's top to the chin.",
+    ),
+    (
+        "no_range",
+        "A proportion has no range to be set against when the table has fewer than five works behind it, or none, or when it is a convention. What the few works give stands beside a thin one, and is no verdict.",
+    ),
+    (
+        "a_finding",
+        "Outside is a finding, not a fault, and inside is no praise: the ranges are separate and do not rule on which combinations go together. Nothing in the set and nothing in the table is changed to bring a set inside.",
+    ),
+    (
+        "corrections",
+        "A named correction a set carries is no proportion, and a table has no range for it.",
+    ),
+];
+
+/// One proportion as a table's file states it.
+#[derive(Debug, Clone)]
+struct Stated {
+    standing: Standing,
+    works: usize,
+    /// The lowest, the middle and the highest value, where any work gives it.
+    values: Option<[f64; 3]>,
+}
+
+fn number_of(table: &toml::Table, key: &str) -> Option<f64> {
+    match table.get(key) {
+        Some(toml::Value::Float(number)) => Some(*number),
+        Some(toml::Value::Integer(number)) => Some(*number as f64),
+        _ => None,
+    }
+}
+
+/// Reads a table's file: what it was built from, and each proportion of the list as it
+/// states it. A file that calls a proportion given without five works and a range behind it
+/// is refused: a range is never taken from a thin proportion, whatever a file says.
+fn read_table(path: &str, text: &str) -> Result<(String, BTreeMap<String, Stated>)> {
+    let not_a_table = |why: String| {
+        Error::new(format!(
+            "{path} is not a proportion table as `maquette table-from-readings` writes one: {why}"
+        ))
+    };
+    let file: toml::Table = text
+        .parse()
+        .map_err(|error| not_a_table(format!("it is not valid TOML: {error}")))?;
+    let Some(head) = file.get("table").and_then(toml::Value::as_table) else {
+        return Err(not_a_table("it has no [table]".to_string()));
+    };
+    let list = proportions::list()?;
+    let mut stated = BTreeMap::new();
+    for entry in tables(&file, "proportion") {
+        let name = words(entry, "name");
+        let Some(proportion) = list.find(&name) else {
+            return Err(not_a_table(format!(
+                "it has an entry `{name}`, and the list of proportions has no proportion of that name"
+            )));
+        };
+        let Some(standing) = Standing::named(&words(entry, "standing")) else {
+            return Err(not_a_table(format!(
+                "the standing of `{name}` is \"{}\"",
+                words(entry, "standing")
+            )));
+        };
+        let works = entry
+            .get("works")
+            .and_then(toml::Value::as_integer)
+            .and_then(|works| usize::try_from(works).ok())
+            .ok_or_else(|| {
+                not_a_table(format!(
+                    "`{name}` does not say how many works stand behind it"
+                ))
+            })?;
+        let values = match (
+            number_of(entry, "lowest"),
+            number_of(entry, "middle"),
+            number_of(entry, "highest"),
+        ) {
+            (Some(lowest), Some(middle), Some(highest)) => Some([lowest, middle, highest]),
+            _ => None,
+        };
+        // What the file calls a proportion is what its kind and its count of works make it.
+        if standing != Standing::of(proportion.kind, works) {
+            return Err(not_a_table(format!(
+                "it calls `{name}` \"{}\" with {} behind it, and a {} proportion with that many is \"{}\"",
+                standing.word(),
+                counted(works, "work"),
+                proportion.kind.word(),
+                Standing::of(proportion.kind, works).word()
+            )));
+        }
+        if standing == Standing::Given
+            && !values.is_some_and(|[lowest, _, highest]| lowest <= highest)
+        {
+            return Err(not_a_table(format!(
+                "it calls `{name}` given and states no lowest and highest value for it"
+            )));
+        }
+        stated.insert(
+            name,
+            Stated {
+                standing,
+                works,
+                values,
+            },
+        );
+    }
+    if let Some(missing) = list
+        .proportions
+        .iter()
+        .find(|proportion| !stated.contains_key(&proportion.name))
+    {
+        return Err(not_a_table(format!(
+            "it has no entry for `{}`, a proportion of the list",
+            missing.name
+        )));
+    }
+    Ok((words(head, "built_from"), stated))
+}
+
+/// What a set's value is told against a table's proportion.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Verdict {
+    Inside,
+    /// Below the lowest value or above the highest, and how far beyond, in units.
+    Outside {
+        above: bool,
+        beyond: f64,
+    },
+    /// No range to be set against, and why.
+    NoRange(String),
+}
+
+/// One proportion of a set, set against a table.
+#[derive(Debug, Clone)]
+struct Against {
+    name: String,
+    value: f64,
+    verdict: Verdict,
+    works: usize,
+    values: Option<[f64; 3]>,
+}
+
+/// A set of proportions set against a table.
+#[derive(Debug, Clone)]
+pub struct SetAgainst {
+    set: String,
+    table: String,
+    built_from: String,
+    /// The set's own head height, where it gives the hair's top.
+    head_height: Option<f64>,
+    lines: Vec<Against>,
+    not_in_the_set: Vec<String>,
+    corrections: Vec<String>,
+}
+
+/// Sets a set of proportions against a table: the rules `inside`, `outside` and `no_range`.
+/// The set need not be whole: a proportion it does not give is listed. Nothing is written
+/// back into either.
+pub fn set_against(
+    set_path: &str,
+    set_text: &str,
+    table_path: &str,
+    table_text: &str,
+) -> Result<SetAgainst> {
+    let (built_from, stated) = read_table(table_path, table_text)?;
+    let list = proportions::list()?;
+    let file: toml::Table = set_text
+        .parse()
+        .map_err(|error| Error::new(format!("{set_path}: not valid TOML: {error}")))?;
+    let given = file
+        .get("proportions")
+        .and_then(toml::Value::as_table)
+        .ok_or_else(|| Error::new(format!("{set_path} has no [proportions] table")))?;
+    if let Some(unknown) = given.keys().find(|name| list.find(name).is_none()) {
+        return Err(Error::new(format!(
+            "{set_path} gives `{unknown}`, and the list of proportions has no proportion of that name. `maquette list-proportions` defines each."
+        )));
+    }
+    let mut lines = Vec::new();
+    let mut not_in_the_set = Vec::new();
+    for proportion in &list.proportions {
+        let name = &proportion.name;
+        if !given.contains_key(name) {
+            not_in_the_set.push(name.clone());
+            continue;
+        }
+        let value = number_of(given, name)
+            .filter(|value| value.is_finite())
+            .ok_or_else(|| {
+                Error::new(format!(
+                    "{set_path}: the proportion `{name}` is not a number"
+                ))
+            })?;
+        let stated = &stated[name];
+        let verdict = match (stated.standing, stated.values) {
+            (Standing::Given, Some([lowest, _, highest])) => {
+                if value < lowest {
+                    Verdict::Outside {
+                        above: false,
+                        beyond: lowest - value,
+                    }
+                } else if value > highest {
+                    Verdict::Outside {
+                        above: true,
+                        beyond: value - highest,
+                    }
+                } else {
+                    Verdict::Inside
+                }
+            }
+            (Standing::Convention, _) => Verdict::NoRange(
+                "a convention: it is built by rule, never measured, and has no valid range"
+                    .to_string(),
+            ),
+            (Standing::TooThin, _) => Verdict::NoRange(format!(
+                "too thin: {} behind it, and a range needs {WORKS_FOR_A_TABLE}",
+                match stated.works {
+                    1 => "1 work stands".to_string(),
+                    works => format!("{works} works stand"),
+                }
+            )),
+            (Standing::NoWork | Standing::Given, _) => {
+                Verdict::NoRange("no work gives it".to_string())
+            }
+        };
+        lines.push(Against {
+            name: name.clone(),
+            value,
+            verdict,
+            works: stated.works,
+            values: stated.values,
+        });
+    }
+    let corrections = file
+        .get("corrections")
+        .and_then(toml::Value::as_table)
+        .map(|corrections| corrections.keys().cloned().collect())
+        .unwrap_or_default();
+    Ok(SetAgainst {
+        set: set_path.to_string(),
+        table: table_path.to_string(),
+        built_from,
+        head_height: number_of(given, "hair_top_rise").map(crate::head_model::head_height),
+        lines,
+        not_in_the_set,
+        corrections,
+    })
+}
+
+impl SetAgainst {
+    fn count(&self, of: impl Fn(&Verdict) -> bool) -> usize {
+        self.lines.iter().filter(|line| of(&line.verdict)).count()
+    }
+
+    fn percent(&self, beyond: f64) -> Option<f64> {
+        self.head_height
+            .map(|head_height| 100.0 * beyond / head_height)
+    }
+
+    /// The comparison as the text of a file.
+    pub fn file(&self) -> String {
+        let mut out = String::from(
+            "\
+# A set of proportions set against a proportion table, by `maquette set-against-table`: each
+# proportion of the set as inside or outside its valid range, or as having no range to be set
+# against. [rules] says what each verdict means. It reports and changes nothing.
+",
+        );
+        out.push_str("\n[source]\n");
+        out.push_str(&format!("proportions = {}\n", quoted(&self.set)));
+        out.push_str(&format!("table = {}\n", quoted(&self.table)));
+        out.push_str(&format!(
+            "table_built_from = {}\n",
+            quoted(&self.built_from)
+        ));
+        if let Some(head_height) = self.head_height {
+            out.push_str(&format!("head_height = {}\n", six(head_height)));
+        }
+        if !self.corrections.is_empty() {
+            let named: Vec<String> = self.corrections.iter().map(|name| quoted(name)).collect();
+            out.push_str(&format!(
+                "corrections_not_set_against = [{}]\n",
+                named.join(", ")
+            ));
+        }
+        out.push_str("\n[summary]\n");
+        out.push_str(&format!("set_against = {}\n", self.lines.len()));
+        out.push_str(&format!(
+            "inside = {}\noutside = {}\nno_range = {}\nnot_in_the_set = {}\n",
+            self.count(|verdict| *verdict == Verdict::Inside),
+            self.count(|verdict| matches!(verdict, Verdict::Outside { .. })),
+            self.count(|verdict| matches!(verdict, Verdict::NoRange(_))),
+            self.not_in_the_set.len()
+        ));
+        if !self.not_in_the_set.is_empty() {
+            let named: Vec<String> = self
+                .not_in_the_set
+                .iter()
+                .map(|name| quoted(name))
+                .collect();
+            out.push_str(&format!(
+                "# The proportions of the list the set does not give.\nnot_given = [{}]\n",
+                named.join(", ")
+            ));
+        }
+        out.push_str("\n[rules]\n");
+        for (name, text) in AGAINST_RULES {
+            out.push_str(&format!("{name} = {}\n", quoted(text)));
+        }
+        out.push_str("\n# Every proportion the set gives, in the list's order.\n");
+        for line in &self.lines {
+            out.push_str("[[proportion]]\n");
+            out.push_str(&format!("name = {}\n", quoted(&line.name)));
+            out.push_str(&format!("value = {}\n", six(line.value)));
+            match &line.verdict {
+                Verdict::Inside => out.push_str("verdict = \"inside\"\n"),
+                Verdict::Outside { above, beyond } => {
+                    out.push_str("verdict = \"outside\"\n");
+                    out.push_str(&format!(
+                        "side = {}\n",
+                        quoted(if *above {
+                            "above the highest value"
+                        } else {
+                            "below the lowest value"
+                        })
+                    ));
+                    out.push_str(&format!("beyond = {}\n", six(*beyond)));
+                    if let Some(percent) = self.percent(*beyond) {
+                        out.push_str(&format!(
+                            "beyond_percent_of_head_height = {}\n",
+                            toml_number(percent, 4)
+                        ));
+                    }
+                }
+                Verdict::NoRange(why) => {
+                    out.push_str("verdict = \"no range\"\n");
+                    out.push_str(&format!("why = {}\n", quoted(why)));
+                }
+            }
+            out.push_str(&format!("works = {}\n", line.works));
+            if let Some([lowest, middle, highest]) = line.values {
+                out.push_str(&format!(
+                    "lowest = {}\nmiddle = {}\nhighest = {}\n",
+                    six(lowest),
+                    six(middle),
+                    six(highest)
+                ));
+            }
+        }
+        out
+    }
+
+    /// What was found, in a few lines, for a person: the counts, and each proportion outside
+    /// its range with how far.
+    pub fn summary(&self) -> String {
+        let outside = self.count(|verdict| matches!(verdict, Verdict::Outside { .. }));
+        let mut out = format!(
+            "Of the {} the set gives: {} inside their valid range, {outside} outside, {} with no range to be set against.\n",
+            counted(self.lines.len(), "proportion"),
+            self.count(|verdict| *verdict == Verdict::Inside),
+            self.count(|verdict| matches!(verdict, Verdict::NoRange(_))),
+        );
+        if outside > 0 {
+            out.push_str("Outside:\n");
+        }
+        for line in &self.lines {
+            let (Verdict::Outside { above, beyond }, Some([lowest, _, highest])) =
+                (&line.verdict, line.values)
+            else {
+                continue;
+            };
+            let (side, end) = if *above {
+                ("above the highest value", highest)
+            } else {
+                ("below the lowest value", lowest)
+            };
+            out.push_str(&format!(
+                "  {}: {} is {side} {} by {} units",
+                line.name,
+                six(line.value),
+                six(end),
+                six(*beyond)
+            ));
+            if let Some(percent) = self.percent(*beyond) {
+                out.push_str(&format!(
+                    ", {}% of head height",
+                    crate::number::plain(percent, 2)
+                ));
+            }
+            out.push('\n');
+        }
+        if !self.not_in_the_set.is_empty() {
+            out.push_str(&format!(
+                "The set does not give {} of the list.\n",
+                counted(self.not_in_the_set.len(), "proportion")
+            ));
+        }
+        out.push_str(&format!(
+            "{}\n",
+            AGAINST_RULES
+                .iter()
+                .find(|(name, _)| *name == "a_finding")
+                .map(|(_, text)| *text)
+                .unwrap_or_default()
+        ));
+        out
+    }
+}

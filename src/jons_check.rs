@@ -15,7 +15,7 @@
 //! Nothing here judges a drawing. The program reports what the record says and what follows
 //! from it by the rules below; the decisions are Jon's.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::number::counted;
 use crate::readings::{Drawing, Record, view_named};
@@ -588,6 +588,19 @@ pub struct Review<'a> {
     lines: String,
     /// For each character, its work, and the views measured of it when it is accepted.
     measured_views: Vec<(String, Vec<View>)>,
+    /// For each character, what the first of its readings says its reference is.
+    references: Vec<BTreeMap<String, String>>,
+}
+
+/// A character Jon accepted, with what the record does to each of its drawings: what a
+/// table is built from.
+pub struct Accepted<'a> {
+    pub character: &'a Checked,
+    /// What the first of its readings says its reference is: the work, its designer, the
+    /// source, and the character's age band, sex and species.
+    pub reference: &'a BTreeMap<String, String>,
+    /// Each of its drawings, as the record holds it, with what the record does to it.
+    pub drawings: Vec<(&'a DrawingChecked, &'a Outcome)>,
 }
 
 /// A drawing a measuring command measures, as the record rules it.
@@ -645,6 +658,7 @@ impl Check {
 
         let mut outcomes = Vec::new();
         let mut measured_views = Vec::new();
+        let mut references = Vec::new();
         for character in &self.characters {
             let label = &character.label;
             out.push('\n');
@@ -685,6 +699,7 @@ impl Check {
             }
             let mut views: Vec<View> = Vec::new();
             let mut work = String::new();
+            let mut reference: Option<BTreeMap<String, String>> = None;
             let mut of_character = Vec::new();
             for drawing in &character.drawings {
                 let of = format!("the {} view of `{label}`", drawing.card.name());
@@ -742,6 +757,11 @@ impl Check {
                 {
                     work = first.reference.get("work").cloned().unwrap_or_default();
                 }
+                if let Some(first) = records.first()
+                    && reference.is_none()
+                {
+                    reference = Some(first.reference.clone());
+                }
                 let outcome = if records.len() == drawing.readings.len() {
                     drawing.outcome(&records)
                 } else {
@@ -769,6 +789,7 @@ impl Check {
                 work = format!("the work of `{label}`");
             }
             measured_views.push((work, views));
+            references.push(reference.unwrap_or_default());
         }
         Review {
             check: self,
@@ -777,6 +798,7 @@ impl Check {
             problems,
             lines: out,
             measured_views,
+            references,
         }
     }
 }
@@ -817,7 +839,9 @@ impl Counted {
     }
 }
 
-fn works(count: usize) -> String {
+/// A count of accepted works as it is said of a view: with fewer than a table needs, the
+/// view is too thin.
+pub fn works(count: usize) -> String {
     let thin = if count < WORKS_FOR_A_TABLE {
         format!(": too thin, a view needs {WORKS_FOR_A_TABLE}")
     } else {
@@ -832,6 +856,48 @@ impl Review<'_> {
         self.problems.is_empty()
     }
 
+    /// The record's own path in the reference folder, with which look it was and the day:
+    /// what a table says it was built from.
+    pub fn named(&self) -> String {
+        format!(
+            "`{}`: {}, checked on {}",
+            self.path, self.check.look, self.check.checked_on
+        )
+    }
+
+    /// The number of accepted works for each view, and for each route to depth, by the rule
+    /// `counted`: what is counted, in words, and how many works.
+    pub fn counts(&self) -> Vec<(String, usize)> {
+        Counted::ALL
+            .iter()
+            .map(|what| {
+                let mut behind: Vec<&str> = Vec::new();
+                for (work, views) in &self.measured_views {
+                    if what.counts(views) && !behind.contains(&work.as_str()) {
+                        behind.push(work);
+                    }
+                }
+                (what.words(), behind.len())
+            })
+            .collect()
+    }
+
+    /// The characters Jon accepted, in the record's order, each with what the record does
+    /// to its drawings.
+    pub fn accepted(&self) -> Vec<Accepted<'_>> {
+        self.check
+            .characters
+            .iter()
+            .enumerate()
+            .filter(|(_, character)| character.verdict == Some(Verdict::Accepted))
+            .map(|(at, character)| Accepted {
+                character,
+                reference: &self.references[at],
+                drawings: character.drawings.iter().zip(&self.outcomes[at]).collect(),
+            })
+            .collect()
+    }
+
     /// What the record says and does, for a person: each character and drawing, the count
     /// of accepted works for each view, and what the record lacks or gets wrong.
     pub fn said(&self) -> String {
@@ -840,14 +906,8 @@ impl Review<'_> {
             "\nAccepted works for each view, of {} on the sheet:\n",
             counted(self.check.characters.len(), "character")
         ));
-        for what in Counted::ALL {
-            let mut behind: Vec<&str> = Vec::new();
-            for (work, views) in &self.measured_views {
-                if what.counts(views) && !behind.contains(&work.as_str()) {
-                    behind.push(work);
-                }
-            }
-            out.push_str(&format!("  {}: {}\n", what.words(), works(behind.len())));
+        for (what, count) in self.counts() {
+            out.push_str(&format!("  {what}: {}\n", works(count)));
         }
         if self.complete() {
             out.push_str("\nThe record is complete.\n");
