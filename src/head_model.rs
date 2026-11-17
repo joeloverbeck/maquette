@@ -98,7 +98,29 @@ impl Head {
             .find(|landmark| landmark.name == name)
             .unwrap_or_else(|| panic!("the head model has no landmark `{name}`"))
     }
+
+    /// The nose point of a turned view: the landmark its centre line, its face outline's
+    /// front and its nose mark run through. It is the tip of the nose where the set gives
+    /// the tip a height of its own, and otherwise the nose mark's bottom: the two are then
+    /// one point. A front view's nose mark always runs through its own bottom.
+    pub fn nose_point(&self) -> &'static str {
+        if self.landmarks.iter().any(|at| at.name == NOSE_TIP) {
+            NOSE_TIP
+        } else {
+            NOSE_MARK_BOTTOM
+        }
+    }
 }
+
+/// The nose mark's bottom: the base of the nose as a front view marks it, on the centre line.
+const NOSE_MARK_BOTTOM: &str = "nose-mark-bottom";
+
+/// The tip of the nose: a landmark of its own only where a set's `nose_tip_drop` is not its
+/// `nose_mark_bottom_drop`. It stands on the centre line at that height, at the depth
+/// `nose_mark_bottom_depth`. A set that gives the two one height has one point for both, and
+/// its files name only the nose mark's bottom: such a set is drawn as it was before the tip
+/// had a height of its own.
+pub const NOSE_TIP: &str = "nose-tip";
 
 /// Where a coordinate of a landmark comes from.
 #[derive(Debug, Clone, Copy)]
@@ -296,6 +318,17 @@ pub fn head(set: &Set) -> Result<Head> {
                 drop,
                 depth,
             });
+            // The tip of the nose, where the set gives it a height of its own: on the
+            // centre line, at the depth the nose mark's bottom is given.
+            let tip_drop = set.get("nose_tip_drop");
+            if spec.stem == NOSE_MARK_BOTTOM && tip_drop != drop {
+                landmarks.push(Landmark {
+                    name: NOSE_TIP.to_string(),
+                    offset,
+                    drop: tip_drop,
+                    depth,
+                });
+            }
         }
     }
 
@@ -352,11 +385,13 @@ pub fn set_back_share(share: f64) -> Result<f64> {
 pub fn with_lower_face_set_back(set: Set, share: f64) -> Result<Set> {
     let share = set_back_share(share)?;
     let chin = (share * (set.get("chin_depth") - set.get("iris_depth"))).max(0.0);
-    let nose_drop = set.get("nose_mark_bottom_drop");
+    // The nose point of the side view: the tip of the nose, which stands at the nose mark's
+    // bottom unless the set gives it a height of its own.
+    let nose_drop = set.get("nose_tip_drop");
     let mouth_drop = set.get("mouth_centre_drop");
     if !(nose_drop < mouth_drop && mouth_drop < 1.0) {
         return Err(Error::new(format!(
-            "the mouth line's centre is {mouth_drop} below the eye line, the nose mark's bottom {nose_drop} and the chin 1, so the mouth is not between them and the line from the nose mark to the chin does not pass its height"
+            "the mouth line's centre is {mouth_drop} below the eye line, the tip of the nose {nose_drop} and the chin 1, so the mouth is not between them and the line from the nose to the chin does not pass its height"
         )));
     }
     let nose_depth = set.get("nose_mark_bottom_depth");
@@ -481,6 +516,13 @@ fn rules(set: &Set, at: &mut BTreeMap<Key, [f64; 3]>) -> Result<()> {
 /// It says of each coordinate what [`head`] and [`rules`] do to it, for whoever shows where
 /// the numbers of a drawn head come from.
 pub fn rests_on(landmark: &str) -> Option<[Vec<&'static str>; 3]> {
+    if landmark == NOSE_TIP {
+        return Some([
+            Vec::new(),
+            vec!["nose_tip_drop"],
+            vec!["nose_mark_bottom_depth"],
+        ]);
+    }
     let spec = LANDMARKS.iter().find(|spec| match spec.pair {
         true => spec.left() == landmark || spec.right() == landmark,
         false => spec.stem == landmark,
@@ -1367,6 +1409,27 @@ pub fn take_from(front: &Reading, beside: Beside) -> Result<Taken> {
                     .map(|frame| ((left[1] + right[1]) / 2.0 - frame.eye_line_y) / frame.unit),
                 None => Err(no_front_neck()),
             }
+        },
+    );
+
+    // The tip of the nose. A side view places it, as `nose-mark-bottom`, at its own height.
+    // An armature's three-quarter view names it where it has one; a drawing read with no
+    // side view does not, and the tip then stands at the nose mark's bottom. A front view
+    // alone draws the nose mark and no tip.
+    put(
+        "nose_tip_drop",
+        match views.turned.as_ref() {
+            Some(side) if side.view == View::Side => side
+                .reading
+                .need(NOSE_MARK_BOTTOM, View::Side)
+                .map(|at| (at[1] - side.frame.eye_line_y) / side.frame.unit),
+            Some(turned) => match turned.reading.get(NOSE_TIP) {
+                Some(at) => Ok((at[1] - turned.frame.eye_line_y) / turned.frame.unit),
+                None => views.drop(spec(NOSE_MARK_BOTTOM, "")),
+            },
+            None => Err(Error::new(
+                "a front view draws the nose mark and not the tip of the nose, and no side view of the character was read with it",
+            )),
         },
     );
 

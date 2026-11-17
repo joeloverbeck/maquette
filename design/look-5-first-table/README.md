@@ -1,11 +1,24 @@
 # Look 5: the first table, drawn
 
-The armature review sheet for the fifth look of #3, made for #10. It started from the sheet of look 3 in `../look-3-saffi-side-view/`. The sheet accepts nothing itself, and Jon has not looked at it yet.
+The armature review sheet for the fifth look of #3, made for #10. It started from the sheet of look 3 in `../look-3-saffi-side-view/`. The sheet accepts nothing itself: "The outcome" says what Jon decided.
 
 - `armature-review-sheet.figcraft`: the FigCraft source.
 - `armature-review-sheet.png`: its export, 2400 pixels wide.
 - `armature-review-sheet-full-size.png`: the same at full size, 4000 pixels wide, for the small text.
 - `saffi-with-table-values.toml`: the set of proportions the head on the sheet is drawn from.
+- `side-face-study/`: an original face drawn in VectorCraft exactly through the side view's points, at Jon's request, with its own README. It is part of what he saw.
+
+## The outcome
+
+**Jon did not accept look 5,** on 2026-11-17. His worry was the side view's nose. The face drawn over the side armature came out with a long pointed nose, a long narrow wedge of a lower face, and a thin neck set far back.
+
+- **The nose was the program's fault.** A side view gives how far forward the tip of the nose stands, and the head model drew that depth at the height of the front view's nose mark, which is the base of the nose and lower than the tip. A tip's depth at a base's height is a long nose.
+- **The wedge was the jaw point.** The readers placed it at the last turn before the chin, a few pixels from the chin on every head, so the table's two ranges for it measured the corner of the chin. Jon ruled that the jaw point is left out until the landmark is redefined.
+- **The neck was two sources that do not belong together:** a width and a base averaged over two works, on Saffi's depth.
+
+The three repairs and the head redrawn with them are look 6, in `../look-6-first-table/`.
+
+**This folder is kept as the record of what was shown.** The sheet, its exports, the set and the sections below are as they were when Jon looked, and are not brought up to date: they speak of 73 proportions, 27 ranges and a table that has since been rebuilt. `saffi-with-table-values.toml` is no longer a set the program draws: the list of proportions has gained `nose_tip_drop`, which it lacks. Nothing reads it.
 
 ## The decision
 

@@ -501,11 +501,15 @@ pub const SET_RULES: &[(&str, &str)] = &[
     ),
     (
         "borrowed",
-        "Every other proportion is borrowed, as it stands, from the set named as `borrowed_from`: one that a single work gives, since that is one reference's number; one that no work gives; and a convention, which is never measured.",
+        "Every other proportion is borrowed from the set named as `borrowed_from`, as it stands there unless the rule `hangs_on` places it: one that a single work gives, since that is one reference's number; one that no work gives; and a convention, which is never measured.",
     ),
     (
         "taken_whole",
-        "An ear is taken whole. It is one form built on its two base points, so unless the table and the thin averages give every one of its proportions, all of them are borrowed.",
+        "An ear and the neck are each taken whole. An ear is one form built on its two base points, and the neck one column: its width, where it ends and how far back it stands belong together, and a width from one source on a depth from another sets the head forward on a post. So unless the table and the thin averages give every one of a form's proportions, all of them are borrowed.",
+    ),
+    (
+        "hangs_on",
+        "A borrowed point that hangs on a measured one keeps its offset from it. The jaw point hangs on the chin: it is borrowed as how far the borrowed set's jaw point stands from that set's own chin, in height, in half-width and in depth, and is placed from this set's chin. Every chin is one unit below the eye line and on the centre line, so the jaw point's height and half-width come over as they stand; its depth is this set's chin's depth plus the borrowed offset. Without this a jaw point borrowed as it stands is set in front of or behind a chin that was measured elsewhere, and the chin of a turned view is lopsided.",
     ),
     (
         "no_correction",
@@ -513,9 +517,34 @@ pub const SET_RULES: &[(&str, &str)] = &[
     ),
 ];
 
-/// The proportions of a form that is taken whole from one source, by the start of their
-/// names: the rule `taken_whole`.
-const TAKEN_WHOLE: &str = "ear_";
+/// The forms that are taken whole from one source, each by the start of its proportions'
+/// names, with what a proportion borrowed for that reason says: the rule `taken_whole`.
+const TAKEN_WHOLE: &[(&str, &str)] = &[
+    (
+        "ear_",
+        "the ear is taken whole, and the works do not give all of it",
+    ),
+    (
+        "neck_",
+        "the neck is taken whole, and the works do not give all of it",
+    ),
+];
+
+/// How the jaw point hangs on the chin, as a proportion borrowed that way says it.
+const ON_THE_CHIN: &str = "as its offset from the chin, on which the jaw point hangs";
+
+/// The borrowed points that hang on another point, proportion by proportion: the rule
+/// `hangs_on`. Each names the proportion of the point it hangs on that it keeps its offset
+/// from, or none where that point stands at the same place in every head, and how it hangs.
+///
+/// The jaw point hangs on the chin. Every chin is one unit below the eye line and on the
+/// centre line, so the jaw point's height and half-width keep their offset as they stand.
+/// The chin's depth differs from head to head, so the jaw point's depth moves with it.
+const HANGS_ON: &[(&str, Option<&str>, &str)] = &[
+    ("jaw_drop", None, ON_THE_CHIN),
+    ("jaw_half_width", None, ON_THE_CHIN),
+    ("jaw_depth", Some("chin_depth"), ON_THE_CHIN),
+];
 
 /// Where a proportion of a set made from a table comes from.
 #[derive(Debug, Clone, PartialEq)]
@@ -526,9 +555,16 @@ pub enum Source {
     ThinAverage(usize),
     /// The borrowed set's own number, and why.
     Borrowed(&'static str),
+    /// Borrowed as an offset from the point it hangs on, by the rule `hangs_on`: how it
+    /// hangs, and why it is borrowed at all.
+    BorrowedOffset(&'static str, &'static str),
 }
 
 impl Source {
+    fn is_borrowed(&self) -> bool {
+        matches!(self, Source::Borrowed(_) | Source::BorrowedOffset(..))
+    }
+
     /// The source as the set's file says it. What stands before the colon is the kind, which
     /// [`Source::kind_of`] reads back.
     fn words(&self) -> String {
@@ -536,6 +572,7 @@ impl Source {
             Source::Table(works) => format!("the table: the middle of {works} works"),
             Source::ThinAverage(works) => format!("a thin average: of {works} works"),
             Source::Borrowed(why) => format!("borrowed: {why}"),
+            Source::BorrowedOffset(how, why) => format!("borrowed: {how}; {why}"),
         }
     }
 
@@ -602,18 +639,33 @@ impl Table {
             })
             .collect();
         // The rule `taken_whole`.
-        let whole = |name: &str| name.starts_with(TAKEN_WHOLE);
-        if made
-            .iter()
-            .any(|(name, _, source)| whole(name) && matches!(source, Source::Borrowed(_)))
-        {
-            for (name, value, source) in &mut made {
-                if whole(name) && !matches!(source, Source::Borrowed(_)) {
-                    *value = borrowed.get(name);
-                    *source = Source::Borrowed(
-                        "the ear is taken whole, and the works do not give all of it",
-                    );
+        for (start, why) in TAKEN_WHOLE {
+            let whole = |name: &str| name.starts_with(start);
+            if made
+                .iter()
+                .any(|(name, _, source)| whole(name) && matches!(source, Source::Borrowed(_)))
+            {
+                for (name, value, source) in &mut made {
+                    if whole(name) && !matches!(source, Source::Borrowed(_)) {
+                        *value = borrowed.get(name);
+                        *source = Source::Borrowed(why);
+                    }
                 }
+            }
+        }
+        // The rule `hangs_on`.
+        for (name, anchor, how) in HANGS_ON {
+            let anchored = anchor.and_then(|anchor| {
+                let (_, at, _) = made.iter().find(|(known, _, _)| known == anchor)?;
+                Some(*at - borrowed.get(anchor))
+            });
+            if let Some((_, value, source)) = made.iter_mut().find(|(known, _, _)| known == name)
+                && let Source::Borrowed(why) = *source
+            {
+                // The borrowed number, moved by as far as this set's anchor stands from the
+                // borrowed set's: the point keeps its offset from what it hangs on.
+                *value += anchored.unwrap_or(0.0);
+                *source = Source::BorrowedOffset(how, why);
             }
         }
         let set = proportions::Set::from_values(
@@ -694,7 +746,7 @@ impl SetFromTable {
             "from_the_table = {}\nthin_averages = {}\nborrowed = {}\n",
             self.count(|source| matches!(source, Source::Table(_))),
             self.count(|source| matches!(source, Source::ThinAverage(_))),
-            self.count(|source| matches!(source, Source::Borrowed(_)))
+            self.count(Source::is_borrowed)
         ));
         opening.push_str(&format!("correction = {}\n", quoted(&self.correction())));
         opening.push_str("\n[rules]\n");
@@ -715,7 +767,7 @@ impl SetFromTable {
             self.sources.len(),
             self.count(|source| matches!(source, Source::Table(_))),
             self.count(|source| matches!(source, Source::ThinAverage(_))),
-            self.count(|source| matches!(source, Source::Borrowed(_))),
+            self.count(Source::is_borrowed),
             self.borrowed_from,
             self.correction()
         )

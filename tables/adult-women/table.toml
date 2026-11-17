@@ -9,10 +9,10 @@
 built_from = "the record of Jon's check at Look 4 of 8, checked on 2026-11-17"
 works = 6
 works_for_a_table = 5
-proportions = 73
-given = 27
-too_thin = 26
-no_work = 17
+proportions = 74
+given = 25
+too_thin = 27
+no_work = 19
 conventions = 3
 
 [rules]
@@ -270,20 +270,22 @@ not_given_by = [
 name = "jaw_drop"
 kind = "measured"
 dimension = "height"
-works = 6
-standing = "given"
-lowest = 0.975784
-middle = 0.989735
-highest = 0.99294
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: neither view has a position for face-outline-left-jaw and face-outline-right-jaw, so its height is unknown; a side view does not give it: the reading instructions ask a side view for no jaw point.",
+  "3 works: the front view does not have a position for face-outline-left-jaw and face-outline-right-jaw, so its height is unknown",
+]
 [[proportion]]
 name = "jaw_half_width"
 kind = "measured"
 dimension = "width"
-works = 6
-standing = "given"
-lowest = 0.052973
-middle = 0.070734
-highest = 0.11813
+works = 0
+standing = "no work"
+not_given_by = [
+  "3 works: neither view has positions for both face-outline-left-jaw and face-outline-right-jaw, so their offset is unknown",
+  "3 works: the front view does not have positions for both face-outline-left-jaw and face-outline-right-jaw, so their offset is unknown",
+]
 [[proportion]]
 name = "jaw_depth"
 kind = "measured"
@@ -584,6 +586,15 @@ works = 3
 standing = "too thin"
 not_given_by = [
   "3 works: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+[[proportion]]
+name = "nose_tip_drop"
+kind = "measured"
+dimension = "height"
+works = 3
+standing = "too thin"
+not_given_by = [
+  "3 works: a front view draws the nose mark and not the tip of the nose, and no side view of the character was read with it",
 ]
 [[proportion]]
 name = "mouth_end_offset"

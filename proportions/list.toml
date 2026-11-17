@@ -77,6 +77,8 @@ rule = "A depth is taken from the three-quarter view: from the pair's midpoint, 
 rule = "What the three-quarter view does not show is taken from the front view: a point's height, a pair's offset when one of its points is missing, and the half-width of a silhouette."
 [[disagreement_rule]]
 rule = "The neck and the shoulder line take their widths from the front view. A neck is a column, whose width does not narrow as it turns, and the widest span of the figure is read where nothing foreshortens it."
+[[disagreement_rule]]
+rule = "The tip of the nose stands at the nose mark's bottom: nose_tip_drop is nose_mark_bottom_drop. Nothing in a front or a three-quarter drawing is read as the tip, so without a side view the two are one point."
 
 # Where a front view is read with a side view of the same character, which is the first route
 # to depth. These rules are the head model's too.
@@ -88,6 +90,8 @@ rule = "A height is taken from the front view; for a left and right pair it is t
 rule = "A depth is taken from the side view: how far it shows the point toward the front of the face from depth zero, in its own units. Depth zero is midway between the near eye opening's two corners. A side view that faces the viewer's left is mirrored first."
 [[side_view_rule]]
 rule = "A height the front view does not show is taken from the side view, on the near side. Left out of that are the landmarks the reading instructions define in a side view as other points of the head than in a front view: an ear's two side extents, which in a profile are toward the back and the front of the head; nose-mark-bottom, which in a side view is under the tip of the nose and in a front view the lowest point of the mark as drawn; and the nose mark's corner, which in a side view is the middle of the nostril or of the wing's curve and in a front view the mark's point furthest toward that side. Their depths are the side view's as ever."
+[[side_view_rule]]
+rule = "The tip of the nose takes its height from the side view: nose_tip_drop is how far below its own eye line the side view places nose-mark-bottom, in its own unit. Its depth is nose_mark_bottom_depth. The nose mark's bottom keeps the front view's height, so a tip's depth is not drawn at the height of the nose's base."
 [[side_view_rule]]
 rule = "The hair's half-depth is half the distance between its back extent and its front extent, and its centre's depth their midpoint. The neck's depth is the midpoint of the two points where its back and its front end; its width and where it ends are the front view's."
 [[side_view_rule]]
@@ -110,10 +114,10 @@ guide = "hair-volume"
 rule = "A plain envelope, a convention: a half-ellipse dome from the hair's top down to the height of the skull's centre, then straight sides down to the height of the chin. Seen from above the envelope is an ellipse, so its half-width in a view is the root of (half-width times the cosine of the turn) squared plus (half-depth times the sine of the turn) squared. In the side view that is the hair's half-depth, and the dome stands over the middle of the hair. Behind the head its side runs straight down to the height of the chin. In front it stops where the dome ends, at the height of the skull's centre: a straight side there would run down across the face, and how far the hair comes down over the face is the painter's."
 [[construction]]
 guide = "face-outline"
-rule = "At the top, the eye line, the nose level and the mouth level the head has a cheek point and a jaw-line point on each side, at one half-width and two depths. On each side the outline runs through whichever of the two stands further out in the view, then through the jaw point and the chin: a smooth curve that at each point runs parallel to the line joining its two neighbours. Above the nose level nothing is drawn behind the jaw line, and it keeps its depth at the nose level: a convention. In the side view the outline's front is the centre line: it runs from the skull's front, level with the skull's centre, through the centre line's point at the eye line, the nose mark's bottom and the mouth line's centre to the chin, and then back and up through the jaw-line points at the mouth level, the nose level, the eye line and the top. The jaw point beside the chin belongs to the front of the face and is not on it. Nothing in the list says how far the nose, the lips or the brow stand out from that line, so the side view draws none of them."
+rule = "At the top, the eye line, the nose level and the mouth level the head has a cheek point and a jaw-line point on each side, at one half-width and two depths. On each side the outline runs through whichever of the two stands further out in the view, then through the jaw point and the chin: a smooth curve that at each point runs parallel to the line joining its two neighbours. Above the nose level nothing is drawn behind the jaw line, and it keeps its depth at the nose level: a convention. In the side view the outline's front is the centre line: it runs from the skull's front, level with the skull's centre, through the centre line's point at the eye line, the tip of the nose and the mouth line's centre to the chin, and then back and up through the jaw-line points at the mouth level, the nose level, the eye line and the top. The jaw point beside the chin belongs to the front of the face and is not on it. Nothing in the list says how far the nose, the lips or the brow stand out from that line, so the side view draws none of them."
 [[construction]]
 guide = "centre-line"
-rule = "From the skull's top it follows the skull's surface forward and down to the eye line: a convention, because nothing is drawn there. Below the eye line it runs smoothly through the nose mark's bottom, the mouth line's centre and the chin. In the side view it is not drawn: above the skull's front it is the skull's circle, and below it is the front of the face outline."
+rule = "From the skull's top it follows the skull's surface forward and down to the eye line: a convention, because nothing is drawn there. Below the eye line it runs smoothly through the tip of the nose, the mouth line's centre and the chin. In a front view the tip stands straight above the nose mark's bottom, on the same upright line. In the side view it is not drawn: above the skull's front it is the skull's circle, and below it is the front of the face outline."
 [[construction]]
 guide = "level lines"
 rule = "The eye level line is drawn on the eye line, the nose level line midway between the nose mark's corners and its bottom, and the mouth level line at the mouth line's centre. Each spans the face outline at its height. In the side view that is from the jaw-line point at that level to the front of the outline; at the nose level the front is where the outline crosses that height."
@@ -125,7 +129,7 @@ guide = "iris"
 rule = "A flat disc facing forward, as drawn, where the lid may already cut it: an ellipse whose width narrows by the cosine of the turn. In the side view the disc is seen edge on and has no width, so it is drawn as an upright line from its top to its bottom, at the iris's depth."
 [[construction]]
 guide = "nose-mark and mouth-line"
-rule = "The nose mark runs straight from one corner through its bottom to the other corner, and the mouth line from one end through its centre to the other end. In the side view the two corners stand at one place and so do the two ends, so each is drawn as its near half: from the near corner to the bottom, and from the near end to the centre."
+rule = "The nose mark runs straight from one corner through its bottom to the other corner, and the mouth line from one end through its centre to the other end. In the side view the two corners stand at one place and so do the two ends, so each is drawn as its near half: from the near corner to the bottom, and from the near end to the centre. Where a set gives the tip of the nose a height of its own, the nose mark of the three-quarter view and of the side view runs to the tip in place of the bottom, and only the front view's runs to the bottom: the tip is what a turned view shows of the nose, and the base is what a front view marks."
 [[construction]]
 guide = "ears"
 rule = "A flat upright lobe standing on its two base points: the top and the two side extents take the depth of the straight line through the base points at their offset, a convention. The outline is a smooth curve from the outer base point round the outer extent, the top and the inner extent to the inner base point, upright at the extents and level at the top. In the side view it is the same curve through the same points at their depths, for the near ear only: the lobe is seen as far round as its two base points differ in depth, and edge on if they do not."
@@ -592,10 +596,23 @@ side_not_taken = "in a side view nose-mark-bottom is under the tip of the nose, 
 name = "nose_mark_bottom_depth"
 kind = "measured"
 sign = "any"
-what = "The depth of the nose mark's bottom."
+what = "The depth of the nose mark's bottom, and of the tip of the nose: the nose point of a turned view."
 front = "Not seen."
 three_quarter = "The depth of the mark's bottom."
 side = "The depth of the point under the tip of the nose: going down the bridge and round the tip, where the outline turns to run back toward the face, at the sharpest turn of a rounded tip. It is not where the nose meets the upper lip."
+
+[[proportion]]
+name = "nose_tip_drop"
+kind = "measured"
+sign = "positive"
+what = """
+How far below the eye line the tip of the nose is: the nose point of a turned view, which stands at nose_mark_bottom_depth. \
+The front view's nose mark is drawn at the base of the nose, and its bottom is lower than the tip. \
+The side view's face outline, the three-quarter view's centre line and the nose mark of both run through the tip; the front view's nose mark runs through its own bottom. \
+Where a set gives the tip the height of the nose mark's bottom, the two are one point and a view draws one."""
+front = "Not seen: a front view draws the nose mark, whose bottom is nose_mark_bottom_drop."
+three_quarter = "Not taken: nothing in a three-quarter view is read as the tip. Where no side view is read the tip stands at the nose mark's bottom, by rule: it is nose_mark_bottom_drop. An armature's own three-quarter view names the tip where it has one."
+side = "The height of the point under the tip of the nose, which a side view places as nose-mark-bottom, minus the eye line's height, in the side view's own unit."
 
 [[proportion]]
 name = "mouth_end_offset"
@@ -825,7 +842,7 @@ A landmark it moves keeps its depth in space and its height, and stands in the s
 No landmark above the mouth is moved: the nose mark, the eyes, the brow and the skull stand where a flat projection puts them. \
 That holds for landmarks and not for every guide. A guide is built on its landmarks where the view draws them, so the mouth line, the mouth level line and the lower face outline go back with the mouth and the chin. \
 The face outline is one smooth curve whose direction at a point follows that point's two neighbours, so it also bends differently on the stretch beyond each moved point, where no landmark moves: \
-in front between the eye line and the nose mark's bottom, and behind between the jaw-line points at the mouth level and at the nose level. \
+in front between the eye line and the tip of the nose, and behind between the jaw-line points at the mouth level and at the nose level. \
 Two view points read off the outline there shift with it: where the nose level line meets the outline's front, and where the neck's front line starts. \
 The front view and the three-quarter view are not changed at all."""
 why = """
@@ -852,6 +869,6 @@ The pupil is the painter's and not in this list, so the iris's centre stands for
 name = "mouth"
 what = "How far behind its depth the side view draws the mouth line's centre. The mouth line's two ends are drawn back by the same amount."
 rule = """
-What brings the mouth line's centre onto the straight line from the nose mark's bottom to the chin as the side view draws it; nothing if it is already on that line or behind it. \
+What brings the mouth line's centre onto the straight line from the tip of the nose, which stands at the nose mark's bottom unless the set gives it a height of its own, to the chin as the side view draws it; nothing if it is already on that line or behind it. \
 Lessons A, C, F and H put the lips on the line from the nose tip to the chin or just behind it; G draws that line and names a chin that juts as a mistake; B alone lets the lips pass it. \
 It follows from the chin's amount, whatever the share, and is not itself a share of anything."""

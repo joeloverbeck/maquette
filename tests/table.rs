@@ -287,7 +287,7 @@ fn a_table_gives_each_proportion_its_lowest_middle_and_highest_value_and_its_cou
                 .map(str::to_string)
         })
         .collect();
-    assert_eq!(listed.len(), 73);
+    assert_eq!(listed.len(), 74);
     let entries: Vec<&str> = table["proportion"]
         .as_array()
         .expect("the table lists its proportions")
@@ -387,7 +387,7 @@ fn a_view_or_a_proportion_with_fewer_than_five_works_is_too_thin_and_has_no_rang
             .count() as i64
     };
     let stated = table["table"].as_table().expect("a [table]");
-    assert_eq!(stated["proportions"].as_integer(), Some(73));
+    assert_eq!(stated["proportions"].as_integer(), Some(74));
     assert_eq!(stated["given"].as_integer(), Some(counted("given")));
     assert_eq!(stated["too_thin"].as_integer(), Some(counted("too thin")));
     assert_eq!(stated["no_work"].as_integer(), Some(counted("no work")));
@@ -825,7 +825,7 @@ fn a_set_of_proportions_is_told_inside_outside_or_no_range_for_each_proportion()
     assert_eq!(summary["inside"].as_integer(), Some(2));
     assert_eq!(summary["outside"].as_integer(), Some(2));
     assert_eq!(summary["no_range"].as_integer(), Some(3));
-    assert_eq!(summary["not_in_the_set"].as_integer(), Some(66));
+    assert_eq!(summary["not_in_the_set"].as_integer(), Some(67));
     assert_eq!(against["proportion"].as_array().expect("entries").len(), 7);
     // A correction is no proportion: the table has no range for it, and the file says so.
     assert_eq!(
@@ -994,8 +994,37 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
     assert_eq!(source("brow_inner_end_rise"), "a thin average: of 4 works");
     assert_close(value("brow_inner_end_rise"), 0.3, 1e-6, "the brows");
     // What no work gives, and a convention, are borrowed as they stand.
-    assert_eq!(source("jaw_drop"), "borrowed: no work gives it");
+    assert_eq!(source("face_top_rise"), "borrowed: no work gives it");
+    assert_close(
+        value("face_top_rise"),
+        borrowed["face_top_rise"],
+        1e-9,
+        "borrowed",
+    );
+    // A borrowed point that hangs on a measured one keeps its offset from it. The jaw point
+    // hangs on the chin: it is borrowed as how far the borrowed set's jaw point stands from
+    // that set's own chin, and placed from this head's chin. The chin is one unit below the
+    // eye line and on the centre line in every head, so the jaw point's height and its
+    // half-width come over as they stand. Its depth does not: this head's chin stands at
+    // 0.4, the borrowed set's at 0.1875 with its jaw point at 0.1621, 0.0254 behind it.
+    let hangs =
+        "borrowed: as its offset from the chin, on which the jaw point hangs; no work gives it";
+    for name in ["jaw_drop", "jaw_half_width", "jaw_depth"] {
+        assert_eq!(source(name), hangs, "{name}");
+    }
     assert_close(value("jaw_drop"), borrowed["jaw_drop"], 1e-9, "borrowed");
+    assert_close(
+        value("jaw_half_width"),
+        borrowed["jaw_half_width"],
+        1e-9,
+        "borrowed",
+    );
+    assert_close(
+        value("jaw_depth"),
+        0.4 + (0.1621 - 0.1875),
+        1e-6,
+        "from the chin",
+    );
     assert_eq!(
         source("skull_radius"),
         "borrowed: a convention, which is never measured"
@@ -1021,7 +1050,7 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
 
     // The counts are those of the sources, and every proportion of the list has one.
     let sources = set["sources"].as_table().expect("the sources");
-    assert_eq!(sources.len(), 73);
+    assert_eq!(sources.len(), 74);
     let counted = |kind: &str| {
         sources
             .values()
@@ -1040,7 +1069,7 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
     assert_eq!(stated["borrowed"].as_integer(), Some(counted("borrowed:")));
     assert_eq!(
         counted("the table:") + counted("a thin average:") + counted("borrowed:"),
-        73
+        74
     );
     assert_eq!(stated["borrowed_from"].as_str(), Some(support::MADE_UP));
 
