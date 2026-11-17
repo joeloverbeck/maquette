@@ -133,11 +133,16 @@ Usage:
       Print the reading instructions: what a reader judges and places on a drawing.
 
 Measuring. The commands below read and write in the reference folder, the one folder
-outside the repository that holds reference images, readings and reference check sheets.
-The environment variable MAQUETTE_REFERENCES names it. Every path given to them is taken
-from that folder, and one that leaves it is refused; with no folder they stop and say so.
+outside every repository that holds reference images, readings and reference check sheets.
+The environment variable MAQUETTE_REFERENCES names it; a folder inside a Git repository is
+refused. Every path given to them is taken from that folder, and one that leaves it, by its
+own steps or through a link, is refused; with no folder they stop and say so.
 Where a view is asked for, <readings> is one reading, or the two readings of the drawing
 with a comma between them: a landmark then stands midway between the two.
+A reading is measured only when it passes what check-reading checks: complete, and its
+picture still the one that was read. The two readings of a drawing are two files, by two
+readers under two labels, and follow one revision of the reading instructions. A reading
+under an earlier revision is measured, and what is written says which it followed.
 
   maquette start-reading --image <picture> --view front|three-quarter|side
                          [--faces right|left] --reader <label> --out <reading>
@@ -153,10 +158,10 @@ with a comma between them: a landmark then stands midway between the two.
 
   maquette enlarge-image --image <picture> --left <x> --top <y> --width <w> --height <h>
                          --factor <n> [--grid <step>] --out <picture>
-      Enlarge a part of a picture a whole number of times, each pixel as a block. --grid
-      draws a line every so many pixels of the picture and labels it with its position in
-      the picture. An enlargement with an edge above 1568 pixels is refused: an agent is
-      shown it resized.
+      Enlarge a part of a picture a whole number of times, at most 16, each pixel as a
+      block. --grid draws a line every so many pixels of the picture and labels it with its
+      position in the picture. An enlargement with an edge above 1568 pixels is refused: an
+      agent is shown it resized.
 
   maquette agreement-of-readings --first <reading> --second <reading> [--out <file>]
       Set two readings of one drawing against each other: for every landmark both place,
@@ -166,7 +171,9 @@ with a comma between them: a landmark then stands midway between the two.
   maquette turn-from-readings --front <readings> --three-quarter <readings> [--out <file>]
       Work out the turn a three-quarter drawing shows, from how far the spacing of its left
       and right pairs narrows against the front view of the same character. Each pair's own
-      turn and misfit is listed, and the readers' own estimates beside it.
+      turn and misfit is listed, and the readers' own estimates beside it. It fails, and
+      writes nothing, where no turn gives what the readings show: a pair with no spacing in
+      the front view, or pairs wider apart in the three-quarter view than in the front view.
 
   maquette fit-of-views --front <readings> --three-quarter <readings> [--side <readings>]
                         [--out <file>]
@@ -185,7 +192,8 @@ with a comma between them: a landmark then stands midway between the two.
       Score a reading against a drawing whose true positions are on record, such as
       data/saffi/hand-made-views.toml: the reader's error as a share of head height, by
       kind of landmark, with what cannot be seen in the picture kept apart. The record is
-      read from where it is named.
+      read from where it is named. The reading is scored as it stands: what it leaves out
+      is listed, and its picture is not checked.
 
   maquette known-positions-as-reading --known-positions <record> --view front|three-quarter
                                       --image <picture> --out <reading>
@@ -198,7 +206,9 @@ with a comma between them: a landmark then stands midway between the two.
       (which of Jon's looks it is, or that none is asked) and, for each row, a
       [[character]] with a `label` and the `readings` of its drawings. Each character's
       views stand side by side with the points read, what was set aside and why, and the
-      fit. The sheet is one SVG that holds its drawings, and stays in the reference folder.
+      fit. Where two readings of a drawing cannot be compared, its card says so and the
+      sheet is still rendered. The sheet is one SVG that holds its drawings, and stays in
+      the reference folder.
 ";
 
 /// How a command ended, when nothing went wrong in running it.
@@ -627,12 +637,42 @@ fn reading(folder: &Folder, path: &str) -> Result<readings::Record> {
         .map_err(|error| Error::new(format!("{path}: {error}")))
 }
 
+/// A reading that is to be measured, with the bytes of its picture: read as [`reading`]
+/// reads it, and held to what `maquette check-reading` checks, against the picture as it is
+/// now. A reading that does not pass is not measured.
+fn checked_reading(folder: &Folder, path: &str) -> Result<(readings::Record, Option<Vec<u8>>)> {
+    let record = reading(folder, path)?;
+    let picture = folder.read(&record.picture.file).ok();
+    record
+        .checked(picture.as_deref())
+        .map_err(|error| Error::new(format!("{path}: {error}")))?;
+    Ok((record, picture))
+}
+
+/// Refuses one file named twice where the readings of a drawing are named, under one
+/// spelling of its path or two: a drawing's two readings are two readers' files.
+fn separate_files(folder: &Folder, paths: &[&str]) -> Result<()> {
+    let mut whole = Vec::new();
+    for path in paths {
+        let resolved = folder.path(path)?;
+        if whole.contains(&resolved) {
+            return Err(Error::new(format!(
+                "`{path}` is named twice: a drawing is read twice, by two readers, and one reading named twice is not its two readings"
+            )));
+        }
+        whole.push(resolved);
+    }
+    Ok(())
+}
+
 /// A view as a measuring command is given it: one reading, or the two readings of the
 /// drawing with a comma between them.
 fn drawing(folder: &Folder, named: &str) -> Result<readings::Drawing> {
-    let records = named
-        .split(',')
-        .map(|path| reading(folder, path.trim()))
+    let paths: Vec<&str> = named.split(',').map(str::trim).collect();
+    separate_files(folder, &paths)?;
+    let records = paths
+        .iter()
+        .map(|path| Ok(checked_reading(folder, path)?.0))
         .collect::<Result<Vec<_>>>()?;
     readings::Drawing::of(&records)
 }
@@ -659,11 +699,12 @@ fn agreement_of_readings(arguments: &[String]) -> Result<()> {
     let (folder, found) = measuring(arguments, &["--first", "--second", "--out"])?;
     let first = required(&found, "--first")?;
     let second = required(&found, "--second")?;
+    separate_files(&folder, &[first, second])?;
     let agreement = measuring::agreement(
         first,
-        &reading(&folder, first)?,
+        &checked_reading(&folder, first)?.0,
         second,
-        &reading(&folder, second)?,
+        &checked_reading(&folder, second)?.0,
     )?;
     deliver_measured(&folder, &found, &agreement.file(), &agreement.summary())
 }
@@ -788,19 +829,16 @@ fn reference_check_sheet(arguments: &[String]) -> Result<()> {
     let mut pictures = BTreeMap::new();
     let mut characters = Vec::new();
     for (label, named) in &description.characters {
+        let of_character = |error: Error| Error::new(format!("the character `{label}`: {error}"));
+        let paths: Vec<&str> = named.iter().map(String::as_str).collect();
+        separate_files(&folder, &paths).map_err(of_character)?;
         let mut reads = Vec::new();
         for path in named {
-            let record = reading(&folder, path)?;
-            // A sheet shows the picture that was read, and no other.
-            let bytes = folder.read(&record.picture.file)?;
-            let digest = readings::sha256_hex(&bytes);
-            if digest != record.picture.sha256 {
-                return Err(Error::new(format!(
-                    "{path}: the picture `{}` now has the digest {digest}, and the reading was started from {}: it is not the picture that was read",
-                    record.picture.file, record.picture.sha256
-                )));
+            // A sheet shows the picture that was read, and no other: the check says so.
+            let (record, picture) = checked_reading(&folder, path).map_err(of_character)?;
+            if let Some(bytes) = picture {
+                pictures.insert(record.picture.sha256.clone(), bytes);
             }
-            pictures.insert(digest, bytes);
             reads.push(reference_check_sheet::Read {
                 path: path.clone(),
                 record,

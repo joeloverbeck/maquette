@@ -318,7 +318,7 @@ pub fn head(set: &Set) -> Result<Head> {
     Ok(Head {
         landmarks,
         side_set_backs,
-        head_height: set.get("hair_top_rise") + 1.0,
+        head_height: head_height(set.get("hair_top_rise")),
         skull_radius: set.get("skull_radius"),
         iris_width: set.get("iris_width"),
         iris_height: set.get("iris_height"),
@@ -699,6 +699,31 @@ fn spec(stem: &str, point: &str) -> &'static Spec {
         .unwrap_or_else(|| panic!("the head model has no landmark {stem} {point}"))
 }
 
+/// The cosine of the turn a three-quarter view shows, from its left and right pairs: for
+/// each, how far apart the front view shows it and how far apart the three-quarter view
+/// does, each in its own view's unit.
+///
+/// A level head turned about an upright axis, drawn flat, shows two landmarks that mirror
+/// each other across the centre line cos(turn) times as far apart as the front view does,
+/// whatever their depth. The one turn for the head is the one that leaves the least squared
+/// misfit in spacing over the pairs: the sum of front times three-quarter over the sum of
+/// front squared.
+///
+/// This is the arithmetic only. Which pairs count is each caller's to state, on its own
+/// evidence. The result is not a number when no pair has a spacing in the front view, and
+/// above 1 when the three-quarter view shows the pairs wider apart: neither is a turn.
+pub fn turn_cosine(pairs: &[(f64, f64)]) -> f64 {
+    let front_by_turned: f64 = pairs.iter().map(|(front, turned)| front * turned).sum();
+    let front_squared: f64 = pairs.iter().map(|(front, _)| front * front).sum();
+    front_by_turned / front_squared
+}
+
+/// The turn, in degrees, that narrows a spacing to `cosine` of what the front view shows.
+/// A ratio outside -1 to 1 is no turn's, and is taken at the nearest end.
+pub fn turn_degrees(cosine: f64) -> f64 {
+    cosine.clamp(-1.0, 1.0).acos().to_degrees()
+}
+
 /// Where the skull of a head taken back from views came from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Skull {
@@ -761,34 +786,47 @@ pub fn skull_by_rule(
     value: impl Fn(&str) -> Option<f64>,
 ) -> std::result::Result<SkullBuilt, String> {
     let need = |name: &'static str| value(name).ok_or(name.to_string());
-    let [
-        outer_rise,
-        inner_rise,
-        outer_depth,
-        inner_depth,
-        temple_offset,
-        temple_rise,
-        temple_depth,
-    ] = [
+    let [outer_rise, inner_rise, outer_depth, inner_depth] = [
         need(SKULL_RULE_USES[0])?,
         need(SKULL_RULE_USES[1])?,
         need(SKULL_RULE_USES[2])?,
         need(SKULL_RULE_USES[3])?,
+    ];
+    let centre_rise = (outer_rise + inner_rise) / 2.0;
+    let centre_depth = (outer_depth + inner_depth) / 2.0;
+    Ok(SkullBuilt {
+        centre_rise,
+        centre_depth,
+        radius: skull_radius_to_temple(&value, centre_rise, centre_depth)?,
+    })
+}
+
+/// The radius part of the skull rule by itself: the distance in space from a skull's centre,
+/// wherever it stands, to the temple, the top end of the face outline. [`skull_by_rule`]
+/// takes it from the rule's own centre; taken from a drawn centre, it tests that part of the
+/// rule alone. The error names the first proportion it needs and does not get.
+pub fn skull_radius_to_temple(
+    value: impl Fn(&str) -> Option<f64>,
+    centre_rise: f64,
+    centre_depth: f64,
+) -> std::result::Result<f64, String> {
+    let need = |name: &'static str| value(name).ok_or(name.to_string());
+    let [temple_offset, temple_rise, temple_depth] = [
         need(SKULL_RULE_USES[4])?,
         need(SKULL_RULE_USES[5])?,
         need(SKULL_RULE_USES[6])?,
     ];
-    let centre_rise = (outer_rise + inner_rise) / 2.0;
-    let centre_depth = (outer_depth + inner_depth) / 2.0;
-    let radius = (temple_offset.powi(2)
+    Ok((temple_offset.powi(2)
         + (temple_rise - centre_rise).powi(2)
         + (temple_depth - centre_depth).powi(2))
-    .sqrt();
-    Ok(SkullBuilt {
-        centre_rise,
-        centre_depth,
-        radius,
-    })
+    .sqrt())
+}
+
+/// Head height in units, from the hair's top to the chin, of a head whose hair's top stands
+/// `hair_top_rise` above the eye line: the chin is one unit below it, by the unit's
+/// definition.
+pub fn head_height(hair_top_rise: f64) -> f64 {
+    hair_top_rise + 1.0
 }
 
 /// What two views give when they are taken back into proportions.

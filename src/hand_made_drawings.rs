@@ -27,7 +27,8 @@ use sha2::{Digest, Sha256};
 use crate::armature::File;
 use crate::differences::THRESHOLD_PERCENT;
 use crate::drawing::{self, Axis, Drawing, Elem, P, Seg, Shape, Sub, covers};
-use crate::number;
+use crate::head_model::{turn_cosine, turn_degrees as deg};
+use crate::number::{self, median};
 use crate::toml_text::quoted;
 use crate::{Error, Result};
 
@@ -1418,24 +1419,14 @@ fn pairs(front: &View, tq: &View) -> Vec<Pair> {
     out
 }
 
+/// The cosine of the turn over some pairs, by the head model's arithmetic. Which pairs count
+/// is stated here, in [`pairs`] and [`NOT_COUNTED`], and not shared with the pairs counted
+/// between two readings (`measuring`): this list is of the record's own landmarks, each
+/// taken from a node of a vector drawing, and that one of the landmarks a reader is asked to
+/// place on a picture. Each list was settled on what its own kind of position can bear.
 fn fit(ps: &[&Pair]) -> f64 {
-    let ft: f64 = ps.iter().map(|p| p.front * p.tq).sum();
-    let ff: f64 = ps.iter().map(|p| p.front * p.front).sum();
-    ft / ff
-}
-
-fn deg(cosine: f64) -> f64 {
-    cosine.clamp(-1.0, 1.0).acos().to_degrees()
-}
-
-fn median(mut v: Vec<f64>) -> f64 {
-    v.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    let n = v.len();
-    if n % 2 == 1 {
-        v[n / 2]
-    } else {
-        0.5 * (v[n / 2 - 1] + v[n / 2])
-    }
+    let spacings: Vec<(f64, f64)> = ps.iter().map(|p| (p.front, p.tq)).collect();
+    turn_cosine(&spacings)
 }
 
 /// The centre line's sideways position at one height.
@@ -1551,12 +1542,7 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
     writeln!(out, "degrees = {}", num(turn, 2)).unwrap();
     writeln!(out, "lowest_pair_degrees = {}", num(lo, 2)).unwrap();
     writeln!(out, "highest_pair_degrees = {}", num(hi, 2)).unwrap();
-    writeln!(
-        out,
-        "median_pair_degrees = {}",
-        num(median(turns.clone()), 2)
-    )
-    .unwrap();
+    writeln!(out, "median_pair_degrees = {}", num(median(&turns), 2)).unwrap();
     writeln!(
         out,
         "# The same fit over only the pairs whose four points are all uncovered in the drawings."
@@ -1593,7 +1579,7 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
         tq.lms.len()
     )
     .unwrap();
-    writeln!(log, "turn: {} deg (cos {}) over {} pairs; pairs span {} to {}, median {}; uncovered only: {} deg over {}", num(turn, 2), num(cosine, 4), head.len(), num(lo, 2), num(hi, 2), num(median(turns.clone()), 2), num(deg(cosine_seen), 2), seen.len()).unwrap();
+    writeln!(log, "turn: {} deg (cos {}) over {} pairs; pairs span {} to {}, median {}; uncovered only: {} deg over {}", num(turn, 2), num(cosine, 4), head.len(), num(lo, 2), num(hi, 2), num(median(&turns), 2), num(deg(cosine_seen), 2), seen.len()).unwrap();
 
     let write_pair = |out: &mut String, log: &mut String, header: &str, p: &Pair| {
         let ratio = p.tq / p.front;

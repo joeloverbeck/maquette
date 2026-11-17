@@ -102,6 +102,29 @@ pub enum Marks {
     Sideways,
 }
 
+impl Marks {
+    /// How far apart two placements of one landmark are, in what the landmark marks: the
+    /// straight distance between two positions, and otherwise the difference in height or
+    /// sideways alone.
+    pub fn distance(self, one: [f64; 2], other: [f64; 2]) -> f64 {
+        let (sideways, height) = (one[0] - other[0], one[1] - other[1]);
+        match self {
+            Marks::Position => sideways.hypot(height),
+            Marks::Height => height.abs(),
+            Marks::Sideways => sideways.abs(),
+        }
+    }
+
+    /// The word a file gives for what a landmark was compared in.
+    pub fn word(self) -> &'static str {
+        match self {
+            Marks::Position => "position",
+            Marks::Height => "height",
+            Marks::Sideways => "sideways",
+        }
+    }
+}
+
 /// The rule behind [`marks`], in words.
 pub const MARKS_RULE: &str = "The top, the bottom and the side extents of the skull, of an iris and of the hair say how far a round form or an envelope reaches, not where a feature is. The record takes each where the drawn outline is level or upright, and along the outline that place marks nothing: the hair's is a hairstyle's, and an iris is cut by the lid. So a top or a bottom of those three is compared in height only, and a side extent sideways only. Where the face outline crosses the eye line, the nose level or the mouth level, the record takes the crossing at the height of the drawn level line, which need not be that level's: the height says where the line was drawn and nothing of the outline, so such a crossing is compared sideways only. Every other landmark is compared as a position, by the straight distance.";
 

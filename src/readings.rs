@@ -2,7 +2,8 @@
 //! judgement of the view, the turn and whether the head is level.
 //!
 //! This module hides what a reading holds and how it is written: which landmarks a view asks
-//! for, under which names, what makes a reading complete, and how its positions become the
+//! for, under which names, what makes a reading complete and fit to be measured, what makes
+//! two readings the two readings of one drawing, and how a reading's positions become the
 //! positions the head model reads. A reading is a TOML file in the reference folder. It is
 //! never committed.
 //!
@@ -30,6 +31,19 @@ pub fn instructions_revision() -> Result<&'static str> {
         .find_map(|line| line.strip_prefix("Revision: "))
         .map(str::trim)
         .ok_or_else(|| Error::new("the reading instructions state no `Revision: `"))
+}
+
+/// What is said of something read under a revision of the reading instructions that is not
+/// the program's own, where it is measured all the same. `read` is what was read, such as
+/// "The front view". None when the revision is the program's.
+pub fn other_revision(read: &str, revision: &str) -> Option<String> {
+    match instructions_revision() {
+        Ok(own) if own == revision => None,
+        Ok(own) => Some(format!(
+            "{read} was read under revision \"{revision}\" of the reading instructions, and this program carries revision \"{own}\": it was not read by the instructions as they stand."
+        )),
+        Err(error) => Some(error.to_string()),
+    }
 }
 
 /// Which way a turned head faces, from the viewer's side.
@@ -621,6 +635,34 @@ impl Record {
             )),
             Err(error) => problems.push(error.to_string()),
         }
+        problems.extend(self.lacks(picture));
+        problems
+    }
+
+    /// Refuses a reading that is not fit to be measured: one that does not pass the check
+    /// of [`Record::problems`]. The revision of the instructions is left out of it. A
+    /// reading made under an earlier revision is still that drawing's reading, and what is
+    /// worked out from it says which revision it followed: see [`other_revision`].
+    pub fn checked(&self, picture: Option<&[u8]>) -> Result<()> {
+        let mut problems = self.faults.clone();
+        problems.extend(self.lacks(picture));
+        let Some(first) = problems.first() else {
+            return Ok(());
+        };
+        Err(Error::new(format!(
+            "the reading does not pass its check, so it is not measured: {first}{}. `maquette check-reading` says what a reading lacks",
+            match problems.len() - 1 {
+                0 => String::new(),
+                1 => ", and 1 thing more".to_string(),
+                more => format!(", and {more} things more"),
+            }
+        )))
+    }
+
+    /// What the reading lacks or gets wrong in itself and against its picture: everything
+    /// [`Record::problems`] says but the faults of the file and the revision.
+    fn lacks(&self, picture: Option<&[u8]>) -> Vec<String> {
+        let mut problems = Vec::new();
         if self.reader.is_empty() {
             problems.push(
                 "[reader] has no `name`, which tells the two readings of a drawing apart"
@@ -820,6 +862,31 @@ fn exchanged(name: &str) -> String {
     }
 }
 
+/// The names the list of proportions gives a landmark of a reading, on a head that faces
+/// the viewer's right; the first is the one a record of known positions uses. The face
+/// outline is where a reading's names and the list's part ways: a reader places every point
+/// of it under the face outline's name, and the list calls it the jaw line where it is the
+/// side of the jaw. In a front view a point of the outline is both the cheek point and the
+/// jaw-line point of its level; in a turned view the near side's outline is the jaw line and
+/// the far side's the cheek. The jaw point keeps its name, as every other landmark does.
+pub fn list_names(view: View, landmark: &str) -> Vec<String> {
+    let outline = landmark.strip_prefix("face-outline-").and_then(|rest| {
+        let (side, point) = rest.split_once('-')?;
+        (point != "jaw").then_some((side, point))
+    });
+    let Some((side, point)) = outline else {
+        return vec![landmark.to_string()];
+    };
+    let jaw_line = format!("jaw-line-{side}-{point}");
+    if view == View::Front {
+        vec![landmark.to_string(), jaw_line]
+    } else if side == Faces::ViewersRight.near() {
+        vec![jaw_line]
+    } else {
+        vec![landmark.to_string()]
+    }
+}
+
 /// Positions under a reading's names, as the head model reads them. See [`Record::positions`].
 pub fn positions_of(
     view: View,
@@ -836,31 +903,13 @@ pub fn positions_of(
     } else {
         placed.clone()
     };
-    let near = Faces::ViewersRight.near();
     let mut reading = head_model::Reading {
         turn_degrees: view.turn_degrees(),
         ..head_model::Reading::default()
     };
     for (name, at) in &placed {
-        let outline = name.strip_prefix("face-outline-").and_then(|rest| {
-            let (side, point) = rest.split_once('-')?;
-            (point != "jaw").then_some((side, point))
-        });
-        match outline {
-            Some((side, point)) => {
-                let jaw_line = format!("jaw-line-{side}-{point}");
-                if view == View::Front {
-                    reading.points.insert(name.clone(), *at);
-                    reading.points.insert(jaw_line, *at);
-                } else if side == near {
-                    reading.points.insert(jaw_line, *at);
-                } else {
-                    reading.points.insert(name.clone(), *at);
-                }
-            }
-            None => {
-                reading.points.insert(name.clone(), *at);
-            }
+        for list_name in list_names(view, name) {
+            reading.points.insert(list_name, *at);
         }
     }
     for side in ["left", "right"] {
@@ -886,6 +935,8 @@ pub struct Drawing {
     pub view: View,
     pub faces: Option<Faces>,
     pub picture: Picture,
+    /// The revision of the reading instructions its readings follow: two follow one.
+    pub instructions: String,
     /// Who read it.
     pub readers: Vec<String>,
     /// Each reader's own estimate of the turn, where it gave one.
@@ -899,7 +950,8 @@ pub struct Drawing {
 
 impl Drawing {
     /// Takes one reading or two of the same drawing together. Each must be of a level head
-    /// that is not set aside, and two must be of one picture and agree on its view.
+    /// that is not set aside, and two must be the two readings of one drawing, as
+    /// [`same_drawing`] says.
     pub fn of(records: &[Record]) -> Result<Drawing> {
         let (first, second) = match records {
             [first] => (first, None),
@@ -915,6 +967,7 @@ impl Drawing {
             view: first.view,
             faces: first.faces,
             picture: first.picture.clone(),
+            instructions: first.instructions.clone(),
             readers: vec![first.reader.clone()],
             stated_turns: first.turn_degrees.into_iter().collect(),
             placed: first.placed.clone(),
@@ -964,14 +1017,42 @@ impl Drawing {
     }
 }
 
-/// Refuses two readings that are not of one drawing in one view.
-pub fn same_drawing(first: &Record, second: &Record) -> Result<()> {
+/// Refuses two readings that are not the two readings of one picture: every drawing is read
+/// twice, by separate readers who follow one revision of the reading instructions.
+pub fn two_readings(first: &Record, second: &Record) -> Result<()> {
     if first.picture.sha256 != second.picture.sha256 {
         return Err(Error::new(format!(
-            "the two readings are not of one picture: `{}` has the digest {} and `{}` has {}",
+            "the two readings are not of one picture: `{}` has the digest {} and `{}` has {}. Two readings are set against each other, or taken together, only when they are of the same drawing",
             first.picture.file, first.picture.sha256, second.picture.file, second.picture.sha256
         )));
     }
+    if first.reader == second.reader {
+        return Err(Error::new(format!(
+            "the two readings of `{}` both carry the reader's label \"{}\": a drawing is read twice, by two separate readers, and each reading carries its own reader's label",
+            first.picture.file, first.reader
+        )));
+    }
+    if first.instructions != second.instructions {
+        return Err(Error::new(format!(
+            "the two readings of `{}` do not follow one revision of the reading instructions: {} follows \"{}\" and {} follows \"{}\"{}. A drawing's two readings are made under one revision",
+            first.picture.file,
+            first.reader,
+            first.instructions,
+            second.reader,
+            second.instructions,
+            match instructions_revision() {
+                Ok(own) => format!("; this program carries \"{own}\""),
+                Err(_) => String::new(),
+            }
+        )));
+    }
+    Ok(())
+}
+
+/// Refuses two readings that are not the two readings of one drawing in one view: of one
+/// picture, by separate readers, under one revision, and judging its view alike.
+pub fn same_drawing(first: &Record, second: &Record) -> Result<()> {
+    two_readings(first, second)?;
     if first.view != second.view || first.faces != second.faces {
         return Err(Error::new(format!(
             "the two readings of `{}` do not judge the view alike: {} calls it a {} view{} and {} a {} view{}. Jon decides which it is before it is measured",

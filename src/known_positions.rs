@@ -15,11 +15,12 @@ use std::collections::BTreeMap;
 
 use crate::differences::THRESHOLD_PERCENT;
 use crate::hand_made_views::{self, Marks, Provenance};
+use crate::head_model;
 use crate::measuring::compared_in;
-use crate::number::toml as toml_number;
+use crate::number::{median, toml as toml_number};
 use crate::proportions::{self, Kind};
-use crate::readings::{Faces, Record};
-use crate::toml_text::{quoted, quoted_list};
+use crate::readings::{Faces, REFERENCE_FIELDS, Record, list_names};
+use crate::toml_text::{position, quoted, quoted_list};
 use crate::views::View;
 use crate::{Error, Result};
 
@@ -125,15 +126,10 @@ fn covers(record: &toml::Table, view: View) -> BTreeMap<String, Vec<String>> {
     out
 }
 
-/// The name the record's reading gives a landmark of a reader's.
+/// The name the record's reading gives a landmark of a reader's: the list's name for it. A
+/// record of hand-made views is of a head that faces the viewer's right.
 fn known_name(view: View, landmark: &str) -> String {
-    let near = Faces::ViewersRight.near();
-    let near_outline = format!("face-outline-{near}-at-");
-    if view != View::Front && landmark.starts_with(&near_outline) {
-        landmark.replace("face-outline", "jaw-line")
-    } else {
-        landmark.to_string()
-    }
+    list_names(view, landmark).swap_remove(0)
 }
 
 /// One view of a record of known positions.
@@ -251,9 +247,10 @@ pub fn as_reading(
         picture.width, picture.height
     ));
     out.push_str("\n[reference]\n");
-    out.push_str(&format!("work = {}\n", quoted(&known.what)));
-    for field in ["designer", "source", "age_band", "sex", "species", "manner"] {
-        out.push_str(&format!("{field} = {}\n", quoted(said)));
+    // Every field a reading gives of its reference: what the record is, and the rest as said.
+    for (field, _) in REFERENCE_FIELDS {
+        let value = if *field == "work" { &known.what } else { said };
+        out.push_str(&format!("{field} = {}\n", quoted(value)));
     }
     out.push_str("\n[judgement]\n");
     out.push_str(&format!("view = {}\n", quoted(view.name())));
@@ -275,12 +272,7 @@ pub fn as_reading(
     for asked in crate::readings::asked(view, faces) {
         match known.at(&asked.name) {
             Some((at, under)) if under.is_empty() => {
-                out.push_str(&format!(
-                    "{} = {{ x = {}, y = {} }}\n",
-                    asked.name,
-                    toml_number(at[0], 3),
-                    toml_number(at[1], 3)
-                ));
+                out.push_str(&format!("{} = {}\n", asked.name, position(at)));
             }
             Some((_, under)) => not_seen.push_str(&format!(
                 "{} = {}\n",
@@ -351,11 +343,7 @@ pub fn score(
             continue;
         };
         let marks = compared_in(landmark);
-        let distance = match marks {
-            Marks::Position => (read[0] - known[0]).hypot(read[1] - known[1]),
-            Marks::Height => (read[1] - known[1]).abs(),
-            Marks::Sideways => (read[0] - known[0]).abs(),
-        };
+        let distance = marks.distance(*read, known);
         let scored = Scored {
             landmark: landmark.clone(),
             kind: kind_of(landmark),
@@ -419,11 +407,6 @@ fn figures(scored: &[&Scored], head_height: f64) -> Option<Figures> {
         .collect();
     shares.sort_by(f64::total_cmp);
     let count = shares.len();
-    let median = if count % 2 == 1 {
-        shares[count / 2]
-    } else {
-        (shares[count / 2 - 1] + shares[count / 2]) / 2.0
-    };
     // The smallest share that at least nine in ten are at or under.
     let ninetieth = shares[((count * 9).div_ceil(10)).clamp(1, count) - 1];
     let above = |percent: f64| {
@@ -435,7 +418,7 @@ fn figures(scored: &[&Scored], head_height: f64) -> Option<Figures> {
     Some(Figures {
         count,
         mean: shares.iter().sum::<f64>() / count as f64,
-        median,
+        median: median(&shares),
         ninetieth,
         worst: worst.percent_of_head_height,
         worst_landmark: worst.landmark.clone(),
@@ -462,14 +445,6 @@ fn figure_lines(figures: &Figures) -> String {
     out.push_str(&format!("above_1_percent = {}\n", figures.above_1));
     out.push_str(&format!("above_2_percent = {}\n", figures.above_2));
     out
-}
-
-fn position(at: [f64; 2]) -> String {
-    format!(
-        "{{ x = {}, y = {} }}",
-        toml_number(at[0], 3),
-        toml_number(at[1], 3)
-    )
 }
 
 impl Score {
@@ -598,14 +573,7 @@ impl Score {
                 out.push_str(&format!("[[{list}]]\n"));
                 out.push_str(&format!("landmark = {}\n", quoted(&scored.landmark)));
                 out.push_str(&format!("kind = {}\n", quoted(scored.kind)));
-                out.push_str(&format!(
-                    "scored_in = {}\n",
-                    quoted(match scored.marks {
-                        Marks::Position => "position",
-                        Marks::Height => "height",
-                        Marks::Sideways => "sideways",
-                    })
-                ));
+                out.push_str(&format!("scored_in = {}\n", quoted(scored.marks.word())));
                 out.push_str(&format!("read = {}\n", position(scored.read)));
                 out.push_str(&format!("known = {}\n", position(scored.known)));
                 if !scored.under.is_empty() {
@@ -752,7 +720,7 @@ pub fn compare_proportions(
     let head_height = second
         .get("hair_top_rise")
         .or(first.get("hair_top_rise"))
-        .map(|rise| rise + 1.0)
+        .map(|rise| head_model::head_height(*rise))
         .ok_or_else(|| {
             Error::new("neither file gives `hair_top_rise`, so there is no head height to state a share of")
         })?;

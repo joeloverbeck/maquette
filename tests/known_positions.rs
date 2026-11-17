@@ -9,7 +9,9 @@ mod support;
 
 use std::path::Path;
 
-use support::{MADE_UP, assert_close, maquette_in, maquette_ok, measure_ok, number, scratch, text};
+use support::{
+    MADE_UP, assert_close, maquette_in, maquette_ok, measure_ok, number, references, scratch, text,
+};
 
 const KNOWN: &str = "tests/fixtures/known-positions/made-up-known-positions.toml";
 
@@ -77,7 +79,7 @@ fn texts(value: &toml::Value) -> Vec<String> {
 
 #[test]
 fn a_reading_is_scored_against_known_positions_by_kind_of_landmark() {
-    let folder = scratch("known-positions-front");
+    let folder = references("known-positions-front");
     write_reading(
         &folder,
         "front.toml",
@@ -215,7 +217,7 @@ fn a_reading_is_scored_against_known_positions_by_kind_of_landmark() {
 
 #[test]
 fn a_turned_reading_is_scored_in_its_own_view_and_a_covered_point_rightly_left_out_is_said_so() {
-    let folder = scratch("known-positions-turned");
+    let folder = references("known-positions-turned");
     write_reading(
         &folder,
         "turned.toml",
@@ -376,7 +378,7 @@ fn record_as_readings(folder: &Path, record: &str) {
 
 #[test]
 fn a_records_own_positions_written_as_a_reading_score_nothing_off() {
-    let folder = scratch("known-positions-as-reading");
+    let folder = references("known-positions-as-reading");
     record_as_readings(&folder, KNOWN);
     let written = text(&folder.join("front.toml"));
     assert!(written.contains("Not a reading"), "{written}");
@@ -408,7 +410,7 @@ fn saffis_record_under_a_readers_names_gives_back_her_turn_and_her_heights() {
     // on them with no drawing and no reader: this is what they make of exact positions. Her
     // S2 underdrawings alone are used, because those are the drawings a reader is shown.
     let record = "data/saffi/hand-made-views.toml";
-    let folder = scratch("known-positions-saffi");
+    let folder = references("known-positions-saffi");
     record_as_readings(&folder, record);
     let read = |command: &str, out: &str| -> toml::Table {
         measure_ok(

@@ -18,12 +18,17 @@
 //! - The fit stands on its own line under the heading and in the ink colour: a colour would
 //!   be a verdict, and no rule sets one.
 //! - The sheet says what its numbers are measured against, and whether a look is asked.
+//! - A drawing whose two readings cannot be compared, or are not the two readings of one
+//!   drawing, keeps its card: the card says which, the reason stands under it, and the rest
+//!   of the sheet is drawn. Only a reader's setting aside is offered to Jon to overrule.
+//! - A drawing read under another revision of the reading instructions says so under its
+//!   card.
 
 use std::collections::BTreeMap;
 
 use base64::Engine;
 
-use crate::measuring::{self, Agreement, Given};
+use crate::measuring::{self, Given};
 use crate::number::{plain, plain3};
 use crate::readings::{self, Drawing, Record};
 use crate::views::View;
@@ -128,6 +133,16 @@ pub struct Read {
     pub record: Record,
 }
 
+/// Why a drawing is not measured.
+enum NotMeasured {
+    /// A reader set it aside, or did not call the head level: the words of the card's pill.
+    /// That is a judgement, and Jon can overrule it.
+    SetAside(&'static str),
+    /// Its two readings are not the two readings of one drawing: the reason, in full. That
+    /// is put right in the readings, and is nobody's to overrule.
+    NotTwoReadings(String),
+}
+
 /// One drawing of a character: its one or two readings.
 struct Shown<'a> {
     view: View,
@@ -147,11 +162,11 @@ impl Shown<'_> {
     }
 
     /// Why the drawing is not measured, when it is not.
-    fn not_measured(&self) -> Option<String> {
+    fn not_measured(&self) -> Option<NotMeasured> {
         if let [first, second] = self.readings.as_slice()
             && let Err(error) = readings::same_drawing(&first.record, &second.record)
         {
-            return Some(error.to_string());
+            return Some(NotMeasured::NotTwoReadings(error.to_string()));
         }
         let aside = self
             .readings
@@ -160,11 +175,15 @@ impl Shown<'_> {
             .count();
         match (aside, self.readings.len()) {
             (0, _) => None,
-            (1, 1) => Some("Set aside by the reader: not measured".to_string()),
-            (aside, all) if aside == all => {
-                Some("Set aside by the readers: not measured".to_string())
-            }
-            _ => Some("Set aside by one reader: not measured".to_string()),
+            (1, 1) => Some(NotMeasured::SetAside(
+                "Set aside by the reader: not measured",
+            )),
+            (aside, all) if aside == all => Some(NotMeasured::SetAside(
+                "Set aside by the readers: not measured",
+            )),
+            _ => Some(NotMeasured::SetAside(
+                "Set aside by one reader: not measured",
+            )),
         }
     }
 
@@ -221,6 +240,15 @@ fn wrapped(text: &str, width: usize) -> Vec<String> {
         }
     }
     lines
+}
+
+/// A message of the program, which starts small, as a sentence of the sheet.
+fn sentence(message: &str) -> String {
+    let mut letters = message.chars();
+    match letters.next() {
+        Some(first) => first.to_uppercase().chain(letters).collect(),
+        None => String::new(),
+    }
 }
 
 fn view_title(view: View) -> &'static str {
@@ -594,35 +622,63 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
                     "One reading only: nothing to set it against. Read it a second time"
                         .to_string();
             }
-            [first_read, second_read] => {
-                let agreement: Agreement = measuring::agreement(
-                    &first_read.path,
-                    &first_read.record,
-                    &second_read.path,
-                    &second_read.record,
-                )?;
-                for compared in &agreement.at_or_under {
-                    let midway = [
-                        (compared.first[0] + compared.second[0]) / 2.0,
-                        (compared.first[1] + compared.second[1]) / 2.0,
-                    ];
-                    svg.push_str(&dot(midway, "agreed", POINT, "#FFFFFF"));
+            [first_read, second_read] => match measuring::agreement(
+                &first_read.path,
+                &first_read.record,
+                &second_read.path,
+                &second_read.record,
+            ) {
+                // Two readings with no head height between them have no disagreement to
+                // state. The card still shows what each placed, and says what was not
+                // compared and why.
+                Err(error) => {
+                    let (first, second) = (&first_read.record.placed, &second_read.record.placed);
+                    for (name, at) in first {
+                        match second.get(name) {
+                            Some(other) => svg.push_str(&dot(
+                                [(at[0] + other[0]) / 2.0, (at[1] + other[1]) / 2.0],
+                                "not-compared",
+                                POINT,
+                                "#FFFFFF",
+                            )),
+                            None => svg.push_str(&dot(*at, "by-one", "#FFFFFF", POINT)),
+                        }
+                    }
+                    for (name, at) in second {
+                        if !first.contains_key(name) {
+                            svg.push_str(&dot(*at, "by-one", "#FFFFFF", POINT));
+                        }
+                    }
+                    agreement_line =
+                        "The two readings could not be compared: the reason is under the card"
+                            .to_string();
+                    for text in wrapped(&sentence(&error.to_string()), 82) {
+                        notes.push((text, SET_ASIDE_TEXT));
+                    }
                 }
-                for name in agreement
-                    .placed_by_first_only
-                    .iter()
-                    .map(|name| first_read.record.placed[name])
-                    .chain(
-                        agreement
-                            .placed_by_second_only
-                            .iter()
-                            .map(|name| second_read.record.placed[name]),
-                    )
-                {
-                    svg.push_str(&dot(name, "by-one", "#FFFFFF", POINT));
-                }
-                for compared in &agreement.above {
-                    svg.push_str(&format!(
+                Ok(agreement) => {
+                    for compared in &agreement.at_or_under {
+                        let midway = [
+                            (compared.first[0] + compared.second[0]) / 2.0,
+                            (compared.first[1] + compared.second[1]) / 2.0,
+                        ];
+                        svg.push_str(&dot(midway, "agreed", POINT, "#FFFFFF"));
+                    }
+                    for name in agreement
+                        .placed_by_first_only
+                        .iter()
+                        .map(|name| first_read.record.placed[name])
+                        .chain(
+                            agreement
+                                .placed_by_second_only
+                                .iter()
+                                .map(|name| second_read.record.placed[name]),
+                        )
+                    {
+                        svg.push_str(&dot(name, "by-one", "#FFFFFF", POINT));
+                    }
+                    for compared in &agreement.above {
+                        svg.push_str(&format!(
                         "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{SET_ASIDE}\" stroke-width=\"{}\"/>\n",
                         plain3(compared.first[0]),
                         plain3(compared.first[1]),
@@ -630,9 +686,9 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
                         plain3(compared.second[1]),
                         on_sheet(2.0)
                     ));
-                    svg.push_str(&dot(compared.first, "apart", SET_ASIDE, "#FFFFFF"));
-                    svg.push_str(&dot(compared.second, "apart", SET_ASIDE, "#FFFFFF"));
-                    svg.push_str(&format!(
+                        svg.push_str(&dot(compared.first, "apart", SET_ASIDE, "#FFFFFF"));
+                        svg.push_str(&dot(compared.second, "apart", SET_ASIDE, "#FFFFFF"));
+                        svg.push_str(&format!(
                         "<text x=\"{}\" y=\"{}\" font-size=\"{}\" font-weight=\"700\" fill=\"{SET_ASIDE_TEXT}\" stroke=\"#FFFFFF\" stroke-width=\"{}\" paint-order=\"stroke\">{}</text>\n",
                         plain3(compared.first[0].max(compared.second[0]) + 9.0 / scale),
                         plain3(compared.first[1].min(compared.second[1]) - 6.0 / scale),
@@ -640,54 +696,55 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
                         on_sheet(4.0),
                         compared.number.unwrap_or_default()
                     ));
-                }
-                agreement_line = match agreement.largest_percent() {
-                    Some(largest) => format!(
-                        "Two readings agree to {}% of head height at worst; {}",
-                        plain(largest, 2),
-                        match agreement.above.len() {
-                            0 => "no point is over 1% apart".to_string(),
-                            1 => "1 point is over 1% apart".to_string(),
-                            count => format!("{count} points are over 1% apart"),
-                        }
-                    ),
-                    None => "The two readings place no point in common".to_string(),
-                };
-                for compared in &agreement.above {
-                    notes.push((
-                        format!(
-                            "{}  {}  {}%",
-                            compared.number.unwrap_or_default(),
-                            compared.landmark,
-                            plain(compared.percent_of_head_height, 2)
+                    }
+                    agreement_line = match agreement.largest_percent() {
+                        Some(largest) => format!(
+                            "Two readings agree to {}% of head height at worst; {}",
+                            plain(largest, 2),
+                            match agreement.above.len() {
+                                0 => "no point is over 1% apart".to_string(),
+                                1 => "1 point is over 1% apart".to_string(),
+                                count => format!("{count} points are over 1% apart"),
+                            }
                         ),
-                        SET_ASIDE_TEXT,
-                    ));
-                }
-                let by_one: Vec<&String> = agreement
-                    .placed_by_first_only
-                    .iter()
-                    .chain(&agreement.placed_by_second_only)
-                    .collect();
-                if !by_one.is_empty() {
-                    let names: Vec<&str> = by_one.iter().map(|name| name.as_str()).collect();
-                    for text in wrapped(
-                        &format!("Placed by one reader only: {}", names.join(", ")),
-                        82,
-                    ) {
-                        notes.push((text, SECONDARY));
+                        None => "The two readings place no point in common".to_string(),
+                    };
+                    for compared in &agreement.above {
+                        notes.push((
+                            format!(
+                                "{}  {}  {}%",
+                                compared.number.unwrap_or_default(),
+                                compared.landmark,
+                                plain(compared.percent_of_head_height, 2)
+                            ),
+                            SET_ASIDE_TEXT,
+                        ));
+                    }
+                    let by_one: Vec<&String> = agreement
+                        .placed_by_first_only
+                        .iter()
+                        .chain(&agreement.placed_by_second_only)
+                        .collect();
+                    if !by_one.is_empty() {
+                        let names: Vec<&str> = by_one.iter().map(|name| name.as_str()).collect();
+                        for text in wrapped(
+                            &format!("Placed by one reader only: {}", names.join(", ")),
+                            82,
+                        ) {
+                            notes.push((text, SECONDARY));
+                        }
+                    }
+                    for (what, first, second) in &agreement.judged_differently {
+                        notes.push((
+                            format!(
+                                "Judged differently: {what} is {first} for {} and {second} for {}",
+                                first_read.record.reader, second_read.record.reader
+                            ),
+                            SET_ASIDE_TEXT,
+                        ));
                     }
                 }
-                for (what, first, second) in &agreement.judged_differently {
-                    notes.push((
-                        format!(
-                            "Judged differently: {what} is {first} for {} and {second} for {}",
-                            first_read.record.reader, second_read.record.reader
-                        ),
-                        SET_ASIDE_TEXT,
-                    ));
-                }
-            }
+            },
             _ => unreachable!("a drawing has one reading or two"),
         }
     }
@@ -745,16 +802,33 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
             svg.push_str(&format!(
                 "<rect x=\"{PADDING}\" y=\"784\" width=\"936\" height=\"52\" rx=\"26\" fill=\"{SET_ASIDE}\"/>\n"
             ));
-            let pill = wrapped(why, 74).into_iter().next().unwrap_or_default();
-            svg.push_str(&line(58.0, 796.0, 26.0, 600, "#FFFFFF", &pill));
-            svg.push_str(&line(
-                PADDING,
-                848.0,
-                24.0,
-                400,
-                SECONDARY,
-                "You can overrule this and have it measured.",
-            ));
+            let (pill, beneath) = match why {
+                NotMeasured::SetAside(pill) => {
+                    (*pill, "You can overrule this and have it measured.")
+                }
+                NotMeasured::NotTwoReadings(reason) => {
+                    for text in wrapped(&sentence(reason), 82) {
+                        notes.push((text, SET_ASIDE_TEXT));
+                    }
+                    (
+                        "Not the two readings of one drawing: not measured",
+                        "The reason is under the card.",
+                    )
+                }
+            };
+            svg.push_str(&line(58.0, 796.0, 26.0, 600, "#FFFFFF", pill));
+            svg.push_str(&line(PADDING, 848.0, 24.0, 400, SECONDARY, beneath));
+        }
+    }
+    // Readings made under another revision of the instructions are shown, and it is said.
+    // Two readings that follow two revisions are not measured, and the reason above says so.
+    if records
+        .iter()
+        .all(|record| record.instructions == first.instructions)
+        && let Some(note) = readings::other_revision("The drawing", &first.instructions)
+    {
+        for text in wrapped(&note, 82) {
+            notes.push((text, SET_ASIDE_TEXT));
         }
     }
     svg.push_str(&line(

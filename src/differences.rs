@@ -11,7 +11,7 @@ use crate::armature::{self, Placed};
 use crate::hand_made_views::{self, FinalRecord, HandMade, MARKS_RULE, Marks, Provenance};
 use crate::head_model::Reading;
 use crate::number::{plain, round3, toml as toml_number};
-use crate::toml_text::{quoted, quoted_list};
+use crate::toml_text::{position, quoted, quoted_list};
 use crate::views::View;
 use crate::{Error, Result};
 
@@ -190,12 +190,7 @@ fn compare_view(
             continue;
         }
         let marks = hand_made_views::marks(name);
-        let (sideways, height) = (laid_over[0] - theirs[0], laid_over[1] - theirs[1]);
-        let distance = round3(match marks {
-            Marks::Position => sideways.hypot(height),
-            Marks::Height => height.abs(),
-            Marks::Sideways => sideways.abs(),
-        });
+        let distance = round3(marks.distance(laid_over, theirs));
         differences.push(Difference {
             number: None,
             landmark: name.clone(),
@@ -312,22 +307,6 @@ pub fn read_record(record: Input, final_drawings: Option<Input>) -> Result<HandM
     hand_made_views::read(record.path, record.text, final_record)
 }
 
-fn position(value: [f64; 2]) -> String {
-    format!(
-        "{{ x = {}, y = {} }}",
-        toml_number(value[0], 3),
-        toml_number(value[1], 3)
-    )
-}
-
-fn marks_word(marks: Marks) -> &'static str {
-    match marks {
-        Marks::Position => "position",
-        Marks::Height => "height",
-        Marks::Sideways => "sideways",
-    }
-}
-
 impl ViewDifferences {
     fn compared(&self) -> usize {
         self.above.len() + self.at_or_under.len()
@@ -393,10 +372,7 @@ impl ViewDifferences {
                 if !difference.also.is_empty() {
                     out.push_str(&format!("also = {}\n", quoted_list(&difference.also)));
                 }
-                out.push_str(&format!(
-                    "compared = {}\n",
-                    quoted(marks_word(difference.marks))
-                ));
+                out.push_str(&format!("compared = {}\n", quoted(difference.marks.word())));
                 out.push_str(&format!("generated = {}\n", position(difference.generated)));
                 out.push_str(&format!("hand_made = {}\n", position(difference.hand_made)));
                 out.push_str(&format!(

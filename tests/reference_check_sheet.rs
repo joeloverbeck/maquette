@@ -10,32 +10,18 @@ use std::path::{Path, PathBuf};
 
 use base64::Engine;
 use support::made_up_head::{MadeUp, seen};
-use support::{failure, made_up_image, maquette_in, measure_ok, scratch, text};
-
-fn digest(path: &Path) -> String {
-    let output = std::process::Command::new("sha256sum")
-        .arg(path)
-        .output()
-        .expect("sha256sum runs");
-    String::from_utf8(output.stdout)
-        .expect("text")
-        .split_whitespace()
-        .next()
-        .expect("a digest")
-        .to_string()
-}
+use support::{failure, made_up_image, maquette_in, measure_ok, references, text};
 
 /// A made-up reading of a made-up picture in the folder.
 fn reading(folder: &Path, mut made_up: MadeUp, picture: &str, name: &str) {
     made_up.picture = picture.to_string();
-    made_up.sha256 = digest(&folder.join(picture));
     made_up.write(folder, name);
 }
 
 /// A made-up reference folder: two characters, the first read twice in a front and a
 /// three-quarter view, the second read once from the front and set aside when turned.
 fn folder(name: &str) -> PathBuf {
-    let folder = scratch(name);
+    let folder = references(name);
     std::fs::create_dir_all(folder.join("pictures")).expect("made");
     for (picture, width) in [
         ("one-front.png", 1000),
@@ -126,6 +112,7 @@ fn texts(document: &roxmltree::Document) -> Vec<String> {
         .filter(|node| node.has_tag_name("text"))
         .map(|node| {
             node.descendants()
+                .filter(|part| part.is_text())
                 .filter_map(|part| part.text())
                 .collect::<String>()
         })
@@ -266,6 +253,185 @@ fn a_sheet_shows_each_characters_views_with_the_points_read_and_what_was_set_asi
             .filter(|node| node.has_tag_name("circle"))
             .count(),
         0
+    );
+}
+
+/// The dots of one drawing of a sheet, by class: `picture` counts the drawings from the top.
+fn dots_of(document: &roxmltree::Document, picture: usize, class: &str) -> usize {
+    let pictures: Vec<roxmltree::Node> = document
+        .descendants()
+        .filter(|node| node.has_tag_name("image"))
+        .collect();
+    pictures[picture]
+        .parent()
+        .expect("the drawing's frame")
+        .descendants()
+        .filter(|node| node.has_tag_name("circle") && node.attribute("class") == Some(class))
+        .count()
+}
+
+#[test]
+fn a_sheet_is_rendered_when_two_readings_cannot_be_compared_and_the_card_says_what_was_not() {
+    let folder = folder("reference-check-sheet-not-compared");
+    // The second reader of the first character's front view states the hair's top as not
+    // seen: the two readings have no head height to state a disagreement in.
+    let mut second = seen(0.0, 500.0);
+    second.remove("hair-top");
+    reading(
+        &folder,
+        MadeUp::front("second", second),
+        "pictures/one-front.png",
+        "second/one-front.toml",
+    );
+    let svg = rendered(&folder);
+    let document = roxmltree::Document::parse(&svg).expect("the sheet is well-formed SVG");
+    let texts = texts(&document);
+    let said = |part: &str| texts.iter().any(|text| text.contains(part));
+    let all = texts.join("\n");
+
+    // The card says that the two were not compared, and why.
+    assert!(said("The two readings could not be compared"), "{all}");
+    assert!(
+        texts
+            .join(" ")
+            .contains("places no hair top or no chin, so there is no head height"),
+        "{all}"
+    );
+    // Its points are shown all the same: 21 both place, midway and not called agreed, and the
+    // hair's top, which one places.
+    assert_eq!(dots_of(&document, 0, "not-compared"), 21);
+    assert_eq!(dots_of(&document, 0, "by-one"), 1);
+    assert_eq!(dots_of(&document, 0, "agreed"), 0);
+    assert_eq!(dots_of(&document, 0, "apart"), 0);
+
+    // The rest of the sheet stands as it would: the other drawing's agreement, the other
+    // character, and the fit, whose head height is then the three-quarter view's.
+    assert!(
+        said("Two readings agree to 0% of head height at worst"),
+        "{all}"
+    );
+    assert!(
+        said("The views fit one head to within 0% of head height"),
+        "{all}"
+    );
+    assert!(said("Character 2 <made up & escaped>"), "{all}");
+    assert!(said("2 characters, 4 drawings"), "{all}");
+}
+
+#[test]
+fn a_sheet_says_what_is_not_two_readings_of_a_drawing_and_what_followed_other_instructions() {
+    let folder = folder("reference-check-sheet-readings");
+    // Both readings of the first character's front view carry one reader's label, and both
+    // readings of its three-quarter view follow an earlier revision of the instructions.
+    reading(
+        &folder,
+        MadeUp::front("first", seen(0.0, 500.0)),
+        "pictures/one-front.png",
+        "second/one-front.toml",
+    );
+    for reader in ["first", "second"] {
+        let mut earlier = MadeUp::turned(reader, seen(29.0, 470.0));
+        earlier.instructions = Some("made-up earlier revision".to_string());
+        reading(
+            &folder,
+            earlier,
+            "pictures/one-turned.png",
+            &format!("{reader}/one-turned.toml"),
+        );
+    }
+    let svg = rendered(&folder);
+    let document = roxmltree::Document::parse(&svg).expect("the sheet is well-formed SVG");
+    let texts = texts(&document);
+    let said = |part: &str| texts.iter().any(|text| text.contains(part));
+    let all = texts.join("\n");
+
+    // The front view is not measured, and the card says why in full. It is not a judgement
+    // of a reader's, so nothing offers to overrule it.
+    assert!(
+        said("Not the two readings of one drawing: not measured"),
+        "{all}"
+    );
+    // A reason runs over several lines under the card.
+    let running = texts.join(" ");
+    assert!(
+        running.contains("both carry the reader's label \"first\"")
+            && running.contains("two separate readers")
+            && running.contains("The reason is under the card"),
+        "{all}"
+    );
+    assert_eq!(dots_of(&document, 0, "agreed"), 0);
+    assert!(said("One usable view, so nothing to fit"), "{all}");
+    // The second character's drawing that its readers set aside still offers it.
+    assert_eq!(
+        texts
+            .iter()
+            .filter(|text| text.contains("You can overrule this"))
+            .count(),
+        1,
+        "{all}"
+    );
+
+    // The three-quarter view is measured, and the card says which instructions it followed.
+    assert!(
+        said("Two readings agree to 0% of head height at worst"),
+        "{all}"
+    );
+    assert!(
+        running.contains("was read under revision \"made-up earlier revision\"")
+            && running.contains(&support::instructions_revision()),
+        "{all}"
+    );
+}
+
+#[test]
+fn a_sheet_is_not_rendered_from_a_reading_named_twice_or_one_that_does_not_pass_its_check() {
+    let folder = folder("reference-check-sheet-unchecked");
+    let description = text(&folder.join("sheet.toml"));
+    let refused = |name: &str, description: &str| -> String {
+        std::fs::write(folder.join(name), description).expect("written");
+        let output = maquette_in(
+            Some(&folder),
+            &[
+                "reference-check-sheet",
+                "--sheet",
+                name,
+                "--out",
+                "refused.svg",
+            ],
+        );
+        let message = failure(&output);
+        assert!(!folder.join("refused.svg").exists());
+        message
+    };
+
+    // One reading named twice for a character.
+    let message = refused(
+        "twice.toml",
+        &description.replace("\"second/one-front.toml\"", "\"./first/one-front.toml\""),
+    );
+    assert!(
+        message.contains("Character 1")
+            && message.contains("first/one-front.toml")
+            && message.contains("twice"),
+        "{message}"
+    );
+
+    // A reading that leaves a landmark neither placed nor stated as not seen. The character
+    // and the reading are named.
+    let whole = text(&folder.join("first/two-front.toml"));
+    let unfinished = whole.replace(
+        "ear-left-base-outer = \"made up: not in the made-up head\"\n",
+        "",
+    );
+    assert_ne!(unfinished, whole);
+    std::fs::write(folder.join("first/two-front.toml"), unfinished).expect("written");
+    let message = refused("unfinished.toml", &description);
+    assert!(
+        message.contains("Character 2")
+            && message.contains("first/two-front.toml")
+            && message.contains("ear-left-base-outer")
+            && message.contains("check-reading"),
+        "{message}"
     );
 }
 
