@@ -438,8 +438,6 @@ fn a_height_the_front_view_hides_is_taken_from_the_side_view_but_not_an_ears_sid
     let put_in = proportions(&support::repository().join(MADE_UP));
     // Heights the side view shows stand in, and its depths are given as ever.
     for name in [
-        "nose_mark_bottom_drop",
-        "nose_mark_corner_drop",
         "brow_inner_end_rise",
         "ear_base_outer_rise",
         "ear_top_rise",
@@ -457,8 +455,15 @@ fn a_height_the_front_view_hides_is_taken_from_the_side_view_but_not_an_ears_sid
         assert!(not_given.contains_key(name), "{name} is given");
     }
     // In a profile the ear's extents are toward the back and the front of the head: other
-    // points of the ear than its extents to the sides, so their heights do not stand in.
-    for name in ["ear_outer_extent_rise", "ear_inner_extent_rise"] {
+    // points of the ear than its extents to the sides, so their heights do not stand in. Nor
+    // do the nose mark's bottom and corner, which a side view puts under the tip of the nose
+    // and at the middle of the nostril.
+    for name in [
+        "ear_outer_extent_rise",
+        "ear_inner_extent_rise",
+        "nose_mark_bottom_drop",
+        "nose_mark_corner_drop",
+    ] {
         let why = not_given[name].as_str().expect("a reason");
         assert!(why.contains("side view"), "{name}: {why}");
     }

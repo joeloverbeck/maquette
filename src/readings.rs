@@ -11,12 +11,12 @@
 //! for: the skull, the middle of an eye opening, the centre of an iris, and the jaw line
 //! above the nose level.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest, Sha256};
 
 use crate::head_model;
-use crate::toml_text::quoted;
+use crate::toml_text::{quoted, words};
 use crate::views::View;
 use crate::{Error, Result};
 
@@ -540,22 +540,48 @@ pub fn not_a_picture(error: impl std::fmt::Display) -> Error {
     ))
 }
 
-/// What a file that holds a picture whole calls its format: `image/png` or `image/jpeg`.
+/// What a file that holds a picture whole calls its format: `image/png` or `image/jpeg`. A
+/// picture that is not [`upright`] is refused.
 pub fn picture_media_type(bytes: &[u8]) -> Result<&'static str> {
-    match image::guess_format(bytes).map_err(not_a_picture)? {
-        image::ImageFormat::Png => Ok("image/png"),
-        image::ImageFormat::Jpeg => Ok("image/jpeg"),
-        other => Err(not_a_picture(format!("it is in the format {other:?}"))),
-    }
+    let media_type = match image::guess_format(bytes).map_err(not_a_picture)? {
+        image::ImageFormat::Png => "image/png",
+        image::ImageFormat::Jpeg => "image/jpeg",
+        other => return Err(not_a_picture(format!("it is in the format {other:?}"))),
+    };
+    upright(bytes)?;
+    Ok(media_type)
 }
 
-/// How wide and how high a picture is, in pixels.
+/// How wide and how high a picture is, in pixels. A picture that is not [`upright`] is
+/// refused.
 pub fn picture_size(bytes: &[u8]) -> Result<(u32, u32)> {
+    upright(bytes)?;
     image::ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
         .map_err(not_a_picture)?
         .into_dimensions()
         .map_err(not_a_picture)
+}
+
+/// Refuses a picture whose file says it is to be shown turned or mirrored, as an EXIF
+/// orientation other than upright does. A browser, and so a reference check sheet, shows it
+/// turned; maquette reads and enlarges its pixels as they are stored, and never converts a
+/// picture. A reading of it, its enlargements and its sheet would then not agree.
+pub fn upright(bytes: &[u8]) -> Result<()> {
+    use image::ImageDecoder;
+    let mut decoder = image::ImageReader::new(std::io::Cursor::new(bytes))
+        .with_guessed_format()
+        .map_err(not_a_picture)?
+        .into_decoder()
+        .map_err(not_a_picture)?;
+    let orientation = decoder.orientation().map_err(not_a_picture)?;
+    if orientation == image::metadata::Orientation::NoTransforms {
+        return Ok(());
+    }
+    Err(Error::new(format!(
+        "the picture's file says it is shown turned or mirrored (its EXIF orientation is {}, and upright is 1). A browser shows it so, and maquette reads its pixels as they are stored, so a reading, an enlargement and a sheet of it would not agree. Such a picture is not read",
+        orientation.to_exif()
+    )))
 }
 
 /// What a reference is: said by whoever hands over the drawing, except the manner.
@@ -621,15 +647,6 @@ fn table<'a>(file: &'a toml::Table, key: &str) -> Result<&'a toml::Table> {
     file.get(key)
         .and_then(toml::Value::as_table)
         .ok_or_else(|| Error::new(format!("the reading has no [{key}] table")))
-}
-
-fn words(table: &toml::Table, key: &str) -> String {
-    table
-        .get(key)
-        .and_then(toml::Value::as_str)
-        .unwrap_or_default()
-        .trim()
-        .to_string()
 }
 
 fn number(value: Option<&toml::Value>) -> Option<f64> {
@@ -1113,6 +1130,20 @@ pub struct Drawing {
     pub placed: BTreeMap<String, [f64; 2]>,
     /// The landmarks only one of two readings places. They are left out.
     pub placed_by_one: Vec<String>,
+    /// The landmarks taken from one of two readings because Jon's mark left the other
+    /// reading's point out.
+    pub left_to_one: Vec<LeftToOne>,
+}
+
+/// A landmark of a drawing read twice that is taken from one reading alone, because Jon's
+/// mark left the other reading's point of it out.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LeftToOne {
+    pub landmark: String,
+    /// The reader whose point is taken.
+    pub kept: String,
+    /// The reader whose point Jon's mark left out.
+    pub left_out: String,
 }
 
 impl Drawing {
@@ -1120,6 +1151,15 @@ impl Drawing {
     /// that is not set aside, and two must be the two readings of one drawing, as
     /// [`same_drawing`] says.
     pub fn of(records: &[Record]) -> Result<Drawing> {
+        Drawing::of_marked(records, &[])
+    }
+
+    /// Takes readings together as [`Drawing::of`] does, after Jon's marks: `marked[i]` are
+    /// the landmarks a mark of his left out of `records[i]` alone. A landmark that one
+    /// reading places, and whose point in the other a mark left out, is taken from the one.
+    pub fn of_marked(records: &[Record], marked: &[BTreeSet<String>]) -> Result<Drawing> {
+        let marked_in =
+            |index: usize, name: &str| marked.get(index).is_some_and(|names| names.contains(name));
         let (first, second) = match records {
             [first] => (first, None),
             [first, second] => (first, Some(second)),
@@ -1139,6 +1179,7 @@ impl Drawing {
             stated_turns: first.turn_degrees.into_iter().collect(),
             placed: first.placed.clone(),
             placed_by_one: Vec::new(),
+            left_to_one: Vec::new(),
         };
         if let Some(second) = second {
             second.measurable()?;
@@ -1154,11 +1195,29 @@ impl Drawing {
                             [(at[0] + other[0]) / 2.0, (at[1] + other[1]) / 2.0],
                         );
                     }
+                    None if marked_in(1, name) => {
+                        drawing.placed.insert(name.clone(), *at);
+                        drawing.left_to_one.push(LeftToOne {
+                            landmark: name.clone(),
+                            kept: first.reader.clone(),
+                            left_out: second.reader.clone(),
+                        });
+                    }
                     None => drawing.placed_by_one.push(name.clone()),
                 }
             }
-            for name in second.placed.keys() {
-                if !first.placed.contains_key(name) {
+            for (name, at) in &second.placed {
+                if first.placed.contains_key(name) {
+                    continue;
+                }
+                if marked_in(0, name) {
+                    drawing.placed.insert(name.clone(), *at);
+                    drawing.left_to_one.push(LeftToOne {
+                        landmark: name.clone(),
+                        kept: second.reader.clone(),
+                        left_out: first.reader.clone(),
+                    });
+                } else {
                     drawing.placed_by_one.push(name.clone());
                 }
             }
@@ -1170,6 +1229,33 @@ impl Drawing {
     /// The positions as the head model reads them. See [`Record::positions`].
     pub fn positions(&self) -> Result<head_model::Reading> {
         positions_of(self.view, self.faces, self.picture.width, &self.placed)
+    }
+
+    /// What was taken from one reading alone because of Jon's marks, in words: a sentence for
+    /// each reading kept. Nothing when nothing was.
+    pub fn left_to_one_words(&self) -> Vec<String> {
+        let mut pairs: Vec<(&str, &str)> = self
+            .left_to_one
+            .iter()
+            .map(|left| (left.kept.as_str(), left.left_out.as_str()))
+            .collect();
+        pairs.sort_unstable();
+        pairs.dedup();
+        pairs
+            .into_iter()
+            .map(|(kept, left_out)| {
+                let names: Vec<&str> = self
+                    .left_to_one
+                    .iter()
+                    .filter(|left| left.kept == kept && left.left_out == left_out)
+                    .map(|left| left.landmark.as_str())
+                    .collect();
+                format!(
+                    "Taken from the reading by {kept} alone, because Jon's mark left out the reading by {left_out}: {}.",
+                    names.join(", ")
+                )
+            })
+            .collect()
     }
 
     /// Who read the drawing, in words.

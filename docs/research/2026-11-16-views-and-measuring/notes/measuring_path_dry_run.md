@@ -337,7 +337,7 @@ On 2026-11-17 twelve readers read the first batch of published drawings under 20
 
 **One addition outside the side view,** which changes no placement: how a reading records that the person checking overruled a set-aside (`set_aside_overruled`, with who overruled it), and that such a drawing is read with every drawn landmark placed. The reader's own judgement stays in the reading beside it.
 
-**The retest.** The spec retests a reader whenever the instructions change. The only side drawing with known positions is the generator's own: Saffi's accepted side view, `armatures/saffi/side.svg`, whose landmark file says where each landmark is drawn. `score-reading` scores a side reading against that file, at the positions the view draws, which for her mouth and chin are the set-back ones. Two fresh readers read a picture of it under 2026-11-17.3.
+**The retest.** The spec retests a reader whenever the instructions change. The only side drawing with known positions is the generator's own: Saffi's accepted side view, `armatures/saffi/side.svg`, whose landmark file says where each landmark is drawn. `score-reading` scores a side reading against that file, at the positions the view draws, which for her mouth and chin are the set-back ones. Two fresh readers read a picture of it under 2026-11-17.3. Both readings were made by Fable 5.2.
 
 **The run.** On 2026-11-17, once. The picture is `side.svg` rendered at one pixel to a unit, 1000 pixels square, with the head 494 pixels high. Each reader was told which guide stands for which feature and nothing of where its points are, and saw nothing else. Both called it a side view facing the viewer's right, turned 90°, and level, and set nothing aside. Both readings passed their check. Each placed 29 landmarks and stated two as not seen: the iris's two side extents, which an iris seen from its edge does not have and the landmark file does not give. Nothing was placed though covered, and nothing was stated as not seen that the drawing shows.
 
@@ -368,6 +368,8 @@ On 2026-11-17 twelve readers read the first batch of published drawings under 20
 **The agreement between the two readers:** 29 landmarks compared, a mean of 0.09%, the largest 0.88% (the eye opening's top), none over 1%. Neither placed a landmark the other did not.
 
 **What these figures say.** On this drawing of guides, both readers followed the side view's naming (the near side, inner toward the front, the ear's base points, the hair's back and front, the neck's back and front), and placed every point to under 0.61% of head height. That is as close as the features were read on the underdrawings of sections 5 and 5c (means of 0.16% to 0.22%, worsts of 1.08% to 1.66%). The check and the score ran on a side reading. Under the limits below, these figures say nothing of how a painted profile is read, of level, or of human ears; the side readings of the first batch rest on the reading instructions alone.
+
+**Who read the batch.** Jon checked eighteen readings of the first batch at look 4, on 2026-11-17: thirteen made by Fable 5.2 and five by Opus 5.5. The two readings of this retest were Fable 5.2's. No test here has measured how accurately Opus 5.5 reads a drawing.
 
 What it can show:
 

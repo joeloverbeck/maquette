@@ -330,6 +330,62 @@ fn a_reading_is_started_of_a_jpeg_as_it_is_and_checked_against_it() {
 }
 
 #[test]
+fn a_jpeg_whose_file_says_it_is_shown_turned_is_refused() {
+    // A browser shows such a picture turned, and maquette reads its pixels as they are
+    // stored: a reader's positions, an enlargement and a sheet would not agree.
+    let folder = references("readings-jpeg-turned");
+    support::made_up_jpeg_with_orientation(&folder.join("turned.jpg"), 248, 240, 6);
+    let starting = |image: &str| {
+        maquette_in(
+            Some(&folder),
+            &[
+                "start-reading",
+                "--image",
+                image,
+                "--view",
+                "front",
+                "--reader",
+                "first made-up reader",
+                "--out",
+                "front.toml",
+            ],
+        )
+    };
+    let message = failure(&starting("turned.jpg"));
+    assert!(
+        message.contains("turned.jpg") && message.contains("shown turned or mirrored"),
+        "{message}"
+    );
+    assert!(!folder.join("front.toml").exists());
+    let output = maquette_in(
+        Some(&folder),
+        &[
+            "enlarge-image",
+            "--image",
+            "turned.jpg",
+            "--left",
+            "0",
+            "--top",
+            "0",
+            "--width",
+            "10",
+            "--height",
+            "10",
+            "--factor",
+            "2",
+            "--out",
+            "part.png",
+        ],
+    );
+    assert!(failure(&output).contains("shown turned or mirrored"));
+
+    // One whose file says it is upright is read as ever.
+    support::made_up_jpeg_with_orientation(&folder.join("upright.jpg"), 248, 240, 1);
+    let output = starting("upright.jpg");
+    assert!(output.status.success(), "{}", failure(&output));
+}
+
+#[test]
 fn a_drawing_whose_set_aside_was_overruled_is_read_and_every_landmark_is_asked_for() {
     let folder = folder_with_picture("readings-overruled");
     let template = start(&folder, "front", &[], "front.toml");

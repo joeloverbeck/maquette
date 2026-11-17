@@ -54,3 +54,12 @@ pub fn toml(value: f64, places: usize) -> String {
         format!("{text}.0")
     }
 }
+
+/// A count of things in words: "1 character", "6 characters".
+pub fn counted(number: usize, noun: &str) -> String {
+    if number == 1 {
+        format!("1 {noun}")
+    } else {
+        format!("{number} {noun}s")
+    }
+}

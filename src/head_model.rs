@@ -571,9 +571,37 @@ const TURNED: View = View::ThreeQuarter;
 const NO_DEPTH: &str = "a front view shows no depth, and no three-quarter view or side view of the character was read with it";
 
 /// The landmarks whose name marks another point of the head in a side view than in a front
-/// view: an ear's side extents, which in a profile are toward the back and the front of the
-/// head. Their heights are the front view's or not given.
-const ANOTHER_POINT_IN_A_SIDE_VIEW: &[Key] = &[("ear", "outer-extent"), ("ear", "inner-extent")];
+/// view, by the side-view part of the reading instructions. Their heights are the front
+/// view's or not given, and a fit does not set a side view's height of one against another
+/// view's. Their depths are taken from a side view as ever: a depth is the side view's alone.
+///
+/// - An ear's side extents, which in a profile are toward the back and the front of the head.
+/// - `nose-mark-bottom`, which in a side view is under the tip of the nose, where the outline
+///   turns back toward the face, and in a front view the lowest point of the mark as drawn.
+///   In one published work the two stood 8% of head height apart.
+/// - The nose mark's corner, which in a side view is the middle of the nostril or of the
+///   wing's curve, and in a front view the mark's point furthest toward that side.
+///
+/// Every other landmark a side view asks for names one point of the head in both views: a
+/// top, a bottom, an end or a corner that the instructions only say how to find in a profile.
+const ANOTHER_POINT_IN_A_SIDE_VIEW: &[Key] = &[
+    ("ear", "outer-extent"),
+    ("ear", "inner-extent"),
+    ("nose-mark-bottom", ""),
+    ("nose-mark", "corner"),
+];
+
+/// Whether a landmark, by a reading's name, marks another point of the head in a side view
+/// than in a front view: see [`ANOTHER_POINT_IN_A_SIDE_VIEW`].
+pub fn another_point_in_a_side_view(landmark: &str) -> bool {
+    LANDMARKS
+        .iter()
+        .filter(|spec| ANOTHER_POINT_IN_A_SIDE_VIEW.contains(&spec.key()))
+        .any(|spec| match spec.pair {
+            true => spec.left() == landmark || spec.right() == landmark,
+            false => spec.stem == landmark,
+        })
+}
 
 impl Views<'_> {
     fn front_frame(&self) -> Result<Frame> {
@@ -644,7 +672,7 @@ impl Views<'_> {
         found.ok_or_else(|| {
             Error::new(if another_point && self.turned.is_some() {
                 format!(
-                    "the front view has no position for {}, and a side view shows another point of the ear under that name, so its height is unknown",
+                    "the front view has no position for {}, and a side view shows another point of the head under that name, so its height is unknown",
                     spec.label()
                 )
             } else {
@@ -1065,15 +1093,14 @@ pub fn take_from(front: &Reading, beside: Beside) -> Result<Taken> {
             values.insert(name.to_string(), value);
         }
         Err(Error(why)) => {
-            // Where the list says a side view does not give a proportion, that is the
-            // reason, in the list's own words.
+            // Where the list says a side view does not give a proportion, its reason, in the
+            // list's own words, is said beside what was missing.
             let by_the_list = list
                 .find(name)
                 .filter(|_| beside_side)
-                .and_then(|proportion| proportion.side.strip_prefix("Not taken: "))
-                .filter(|_| name.ends_with("_depth"));
+                .and_then(|proportion| proportion.side_not_taken.as_deref());
             let why = match by_the_list {
-                Some(reason) => format!("a side view does not give it: {reason}"),
+                Some(reason) => format!("{why}; a side view does not give it: {reason}"),
                 None => why,
             };
             not_given.push((name.to_string(), why));

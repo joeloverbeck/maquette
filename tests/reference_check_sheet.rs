@@ -390,16 +390,15 @@ about = "a made-up character of a made-up work"
         "{all}"
     );
 
-    // The header: what the numbers are set against, that a side view's reading is untested,
-    // and each head's height.
+    // The header: what the numbers are set against, how far a side view's reading has been
+    // tested, and each head's height.
     assert!(
         said("nothing on this sheet is set against a position that is known"),
         "{all}"
     );
     assert!(
-        said(
-            "The reading of a side view has never been tested on a drawing whose positions are known"
-        ),
+        said("tested once on a drawing whose positions are known")
+            && said("not been tested on a painted side view"),
         "{all}"
     );
     assert!(said("work-1: front 480, side 240"), "{all}");

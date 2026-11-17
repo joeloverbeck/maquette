@@ -127,6 +127,7 @@ fn as_shown(picture: &image::DynamicImage) -> RgbImage {
 
 /// Enlarges a part of a picture, given as the bytes of its file.
 pub fn enlarge(picture: &[u8], part: &Part) -> Result<Enlarged> {
+    crate::readings::upright(picture)?;
     let picture =
         as_shown(&image::load_from_memory(picture).map_err(crate::readings::not_a_picture)?);
     if part.width == 0 || part.height == 0 {
