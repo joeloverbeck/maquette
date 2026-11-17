@@ -13,11 +13,12 @@ publish = false
 # working copy of a reference is gone: each image is embedded in it as base64.
 base64 = "0.22"
 # Reads a reference image, to enlarge a small head before it is read and to fit the image on
-# a reference check sheet. PNG and JPEG: the drawings with known positions are PNG, and
-# official sites publish heads in both. A picture is read as it was published and never
-# converted, because a reading records the digest of the file it was read from. Another
-# format is one feature of this crate when a reference first needs it.
-image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+# a reference check sheet. PNG, JPEG and WebP: the drawings with known positions are PNG,
+# official sites publish heads as PNG and JPEG, and 13 of the second batch's 22 references
+# came as WebP. A picture is read as it was published and never converted, because a reading
+# records the digest of the file it was read from. Another format is one feature of this
+# crate when a reference first needs it.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 # Reads the SVG of a hand-made drawing: its groups and shapes. The generator writes its SVG
 # as text and parses none, so the tests that read its output with this crate still share no
 # code with what they check.

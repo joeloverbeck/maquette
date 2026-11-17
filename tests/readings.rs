@@ -420,6 +420,58 @@ fn a_reading_is_started_of_a_jpeg_as_it_is_and_checked_against_it() {
 }
 
 #[test]
+fn a_reading_is_started_of_a_webp_as_it_is_and_checked_against_it() {
+    let folder = references("readings-webp");
+    support::made_up_webp(&folder.join("picture.webp"), 248, 240);
+    let as_made = std::fs::read(folder.join("picture.webp")).expect("read");
+
+    measure_ok(
+        &folder,
+        &[
+            "start-reading",
+            "--image",
+            "picture.webp",
+            "--view",
+            "front",
+            "--reader",
+            "first made-up reader",
+            "--out",
+            "front.toml",
+        ],
+    );
+    let template = text(&folder.join("front.toml"));
+
+    // The digest is of the file as it is: the picture is not converted to be read.
+    assert_eq!(
+        std::fs::read(folder.join("picture.webp")).expect("read"),
+        as_made,
+        "the picture was changed"
+    );
+    let digest = support::sha256_hex(&as_made);
+    assert!(
+        template.contains(&format!("sha256 = \"{digest}\"")),
+        "{template}"
+    );
+    assert!(template.contains("file = \"picture.webp\""), "{template}");
+    assert!(template.contains("width = 248"), "{template}");
+    assert!(template.contains("height = 240"), "{template}");
+
+    // Filled in, the reading passes its check against the WebP.
+    let filled = filled_in(&template, 0.0, &|name| {
+        Some([124.0, 20.0 + name.len() as f64 * 5.0])
+    });
+    std::fs::write(folder.join("front.toml"), &filled).expect("written");
+    let printed = measure_ok(&folder, &["check-reading", "--reading", "front.toml"]);
+    assert!(printed.contains("60 landmarks placed"), "{printed}");
+
+    // And not once the WebP has changed.
+    support::made_up_webp(&folder.join("picture.webp"), 249, 240);
+    let output = maquette_in(Some(&folder), &["check-reading", "--reading", "front.toml"]);
+    let said = String::from_utf8_lossy(&output.stdout).into_owned() + &failure(&output);
+    assert!(said.contains("digest"), "{said}");
+}
+
+#[test]
 fn a_jpeg_whose_file_says_it_is_shown_turned_is_refused() {
     // A browser shows such a picture turned, and maquette reads its pixels as they are
     // stored: a reader's positions, an enlargement and a sheet would not agree.
@@ -472,6 +524,41 @@ fn a_jpeg_whose_file_says_it_is_shown_turned_is_refused() {
     // One whose file says it is upright is read as ever.
     support::made_up_jpeg_with_orientation(&folder.join("upright.jpg"), 248, 240, 1);
     let output = starting("upright.jpg");
+    assert!(output.status.success(), "{}", failure(&output));
+}
+
+#[test]
+fn a_webp_whose_file_says_it_is_shown_turned_is_refused() {
+    // A WebP keeps its EXIF in a chunk of its own, and a browser turns it by that as it does
+    // a JPEG. Every WebP of the second batch carries one.
+    let folder = references("readings-webp-turned");
+    support::made_up_webp_with_orientation(&folder.join("turned.webp"), 248, 240, 6);
+    let starting = |image: &str| {
+        maquette_in(
+            Some(&folder),
+            &[
+                "start-reading",
+                "--image",
+                image,
+                "--view",
+                "front",
+                "--reader",
+                "first made-up reader",
+                "--out",
+                "front.toml",
+            ],
+        )
+    };
+    let message = failure(&starting("turned.webp"));
+    assert!(
+        message.contains("turned.webp") && message.contains("shown turned or mirrored"),
+        "{message}"
+    );
+    assert!(!folder.join("front.toml").exists());
+
+    // One whose EXIF says it is upright is read as ever.
+    support::made_up_webp_with_orientation(&folder.join("upright.webp"), 248, 240, 1);
+    let output = starting("upright.webp");
     assert!(output.status.success(), "{}", failure(&output));
 }
 
@@ -578,8 +665,8 @@ fn a_side_reading_is_started_with_what_each_landmark_is_in_a_profile() {
 }
 
 #[test]
-fn a_file_in_neither_format_is_refused_and_the_message_names_the_two_that_are_read() {
-    let folder = references("readings-neither-format");
+fn a_file_in_none_of_the_formats_is_refused_and_the_message_names_the_three_that_are_read() {
+    let folder = references("readings-none-of-the-formats");
     // The header of a GIF and nothing after it, and a file that is no picture at all.
     std::fs::write(
         folder.join("picture.gif"),
@@ -625,7 +712,7 @@ fn a_file_in_neither_format_is_refused_and_the_message_names_the_two_that_are_re
         for (command, output) in [("start-reading", started), ("enlarge-image", enlarged)] {
             let message = failure(&output);
             assert!(
-                message.contains("a PNG or a JPEG, the two formats maquette reads"),
+                message.contains("a PNG, a JPEG or a WebP, the three formats maquette reads"),
                 "{command} of {image}: {message}"
             );
         }

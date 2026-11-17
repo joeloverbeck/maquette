@@ -121,6 +121,48 @@ fn a_part_of_a_jpeg_is_enlarged_as_a_png_with_its_pixels_in_place() {
 }
 
 #[test]
+fn a_part_of_a_webp_is_enlarged_as_a_png_with_its_pixels_in_place() {
+    let folder = references("enlargement-webp");
+    support::made_up_webp(&folder.join("picture.webp"), 200, 100);
+    measure_ok(
+        &folder,
+        &[
+            "enlarge-image",
+            "--image",
+            "picture.webp",
+            "--left",
+            "30",
+            "--top",
+            "10",
+            "--width",
+            "40",
+            "--height",
+            "30",
+            "--factor",
+            "4",
+            "--out",
+            "working/part.png",
+        ],
+    );
+    let written = std::fs::read(folder.join("working/part.png")).expect("the enlargement");
+    assert!(
+        written.starts_with(b"\x89PNG\r\n\x1a\n"),
+        "the enlargement is not a PNG"
+    );
+    let enlarged = image::load_from_memory(&written)
+        .expect("the enlargement is a picture")
+        .to_rgb8();
+    assert_eq!(enlarged.dimensions(), (160, 120));
+    // The made-up WebP is lossless, so each pixel is exactly as made. The dark block starts
+    // at 40, 20 in the picture: 10 pixels into the part each way.
+    assert_eq!(pixel(&enlarged, 39, 39), GREY);
+    assert_eq!(pixel(&enlarged, 40, 40), DARK);
+    assert_eq!(pixel(&enlarged, 119, 79), DARK);
+    assert_eq!(pixel(&enlarged, 120, 79), GREY);
+    assert_eq!(pixel(&enlarged, 119, 80), GREY);
+}
+
+#[test]
 fn a_see_through_part_of_a_picture_is_enlarged_as_it_is_shown_on_a_white_page() {
     // Made up: 30 by 10, in three upright bands. The first is dark and solid. The second is
     // wholly see-through and holds black underneath, as a published head cut out of its

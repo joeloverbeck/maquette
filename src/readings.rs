@@ -533,19 +533,20 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
 }
 
 /// What is said of a file that is not a picture maquette reads. A picture is read as it was
-/// published, as a PNG or as a JPEG, and is told by its bytes, not by its name.
+/// published, as a PNG, a JPEG or a WebP, and is told by its bytes, not by its name.
 pub fn not_a_picture(error: impl std::fmt::Display) -> Error {
     Error::new(format!(
-        "the picture cannot be read as a PNG or a JPEG, the two formats maquette reads: {error}"
+        "the picture cannot be read as a PNG, a JPEG or a WebP, the three formats maquette reads: {error}"
     ))
 }
 
-/// What a file that holds a picture whole calls its format: `image/png` or `image/jpeg`. A
-/// picture that is not [`upright`] is refused.
+/// What a file that holds a picture whole calls its format: `image/png`, `image/jpeg` or
+/// `image/webp`. A picture that is not [`upright`] is refused.
 pub fn picture_media_type(bytes: &[u8]) -> Result<&'static str> {
     let media_type = match image::guess_format(bytes).map_err(not_a_picture)? {
         image::ImageFormat::Png => "image/png",
         image::ImageFormat::Jpeg => "image/jpeg",
+        image::ImageFormat::WebP => "image/webp",
         other => return Err(not_a_picture(format!("it is in the format {other:?}"))),
     };
     upright(bytes)?;

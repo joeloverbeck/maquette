@@ -301,6 +301,51 @@ readings = ["first/front.toml"]
     );
 }
 
+#[test]
+fn a_drawing_published_as_a_webp_is_inside_the_sheet_as_the_webp_it_is() {
+    let folder = references("reference-check-sheet-webp");
+    support::made_up_webp(&folder.join("pictures/front.webp"), 1000, 1000);
+    reading(
+        &folder,
+        MadeUp::front("first", seen(0.0, 500.0)),
+        "pictures/front.webp",
+        "first/front.toml",
+    );
+    std::fs::write(
+        folder.join("sheet.toml"),
+        r#"# A made-up sheet for a test.
+note = "Made up for a test: the grey picture shows no drawing."
+look = "No look is asked: a made-up sheet"
+
+[[character]]
+label = "Character 1"
+readings = ["first/front.toml"]
+"#,
+    )
+    .expect("the sheet description is written");
+
+    let svg = rendered(&folder);
+    let document = roxmltree::Document::parse(&svg).expect("the sheet is well-formed SVG");
+    let pictures: Vec<roxmltree::Node> = document
+        .descendants()
+        .filter(|node| node.has_tag_name("image"))
+        .collect();
+    assert_eq!(pictures.len(), 1);
+    let embedded = pictures[0]
+        .attribute("href")
+        .expect("an href")
+        .strip_prefix("data:image/webp;base64,")
+        .expect("a WebP is embedded as a WebP");
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(embedded)
+        .expect("base64");
+    assert_eq!(
+        bytes,
+        std::fs::read(folder.join("pictures/front.webp")).expect("the picture"),
+        "the sheet holds another picture than the one that was read"
+    );
+}
+
 /// A made-up reference folder with one picture that holds two heads of one character: a
 /// front view on the left, and on the right a side view at half its size. Each is read by
 /// two readers.
