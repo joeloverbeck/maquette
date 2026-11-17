@@ -82,6 +82,8 @@ pub struct MadeUp {
     pub level: bool,
     pub set_aside: bool,
     pub points: BTreeMap<String, [f64; 2]>,
+    /// The work the reading says the drawing is from: made up, as everything here.
+    pub work: String,
 }
 
 impl MadeUp {
@@ -96,6 +98,7 @@ impl MadeUp {
             level: true,
             set_aside: false,
             points,
+            work: "a made-up work".to_string(),
         }
     }
 
@@ -110,6 +113,7 @@ impl MadeUp {
             level: true,
             set_aside: false,
             points,
+            work: "a made-up work".to_string(),
         }
     }
 
@@ -168,9 +172,10 @@ impl MadeUp {
             self.picture,
             super::said_by(&template, "sha256")
         ));
-        out.push_str(
-            "\n[reference]\nwork = \"a made-up work\"\ndesigner = \"a made-up designer\"\nsource = \"a made-up source\"\nage_band = \"adult\"\nsex = \"woman\"\nspecies = \"human\"\nmanner = \"made up\"\n",
-        );
+        out.push_str(&format!(
+            "\n[reference]\nwork = \"{}\"\ndesigner = \"a made-up designer\"\nsource = \"a made-up source\"\nage_band = \"adult\"\nsex = \"woman\"\nspecies = \"human\"\nmanner = \"made up\"\n",
+            self.work
+        ));
         out.push_str(&format!(
             "\n[judgement]\nview = \"{}\"\nview_why = \"made up: the view\"\n",
             self.view

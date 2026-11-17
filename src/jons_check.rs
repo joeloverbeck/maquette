@@ -1,0 +1,736 @@
+//! The record of Jon's check of a reference check sheet: which characters he accepts, which
+//! points he marks as off, and where he overrules the readers on whether a drawing is
+//! measured.
+//!
+//! This module hides what the record holds, what makes it complete, and what it does to the
+//! readings: which of a drawing's readings are measured after his check, and with which
+//! landmarks left out. Jon says his decisions in words and an agent writes them down, so the
+//! record is a small TOML file a person can read. `maquette start-jons-check` writes one to
+//! fill in from a sheet's description, and `maquette jons-check` says what a record does.
+//!
+//! The record names each reading with the digest of its file, so that what Jon accepted is
+//! those readings and no later ones. It is of one reference each, stays in the reference
+//! folder and is never committed.
+//!
+//! Nothing here judges a drawing. The program reports what the record says and what follows
+//! from it by the rules below; the decisions are Jon's.
+
+use std::collections::BTreeMap;
+
+use crate::readings::{Record, view_named};
+use crate::toml_text::quoted;
+use crate::views::View;
+use crate::{Error, Result};
+
+/// How many works a view needs behind it to be a table: a view with fewer is too thin
+/// (`docs/foundation/04-evidence-and-references.md`, "Reference drawings", point 6).
+pub const WORKS_FOR_A_TABLE: usize = 5;
+
+/// What the record does, by name, as `maquette jons-check` states it.
+pub const RULES: &[(&str, &str)] = &[
+    (
+        "accepted_only",
+        "Only the readings of a character Jon accepted are measured. A character he rejected, or has not given a verdict on, gives nothing.",
+    ),
+    (
+        "as_the_readers_judged",
+        "Where Jon gives no ruling on a drawing, it is measured as its readers judged it: from its one reading or its two when each calls the head level and none sets it aside, and not at all when a reader set it aside or the two do not judge the view alike.",
+    ),
+    (
+        "measure",
+        "Where Jon rules that a drawing is measured, it is measured as a level head in the view of its card, or in the view he names, from each of its readings that judged that view and placed its landmarks. A reading that set the drawing aside placed nothing, so a drawing both readers set aside must be read again before it is measured.",
+    ),
+    (
+        "set_aside",
+        "Where Jon rules that a drawing is set aside, it is not measured, whatever its readers judged. The character's other drawings stand.",
+    ),
+    (
+        "off",
+        "A landmark Jon marks as off on a drawing is left out of that drawing, in each of its readings. The drawing is still measured, and what that landmark alone would have given is not given, or is taken from the character's other view where the rules for two views say so. A mark is a landmark's name, or a name with `*` in it for every landmark it fits: `ear-*` is every landmark of both ears.",
+    ),
+    (
+        "proportions_off",
+        "A proportion Jon marks as off for a character is not given for that character's work, and its landmarks stay: the eye opening's height can be left out while the opening's top and bottom still give the eye line.",
+    ),
+    (
+        "counted",
+        "A work counts for a view when its character is accepted and that view's drawing is measured after the rulings. A view with fewer works than a table needs is reported as too thin.",
+    ),
+];
+
+/// Jon's verdict on a character.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Verdict {
+    Accepted,
+    Rejected,
+}
+
+/// Jon's ruling on a drawing, where he overrules its readers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Ruling {
+    Measure,
+    SetAside,
+}
+
+/// One reading the record names: its path in the reference folder, and the SHA-256 digest
+/// of its file when the record was started.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Named {
+    pub path: String,
+    pub sha256: String,
+}
+
+/// One drawing of a character, as the record holds it.
+#[derive(Debug, Clone)]
+pub struct DrawingChecked {
+    /// The view of the card the sheet shows it on.
+    pub card: View,
+    /// Which picture it is, in words.
+    pub picture: String,
+    pub readings: Vec<Named>,
+    pub ruling: Option<Ruling>,
+    pub ruling_why: String,
+    /// With a ruling to measure: the view Jon says it is, where it is not the card's.
+    pub view: Option<View>,
+    /// The landmarks Jon marks as off: each a name, or a name with `*` in it.
+    pub off: Vec<String>,
+}
+
+/// One character, as the record holds it.
+#[derive(Debug, Clone)]
+pub struct Checked {
+    pub label: String,
+    pub verdict: Option<Verdict>,
+    pub why: String,
+    /// The proportions Jon marks as off for the character, by their names in the list.
+    pub proportions_off: Vec<String>,
+    pub drawings: Vec<DrawingChecked>,
+}
+
+/// Whether a mark fits a landmark's name: the name itself, or with `*` for any run of it.
+pub fn fits(mark: &str, name: &str) -> bool {
+    let mut parts = mark.split('*');
+    let first = parts.next().unwrap_or_default();
+    let Some(mut rest) = name.strip_prefix(first) else {
+        return false;
+    };
+    let mut parts: Vec<&str> = parts.collect();
+    let Some(last) = parts.pop() else {
+        // No `*`: the whole name.
+        return rest.is_empty();
+    };
+    for part in parts {
+        match rest.find(part) {
+            Some(at) => rest = &rest[at + part.len()..],
+            None => return false,
+        }
+    }
+    rest.ends_with(last)
+}
+
+fn names(table: &toml::Table, key: &str) -> Vec<String> {
+    table
+        .get(key)
+        .and_then(toml::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|name| name.as_str().map(|name| name.trim().to_string()))
+        .collect()
+}
+
+/// The record of one check.
+#[derive(Debug, Clone)]
+pub struct Check {
+    /// Which of Jon's looks it was.
+    pub look: String,
+    pub checked_on: String,
+    /// Who wrote the record down from Jon's words.
+    pub recorded_by: String,
+    /// The sheet description it was started from.
+    pub sheet: String,
+    pub characters: Vec<Checked>,
+    /// What the file gives that is not right in itself.
+    faults: Vec<String>,
+}
+
+/// One drawing of a sheet, for a record to be started from.
+pub struct ToCheck<'a> {
+    pub card: View,
+    pub picture: String,
+    /// Each reading: its path, the digest of its file, and the reading.
+    pub readings: Vec<(&'a str, String, &'a Record)>,
+}
+
+fn judged(record: &Record) -> String {
+    let mut out = format!("a {} view", record.view.name());
+    if let Some(faces) = record.faces {
+        out.push_str(&format!(" facing {}", faces.words()));
+    }
+    out.push_str(match record.level {
+        Some(true) => ", level",
+        Some(false) => ", not level",
+        None => ", level not said",
+    });
+    if record.set_aside {
+        out.push_str(", and set it aside");
+    }
+    out
+}
+
+/// A record to fill in: every character of a sheet with its drawings and their readings,
+/// and no verdict.
+pub fn template(sheet: &str, characters: &[(&str, Vec<ToCheck>)]) -> String {
+    let mut out = String::from(
+        "\
+# The record of Jon's check of a reference check sheet.
+#
+# Started by `maquette start-jons-check`. Jon says his decisions in words; whoever hears them
+# writes them here, and `maquette jons-check` then says what the record does and what it
+# still lacks. Only what Jon said is written: nothing here is an agent's judgement.
+# The record is private: it stays in the reference folder and is never committed.
+#
+# - `verdict` is \"accepted\" or \"rejected\", for each character.
+# - `ruling` is left empty where Jon goes by the readers. Where he overrules them it is
+#   \"measure\" (a drawing a reader set aside is measured after all) or \"set aside\" (a
+#   drawing the readers measured is not). With \"measure\", add `view = \"front\"` (or
+#   \"three-quarter\" or \"side\") where Jon says the drawing is another view than its card's.
+# - `off` lists the landmarks Jon marks as off on that drawing, by the names the sheet gives:
+#   each is left out of that drawing, and the drawing is still measured. A name may hold `*`
+#   for every landmark it fits: \"ear-*\" is both ears, \"mouth-line-*\" the whole mouth,
+#   \"brow-line-*\" both brows.
+# - `proportions_off` lists the proportions Jon marks as off for the character, by their
+#   names in `maquette list-proportions`: each is not given for this work, and its landmarks
+#   stay. \"eye_opening_height\" leaves the opening's height out and keeps the eye line.
+# - `why` and `ruling_why` are his words, where he gave any.
+# - The readings and their digests are what he checked: do not change them. A reading that
+#   has changed since is not the reading he accepted.
+
+",
+    );
+    out.push_str("# Which of Jon's looks this was, such as \"Look 4 of 8\".\nlook = \"\"\n");
+    out.push_str("# The day he checked the sheet.\nchecked_on = \"\"\n");
+    out.push_str("# Who wrote this record down from his words.\nrecorded_by = \"\"\n");
+    out.push_str(&format!(
+        "# The sheet description this record was started from.\nsheet = {}\n",
+        quoted(sheet)
+    ));
+    for (label, drawings) in characters {
+        out.push_str(&format!(
+            "\n[[character]]\nlabel = {}\nverdict = \"\"\nwhy = \"\"\nproportions_off = []\n",
+            quoted(label)
+        ));
+        for drawing in drawings {
+            out.push_str(&format!(
+                "\n  [[character.drawing]]\n  card = {}\n  picture = {}\n",
+                quoted(drawing.card.name()),
+                quoted(&drawing.picture)
+            ));
+            for (_, _, record) in &drawing.readings {
+                out.push_str(&format!(
+                    "  # {} judged {}.\n",
+                    record.reader,
+                    judged(record)
+                ));
+            }
+            out.push_str("  ruling = \"\"\n  ruling_why = \"\"\n  off = []\n  readings = [\n");
+            for (path, sha256, _) in &drawing.readings {
+                out.push_str(&format!(
+                    "    {{ path = {}, sha256 = {} }},\n",
+                    quoted(path),
+                    quoted(sha256)
+                ));
+            }
+            out.push_str("  ]\n");
+        }
+    }
+    out
+}
+
+fn words(table: &toml::Table, key: &str) -> String {
+    table
+        .get(key)
+        .and_then(toml::Value::as_str)
+        .unwrap_or_default()
+        .trim()
+        .to_string()
+}
+
+fn tables<'a>(table: &'a toml::Table, key: &str) -> Vec<&'a toml::Table> {
+    table
+        .get(key)
+        .and_then(toml::Value::as_array)
+        .map(|entries| entries.iter().filter_map(toml::Value::as_table).collect())
+        .unwrap_or_default()
+}
+
+impl Check {
+    /// Reads the text of a record. One that is not filled in is still read: what it lacks
+    /// is [`Check::said`]'s to say.
+    pub fn read(text: &str) -> Result<Check> {
+        let file: toml::Table = text.parse().map_err(|error| {
+            Error::new(format!(
+                "the record of Jon's check is not valid TOML: {error}"
+            ))
+        })?;
+        let mut faults = Vec::new();
+        let mut characters = Vec::new();
+        for entry in tables(&file, "character") {
+            let label = words(entry, "label");
+            if label.is_empty() {
+                return Err(Error::new(
+                    "a [[character]] of the record of Jon's check has no `label`",
+                ));
+            }
+            let verdict = match words(entry, "verdict").as_str() {
+                "" => None,
+                "accepted" => Some(Verdict::Accepted),
+                "rejected" => Some(Verdict::Rejected),
+                other => {
+                    faults.push(format!(
+                        "the verdict on `{label}` is \"{other}\": a verdict is \"accepted\" or \"rejected\""
+                    ));
+                    None
+                }
+            };
+            let mut drawings = Vec::new();
+            for drawing in tables(entry, "drawing") {
+                let card = view_named(&words(drawing, "card")).map_err(|error| {
+                    Error::new(format!(
+                        "a drawing of `{label}` in the record of Jon's check: its `card`: {error}"
+                    ))
+                })?;
+                let of = format!("the {} view of `{label}`", card.name());
+                let ruling = match words(drawing, "ruling").as_str() {
+                    "" => None,
+                    "measure" => Some(Ruling::Measure),
+                    "set aside" => Some(Ruling::SetAside),
+                    other => {
+                        faults.push(format!(
+                            "the ruling on {of} is \"{other}\": a ruling is \"measure\" or \"set aside\", or is left empty where Jon goes by the readers"
+                        ));
+                        None
+                    }
+                };
+                let view = match words(drawing, "view").as_str() {
+                    "" => None,
+                    named => match view_named(named) {
+                        Ok(view) => Some(view),
+                        Err(error) => {
+                            faults.push(format!("the `view` of {of}: {error}"));
+                            None
+                        }
+                    },
+                };
+                let off = names(drawing, "off");
+                let readings: Vec<Named> = tables(drawing, "readings")
+                    .into_iter()
+                    .map(|reading| Named {
+                        path: words(reading, "path"),
+                        sha256: words(reading, "sha256"),
+                    })
+                    .collect();
+                if readings.is_empty()
+                    || readings
+                        .iter()
+                        .any(|named| named.path.is_empty() || named.sha256.is_empty())
+                {
+                    return Err(Error::new(format!(
+                        "{of} in the record of Jon's check does not name its `readings`, each with its `path` and its `sha256`"
+                    )));
+                }
+                drawings.push(DrawingChecked {
+                    card,
+                    picture: words(drawing, "picture"),
+                    readings,
+                    ruling,
+                    ruling_why: words(drawing, "ruling_why"),
+                    view,
+                    off,
+                });
+            }
+            characters.push(Checked {
+                label,
+                verdict,
+                why: words(entry, "why"),
+                proportions_off: names(entry, "proportions_off"),
+                drawings,
+            });
+        }
+        if characters.is_empty() {
+            return Err(Error::new(
+                "the record of Jon's check has no [[character]]: `maquette start-jons-check` writes one for each character of a sheet",
+            ));
+        }
+        Ok(Check {
+            look: words(&file, "look"),
+            checked_on: words(&file, "checked_on"),
+            recorded_by: words(&file, "recorded_by"),
+            sheet: words(&file, "sheet"),
+            characters,
+            faults,
+        })
+    }
+
+    /// The character and the drawing a reading belongs to. `same` says whether a path the
+    /// record names is the reading looked for.
+    pub fn drawing_of(&self, same: &dyn Fn(&str) -> bool) -> Option<(&Checked, &DrawingChecked)> {
+        self.characters.iter().find_map(|character| {
+            character
+                .drawings
+                .iter()
+                .find(|drawing| drawing.readings.iter().any(|named| same(&named.path)))
+                .map(|drawing| (character, drawing))
+        })
+    }
+}
+
+/// What the record does to one drawing.
+#[derive(Debug, Clone)]
+pub enum Outcome {
+    /// It is measured: from these readings, as changed by the rulings and the marks.
+    Measured {
+        view: View,
+        records: Vec<Record>,
+        /// How, in words.
+        said: String,
+    },
+    /// It is not measured, and why.
+    NotMeasured(String),
+}
+
+impl DrawingChecked {
+    /// The view the drawing counts as: the one Jon names, or its card's.
+    pub fn counts_as(&self) -> View {
+        self.view.unwrap_or(self.card)
+    }
+
+    /// What the record does to the drawing's readings, given as they are in their files and
+    /// in the record's order: the rules `as_the_readers_judged`, `measure`, `set_aside` and
+    /// `off`.
+    pub fn outcome(&self, records: &[Record]) -> Outcome {
+        let quote = |why: &str| {
+            if why.is_empty() {
+                String::new()
+            } else {
+                format!(": \"{why}\"")
+            }
+        };
+        let (mut measured, mut said): (Vec<Record>, String) = match self.ruling {
+            Some(Ruling::SetAside) => {
+                return Outcome::NotMeasured(format!(
+                    "set aside by Jon{}",
+                    quote(&self.ruling_why)
+                ));
+            }
+            Some(Ruling::Measure) => {
+                let view = self.counts_as();
+                let fit: Vec<Record> = records
+                    .iter()
+                    .filter(|record| record.view == view && !record.placed.is_empty())
+                    .cloned()
+                    .map(|mut record| {
+                        record.set_aside = false;
+                        record.level = Some(true);
+                        record
+                    })
+                    .collect();
+                if fit.is_empty() {
+                    return Outcome::NotMeasured(format!(
+                        "Jon rules that it is measured as a {} view{}, and no reading of it places its landmarks as one: it must be read again before it is measured",
+                        view.name(),
+                        quote(&self.ruling_why)
+                    ));
+                }
+                let readers: Vec<&str> = fit.iter().map(|record| record.reader.as_str()).collect();
+                let said = format!(
+                    "measured as a {} view by Jon's ruling{}, from the reading by {}{}",
+                    view.name(),
+                    quote(&self.ruling_why),
+                    readers.join(" and by "),
+                    match records.len() - fit.len() {
+                        0 => "",
+                        _ => ", which is the one that places its landmarks as that view",
+                    }
+                );
+                (fit, said)
+            }
+            None => {
+                if let Some(aside) = records
+                    .iter()
+                    .find(|record| record.set_aside || record.level != Some(true))
+                {
+                    return Outcome::NotMeasured(format!(
+                        "set aside by {}{}, and Jon gave no ruling on it",
+                        aside.reader,
+                        quote(&aside.set_aside_why)
+                    ));
+                }
+                if let [first, second] = records
+                    && (first.view != second.view || first.faces != second.faces)
+                {
+                    return Outcome::NotMeasured(
+                        "its two readers do not judge the view alike, and Jon gave no ruling on which it is".to_string(),
+                    );
+                }
+                let said = match records.len() {
+                    1 => "measured from its one reading, as its reader judged it".to_string(),
+                    count => {
+                        format!("measured from its {count} readings, as its readers judged it")
+                    }
+                };
+                (records.to_vec(), said)
+            }
+        };
+        if !self.off.is_empty() {
+            for record in &mut measured {
+                record
+                    .placed
+                    .retain(|name, _| !self.off.iter().any(|mark| fits(mark, name)));
+            }
+            said.push_str(&format!(
+                ". Left out by Jon's marks: {}",
+                self.off.join(", ")
+            ));
+        }
+        let view = measured[0].view;
+        Outcome::Measured {
+            view,
+            records: measured,
+            said,
+        }
+    }
+}
+
+/// What a record says and does, for a person: [`Check::said`]'s result.
+pub struct Said {
+    pub text: String,
+    /// Whether the record lacks nothing and gets nothing wrong.
+    pub complete: bool,
+}
+
+fn works(count: usize) -> String {
+    let thin = if count < WORKS_FOR_A_TABLE {
+        format!(": too thin, a view needs {WORKS_FOR_A_TABLE}")
+    } else {
+        String::new()
+    };
+    match count {
+        1 => format!("1 work{thin}"),
+        count => format!("{count} works{thin}"),
+    }
+}
+
+impl Check {
+    /// What the record says and does, and what it lacks or gets wrong. `reading` gives a
+    /// reading the record names as it is now: the digest of its file, and the reading.
+    pub fn said(&self, path: &str, reading: &dyn Fn(&str) -> Result<(String, Record)>) -> Said {
+        let mut problems = self.faults.clone();
+        for (key, value, what) in [
+            (
+                "look",
+                &self.look,
+                "which of Jon's looks this was, such as \"Look 4 of 8\"",
+            ),
+            (
+                "checked_on",
+                &self.checked_on,
+                "the day he checked the sheet",
+            ),
+            (
+                "recorded_by",
+                &self.recorded_by,
+                "who wrote the record down from his words",
+            ),
+        ] {
+            if value.is_empty() {
+                problems.push(format!("`{key}` is empty: {what}"));
+            }
+        }
+        let mut out = format!(
+            "Jon's check `{path}`: {}, checked on {}, recorded by {}.\n",
+            if self.look.is_empty() {
+                "look not said"
+            } else {
+                &self.look
+            },
+            if self.checked_on.is_empty() {
+                "a day not said"
+            } else {
+                &self.checked_on
+            },
+            if self.recorded_by.is_empty() {
+                "nobody named"
+            } else {
+                &self.recorded_by
+            }
+        );
+
+        // The works behind each view, and behind each route to depth: by the work each
+        // character's readings name.
+        let mut behind: BTreeMap<&'static str, Vec<String>> = BTreeMap::new();
+        for character in &self.characters {
+            let label = &character.label;
+            out.push('\n');
+            match character.verdict {
+                Some(Verdict::Accepted) => out.push_str(&format!("{label}: accepted")),
+                Some(Verdict::Rejected) => out.push_str(&format!("{label}: rejected")),
+                None => {
+                    out.push_str(&format!("{label}: not yet checked"));
+                    problems.push(format!(
+                        "`{label}` has no verdict: \"accepted\" or \"rejected\""
+                    ));
+                }
+            }
+            if !character.why.is_empty() {
+                out.push_str(&format!(": \"{}\"", character.why));
+            }
+            out.push_str(match character.verdict {
+                Some(Verdict::Accepted) => ".\n",
+                _ => ". Nothing of it is measured.\n",
+            });
+            if !character.proportions_off.is_empty() {
+                out.push_str(&format!(
+                    "  Marked as off by Jon and not given for this work: {}.\n",
+                    character.proportions_off.join(", ")
+                ));
+                match crate::proportions::list() {
+                    Ok(list) => {
+                        for name in &character.proportions_off {
+                            if list.find(name).is_none() {
+                                problems.push(format!(
+                                    "`{name}` is marked as off for `{label}`, and the list of proportions has no proportion of that name"
+                                ));
+                            }
+                        }
+                    }
+                    Err(error) => problems.push(error.to_string()),
+                }
+            }
+            let mut measured_views: Vec<View> = Vec::new();
+            let mut work = String::new();
+            for drawing in &character.drawings {
+                let of = format!("the {} view of `{label}`", drawing.card.name());
+                let mut records = Vec::new();
+                for named in &drawing.readings {
+                    match reading(&named.path) {
+                        Ok((sha256, record)) => {
+                            if sha256 != named.sha256 {
+                                problems.push(format!(
+                                    "`{}` has changed since the record was started: its digest is {sha256}, and the record names {}. It is not the reading Jon checked",
+                                    named.path, named.sha256
+                                ));
+                            }
+                            records.push(record);
+                        }
+                        Err(error) => problems.push(format!("`{}`: {error}", named.path)),
+                    }
+                }
+                if drawing.view.is_some() && drawing.ruling != Some(Ruling::Measure) {
+                    problems.push(format!(
+                        "{of} names a `view` and its ruling is not \"measure\": the view is said only where Jon rules that a drawing is measured as another view than its card's"
+                    ));
+                }
+                // A mark names a landmark the drawing's view asks for, placed or not.
+                let asked: Vec<String> = records
+                    .iter()
+                    .flat_map(|record| crate::readings::asked(drawing.counts_as(), record.faces))
+                    .map(|asked| asked.name)
+                    .collect();
+                for mark in &drawing.off {
+                    if !asked.iter().any(|name| fits(mark, name)) {
+                        problems.push(format!(
+                            "`{mark}` is marked as off on {of}, and a {} view asks for no landmark of that name",
+                            drawing.counts_as().name()
+                        ));
+                    }
+                }
+                if let Some(first) = records.first()
+                    && work.is_empty()
+                {
+                    work = first.reference.get("work").cloned().unwrap_or_default();
+                }
+                let outcome = if records.len() == drawing.readings.len() {
+                    drawing.outcome(&records)
+                } else {
+                    Outcome::NotMeasured("a reading of it could not be read".to_string())
+                };
+                let words = match &outcome {
+                    Outcome::Measured { view, said, .. } => {
+                        if character.verdict == Some(Verdict::Accepted) {
+                            measured_views.push(*view);
+                        }
+                        said.clone()
+                    }
+                    Outcome::NotMeasured(why) => format!("not measured: {why}"),
+                };
+                out.push_str(&format!(
+                    "  {}, {}: {words}.\n",
+                    drawing.card.name(),
+                    if drawing.picture.is_empty() {
+                        "its picture not named"
+                    } else {
+                        &drawing.picture
+                    }
+                ));
+            }
+            // A character with no work named still counts as a work of its own.
+            let work = if work.is_empty() {
+                format!("the work of `{label}`")
+            } else {
+                work
+            };
+            let has = |view: View| measured_views.contains(&view);
+            for (key, counted) in [
+                ("front", has(View::Front)),
+                ("three-quarter", has(View::ThreeQuarter)),
+                ("side", has(View::Side)),
+                ("front and side", has(View::Front) && has(View::Side)),
+                (
+                    "front and three-quarter",
+                    has(View::Front) && has(View::ThreeQuarter),
+                ),
+            ] {
+                let works = behind.entry(key).or_default();
+                if counted && !works.contains(&work) {
+                    works.push(work.clone());
+                }
+            }
+        }
+
+        let count = |key: &str| behind.get(key).map_or(0, Vec::len);
+        out.push_str(&format!(
+            "\nAccepted works for each view, of {} on the sheet:\n",
+            match self.characters.len() {
+                1 => "1 character".to_string(),
+                count => format!("{count} characters"),
+            }
+        ));
+        for view in View::ALL {
+            out.push_str(&format!(
+                "  {}: {}\n",
+                view.name(),
+                works(count(view.name()))
+            ));
+        }
+        out.push_str(&format!(
+            "  depth, from a front and a side view of one character: {}\n",
+            works(count("front and side"))
+        ));
+        out.push_str(&format!(
+            "  depth, from a front and a three-quarter view of one character: {}\n",
+            works(count("front and three-quarter"))
+        ));
+        if !problems.is_empty() {
+            out.push_str("\nThe record is not complete, so these counts are not final:\n");
+            for problem in &problems {
+                out.push_str(&format!("- {problem}\n"));
+            }
+        } else {
+            out.push_str("\nThe record is complete.\n");
+        }
+        Said {
+            text: out,
+            complete: problems.is_empty(),
+        }
+    }
+}

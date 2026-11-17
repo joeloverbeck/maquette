@@ -212,7 +212,12 @@ const DEPTHS_NOT_FROM_A_SIDE_VIEW: [&str; 5] = [
 /// picture of its own: drawn `scale` times the size of the front view and moved by `shift`,
 /// and facing the viewer's left when `faces_left`, which flips the picture left to right.
 fn side_reading(folder: &Path, name: &str, scale: f64, shift: [f64; 2], faces_left: bool) {
-    let generated = draw(&format!("{name}-generated"), MADE_UP, &[]);
+    // A scratch folder of this reading's own: two tests may each make a reading named `side`.
+    let of_folder = folder
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("folder");
+    let generated = draw(&format!("{of_folder}-{name}-generated"), MADE_UP, &[]);
     let file = LandmarkFile::read(&generated.join("side.landmarks.toml"));
     let picture = format!("{name}.png");
     // Another size than the other pictures, so that it is another picture.

@@ -37,6 +37,8 @@
 //!   in the enlargement is taken back to the picture.
 //! - [`reference_check_sheet`]: how readings and the pictures they were read from are laid
 //!   out on a reference check sheet.
+//! - [`jons_check`]: the record of Jon's check of a reference check sheet: what he accepts,
+//!   marks as off and overrules, and which readings are measured after it.
 //! - [`number`] and [`toml_text`]: how numbers and text are written, so that every file
 //!   agrees on them.
 
@@ -49,6 +51,7 @@ pub mod hand_made_drawings;
 pub mod hand_made_views;
 pub mod hard_case;
 pub mod head_model;
+pub mod jons_check;
 pub mod known_positions;
 pub mod measuring;
 pub mod number;

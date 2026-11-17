@@ -156,9 +156,11 @@ A reading says the head is level, or sets the drawing aside. A drawing that is s
 ```sh
 cargo run -- agreement-of-readings --first <reading> --second <reading> --out <file>
 cargo run -- turn-from-readings --front <readings> --three-quarter <readings> --out <file>
-cargo run -- fit-of-views --front <readings> --three-quarter <readings> --out <file>
-cargo run -- proportions-from-readings --front <readings> --three-quarter <readings> --out <file>
+cargo run -- fit-of-views --front <readings> [--three-quarter <readings>] [--side <readings>] --out <file>
+cargo run -- proportions-from-readings --front <readings> [--three-quarter <readings> | --side <readings>] --out <file>
 cargo run -- reference-check-sheet --sheet <description> --out <sheet.svg>
+cargo run -- start-jons-check --sheet <description> --out <check>
+cargo run -- jons-check --check <check>
 ```
 
 `<readings>` is one reading, or the two readings of the drawing with a comma between them: a landmark then stands midway between the two.
@@ -169,11 +171,32 @@ Every file these write states the rules behind its numbers. In short:
 
 - **The agreement** between two readings of one drawing: how far apart they put each landmark, as a share of head height. A disagreement above 1% is numbered. Most landmarks are compared as positions, by the straight distance. The hair's top and the top and bottom of an iris are compared in height only, and a side extent of the hair, of an iris or of an ear sideways only: each says how far a form reaches, and along a level or an upright stretch of its edge two readers may put the point anywhere. Where the face outline crosses the eye line, the nose level or the mouth level it is compared sideways only, because its height is the level's.
 - **The turn** a three-quarter drawing shows, from how far the spacing of left and right pairs narrows against the front view. It is worked out from the positions; the readers' own estimates stand beside it. Where the front view shows a pair with no spacing, or the three-quarter view shows the pairs wider apart than the front view does, there is no turn: the command fails and writes nothing.
-- **The fit** of a character's views to one head, as one figure: the largest misfit in level, in spacing against the turn, and from the front view's centre line. It is zero when the views are plain projections of one level, symmetric head.
+- **The fit** of a character's views to one head, as one figure: the largest misfit in level, in spacing against the turn, and from the front view's centre line. It is zero when the views are plain projections of one level, symmetric head. The front view is fitted with a three-quarter view, a side view or both. With a side view alone there is no turn: the two are set against each other in height, each in its own unit.
 - **The proportions** the readings give, by the head model's inverse direction, with the proportions they do not give and why. A published drawing shows no skull, so the skull is built by the rule the list of proportions states: its centre at the height and the depth of the middle of the ear's base, its radius the distance to the temple. `cargo run -- skull-by-rule --proportions <set>` sets the rule against a set whose skull is drawn.
-- **The reference check sheet**, rendered from a description that lists each character's readings: each character's views side by side with the points read, where two readings disagree, what was set aside and why, and the fit. Where two readings could not be compared, or are not the two readings of one drawing, the card of that drawing says so and the rest of the sheet stands. It is one SVG that holds its drawings. Its layout follows the mock-up in `design/first-table-sheets/`; `src/reference_check_sheet.rs` says where a real sheet departs from it and why.
+  - *A front view alone* gives heights and widths and no depth.
+  - *A front view and a three-quarter view* give depth at the turn the readings show.
+  - *A front view and a side view* give depth as the side view shows it. Each view is measured in its own unit, eye line to chin, which is upright and so as long from the side as from the front: the two drawings may be of two sizes. Depth zero in a side view is midway between the near eye's two corners, and a side view may face either way. Heights and widths are the front view's, and the side view stands in for a height the front view does not show.
+  - *What a side view cannot give.* It is asked for no temple, no cheek point and no jaw point, so the face outline's top end, the cheek points at the eye line, the nose level and the mouth level, and the jaw point get no depth. The skull's rule needs the temple's depth, so the skull is not built from a front and a side view. The list of proportions says this proportion by proportion.
+- **The reference check sheet**, rendered from a description that lists each character's readings: each character's views side by side with the points read, where two readings disagree, what each reader judged and why, what was set aside and why, and the fit. Where two readings could not be compared, or are not the two readings of one drawing, the card of that drawing says so and the rest of the sheet stands. It is one SVG that holds its drawings. Its layout follows the mock-up in `design/first-table-sheets/`; `src/reference_check_sheet.rs` says where a real sheet departs from it and why.
+  - One published picture often holds two heads of a character. The description then names each drawing by itself, with its own readings and, in words, which picture and head it is, and the sheet shows them as two drawings.
+  - Each card says which picture it is and how high the head is in it, in pixels. The header says that a disagreement sets the two readings against each other and against nothing known, and that the reading of a side view has never been tested on known positions.
+  - Where no character has a three-quarter view, the sheet says so once and the front and the side view stand beside each other.
 
-A front view and a three-quarter view are taken back into proportions. A side view can be read, compared and shown, and its heights count in the fit; taking depth from it is not built, because no side drawing has been read yet.
+Depth from a side view has been run on made-up heads only. No reading of a side drawing has been tested on a drawing whose positions are known.
+
+### Jon's check
+
+Jon checks every character on a reference check sheet and says his decisions in words. An agent writes them into a record, a small text file in the reference folder: `start-jons-check` writes one to fill in from the sheet's description, and `jons-check` says what a record does and what it still lacks.
+
+- **A verdict for each character:** accepted or rejected. Only an accepted character's readings are measured.
+- **A ruling on a drawing, where he overrules its readers:** `measure`, for a drawing a reader set aside, or `set aside`, for one the readers measured. A drawing ruled to be measured is measured from each reading that placed its landmarks; one that both readers set aside must be read again first.
+- **Points marked as off:** each is left out of that drawing, and the drawing is kept. A mark is a landmark's name, or a name with `*` for every landmark it fits, such as `ear-*`.
+- **Proportions marked as off for a character:** each is not given for that work, and its landmarks stay. The eye opening's height can be left out while the opening still gives the eye line.
+- **The readings he checked** are named with the digests of their files. A reading that has changed since is refused.
+
+`turn-from-readings`, `fit-of-views` and `proportions-from-readings` take the record as `--check <check>` and then measure only what he accepted, as he ruled, with his marks left out. Without it, what they write says that Jon has not checked the readings.
+
+`jons-check` also counts the accepted works for each view, and for each route to depth. A view with fewer than five is reported as too thin (`docs/foundation/04-evidence-and-references.md`).
 
 ### Testing a reader on known positions
 
@@ -201,7 +224,7 @@ cargo run -- compare-proportions --first <set> --second <set>
 | `data/saffi/` | The hand-made front and three-quarter views of the comparison case, as landmark positions: her S2 underdrawings, and the ears and lids of her final drawings that replace theirs. Also her set of proportions worked out from them, and the list of her drawings in mudsong that these numbers rest on. Numbers only; they never enter a proportion table |
 | `armatures/saffi/` | Saffi's accepted armature: the six files `maquette draw` writes from her set of proportions, as Jon accepted them at look 3. Generated output, not a design and not a table. A test pins their bytes |
 | `proportions/list.toml` | The list of proportions: the unit, and every proportion's name, definition for each view, and mark as measured or a convention, how each guide is built in each view, and each named correction with the rule of its amounts. The program reads this same file |
-| `Cargo.toml`, `src/` | The Rust package: the list and sets of proportions, the head model, the three views, the guides, the armature writer, the reading of a hand-made drawing, the differences from a hand-made armature, the read-back in VectorCraft, and measuring: the reference folder, the record of a reading, what readings say when set against each other, the scoring of a reading against known positions, the enlarging of a picture and the reference check sheet, under a thin command line |
+| `Cargo.toml`, `src/` | The Rust package: the list and sets of proportions, the head model, the three views, the guides, the armature writer, the reading of a hand-made drawing, the differences from a hand-made armature, the read-back in VectorCraft, and measuring: the reference folder, the record of a reading, what readings say when set against each other, the scoring of a reading against known positions, the enlarging of a picture, the reference check sheet and the record of Jon's check, under a thin command line |
 | `tests/` | Tests that drive the command line, files in and files out. `tests/fixtures/` holds made-up proportions, made-up views, a made-up drawing and a made-up record of known positions that say so, and recordings of VectorCraft's replies that say so. The readings and pictures the measuring tests use are made up by the tests themselves, in the system's temporary folder |
 | `.github/workflows/checks.yml` | Formatting, lints and tests on every pull request |
 | `.gitattributes` | Keeps Git from converting line endings in `armatures/`, so that a checkout cannot change the pinned bytes |

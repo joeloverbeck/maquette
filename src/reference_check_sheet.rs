@@ -455,6 +455,30 @@ fn drawings_of<'a>(character: &'a Character, reads: &'a [Vec<Read>]) -> Result<V
     Ok(shown)
 }
 
+/// One drawing of a character as a sheet shows it: the view of its card, which picture it
+/// is, and its readings. The record of Jon's check is started from these.
+pub struct OnSheet<'a> {
+    pub card: View,
+    pub picture: String,
+    pub readings: Vec<&'a Read>,
+}
+
+/// The drawings of one character as a sheet shows them, each on the card of its view.
+pub fn on_sheet<'a>(character: &'a Character, reads: &'a [Vec<Read>]) -> Result<Vec<OnSheet<'a>>> {
+    Ok(drawings_of(character, reads)?
+        .into_iter()
+        .map(|shown| OnSheet {
+            card: shown.view,
+            picture: if shown.picture.is_empty() {
+                format!("`{}`", shown.first().picture.file)
+            } else {
+                shown.picture.to_string()
+            },
+            readings: shown.readings,
+        })
+        .collect())
+}
+
 /// Lays the sheet out and draws it. `reads` holds, for each character of the description
 /// and in its order, the readings of each of its drawings as the description names them;
 /// `pictures` holds each drawing's file by its digest.

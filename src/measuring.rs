@@ -646,7 +646,13 @@ pub struct ReadFrom {
     /// One line for each view that was read under a revision of the reading instructions
     /// that is not the program's own.
     pub other_instructions: Vec<String>,
+    /// What Jon's check says of these readings: that he accepted the character, with what
+    /// his marks leave out, or that no record of his check was given.
+    pub checked: String,
 }
+
+/// What is said of readings that are measured with no record of Jon's check.
+pub const NOT_CHECKED: &str = "No record of Jon's check was given: these readings are measured as their readers judged them, and nothing taken from them counts until he has accepted the character.";
 
 impl ReadFrom {
     fn of(views: &[(&str, &Given)]) -> ReadFrom {
@@ -676,23 +682,26 @@ impl ReadFrom {
         ReadFrom {
             lines,
             other_instructions,
+            checked: NOT_CHECKED.to_string(),
         }
     }
 
     /// The lines of a file's `[readings]` or `[source]`.
     fn file(&self) -> String {
         format!(
-            "read = {}\n{}",
+            "read = {}\n{}jons_check = {}\n",
             quoted_lines(&self.lines),
-            other_instructions(&self.other_instructions)
+            other_instructions(&self.other_instructions),
+            quoted(&self.checked)
         )
     }
 
-    /// What a person is told beside the result: only what was not read by the instructions
-    /// as they stand.
+    /// What a person is told beside the result: what was not read by the instructions as
+    /// they stand, and what Jon's check says of the readings.
     fn summary(&self) -> String {
         self.other_instructions
             .iter()
+            .chain([&self.checked])
             .map(|note| format!("{note}\n"))
             .collect()
     }
@@ -1231,7 +1240,7 @@ pub enum DepthFrom {
     /// No view: a front view read alone shows no depth.
     NoView,
     /// A three-quarter view, at the turn the readings show.
-    ThreeQuarter(Turn),
+    ThreeQuarter(Box<Turn>),
     /// A side view, which faces this way.
     Side(Faces),
 }
@@ -1299,7 +1308,7 @@ pub fn proportions(
             given.push(("three-quarter", three_quarter));
             (
                 head_model::take_proportions(&front_positions, &turned_positions)?,
-                DepthFrom::ThreeQuarter(turn),
+                DepthFrom::ThreeQuarter(Box::new(turn)),
             )
         }
         (None, Some(side)) => {
@@ -1334,6 +1343,20 @@ pub fn proportions(
 }
 
 impl Proportions {
+    /// Leaves out the proportions Jon marked as off for the character: each is not given,
+    /// and says so.
+    pub fn leave_out(&mut self, marked: &[String]) {
+        for name in marked {
+            self.taken.values.remove(name);
+            self.taken.not_given.retain(|(given, _)| given != name);
+            self.taken.not_given.push((
+                name.clone(),
+                "marked as off by Jon for this character, so it is not given for this work"
+                    .to_string(),
+            ));
+        }
+    }
+
     /// The proportions as the text of a file: a set of proportions when the readings give
     /// every one, and otherwise the ones they give with the rest listed and why.
     pub fn file(&self) -> Result<String> {
