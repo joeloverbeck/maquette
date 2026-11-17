@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use base64::Engine;
 use support::made_up_head::{MadeUp, seen};
-use support::{failure, made_up_image, maquette_in, measure_ok, scratch, text};
+use support::{failure, made_up_image, maquette_in, measure_ok, references, text};
 
 fn digest(path: &Path) -> String {
     let output = std::process::Command::new("sha256sum")
@@ -35,7 +35,7 @@ fn reading(folder: &Path, mut made_up: MadeUp, picture: &str, name: &str) {
 /// A made-up reference folder: two characters, the first read twice in a front and a
 /// three-quarter view, the second read once from the front and set aside when turned.
 fn folder(name: &str) -> PathBuf {
-    let folder = scratch(name);
+    let folder = references(name);
     std::fs::create_dir_all(folder.join("pictures")).expect("made");
     for (picture, width) in [
         ("one-front.png", 1000),

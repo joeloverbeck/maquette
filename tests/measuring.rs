@@ -13,7 +13,7 @@ mod support;
 use std::path::{Path, PathBuf};
 
 use support::made_up_head::{MadeUp, flipped, seen};
-use support::{assert_close, failure, maquette_in, measure_ok, number, scratch, text};
+use support::{assert_close, failure, maquette_in, measure_ok, number, references, text};
 
 /// Runs a measuring command that writes a file, and reads the file.
 fn measured(folder: &Path, arguments: &[&str], out: &str) -> toml::Table {
@@ -48,7 +48,7 @@ fn texts(value: &toml::Value) -> Vec<String> {
 }
 
 fn folder(name: &str) -> PathBuf {
-    scratch(name)
+    references(name)
 }
 
 // ---------------------------------------------------------------- agreement

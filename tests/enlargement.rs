@@ -7,13 +7,13 @@ mod support;
 
 use std::path::{Path, PathBuf};
 
-use support::{failure, made_up_image, maquette_in, measure_ok, scratch};
+use support::{failure, made_up_image, maquette_in, measure_ok, references};
 
 const DARK: [u8; 3] = [40, 40, 40];
 const GREY: [u8; 3] = [200, 200, 200];
 
 fn folder(name: &str) -> PathBuf {
-    let folder = scratch(name);
+    let folder = references(name);
     made_up_image(&folder.join("picture.png"), 200, 100);
     folder
 }

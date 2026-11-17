@@ -53,6 +53,27 @@ pub fn scratch(name: &str) -> PathBuf {
     folder
 }
 
+/// An empty made-up reference folder for one test. A reference folder is outside every
+/// repository, and `target/` is inside this one, so it is made in the system's temporary
+/// folder, under a name that is this checkout's own: two checkouts tested at once do not
+/// share it.
+pub fn references(name: &str) -> PathBuf {
+    use std::hash::{Hash, Hasher};
+    let mut checkout = std::collections::hash_map::DefaultHasher::new();
+    env!("CARGO_MANIFEST_DIR").hash(&mut checkout);
+    let folder = std::env::temp_dir()
+        .join(format!(
+            "maquette-made-up-references-{:016x}",
+            checkout.finish()
+        ))
+        .join(name);
+    if folder.exists() {
+        std::fs::remove_dir_all(&folder).expect("the old made-up reference folder can be removed");
+    }
+    std::fs::create_dir_all(&folder).expect("the made-up reference folder can be made");
+    folder
+}
+
 pub fn text(path: &Path) -> String {
     std::fs::read_to_string(path).unwrap_or_else(|error| panic!("{}: {error}", path.display()))
 }

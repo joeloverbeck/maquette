@@ -9,8 +9,8 @@ mod support;
 use std::path::{Path, PathBuf};
 
 use support::{
-    failure, filled_in, made_up_image, maquette_in, maquette_ok, measure_ok, path_text, scratch,
-    text,
+    failure, filled_in, made_up_image, maquette_in, maquette_ok, measure_ok, path_text, references,
+    scratch, text,
 };
 
 /// Every command that measures: each reads or writes something that belongs in the reference
@@ -103,7 +103,7 @@ const MEASURING: &[&[&str]] = &[
 #[test]
 fn with_no_reference_folder_each_measuring_command_says_what_is_missing_and_where_it_is_configured()
 {
-    let absent = scratch("readings-no-folder").join("not-there");
+    let absent = references("readings-no-folder").join("not-there");
     for arguments in MEASURING {
         for (configured, what) in [
             (None, "is not configured"),
@@ -156,7 +156,7 @@ fn with_no_reference_folder_drawing_still_works() {
 
 /// A made-up reference folder with one made-up picture in it.
 fn folder_with_picture(name: &str) -> PathBuf {
-    let folder = scratch(name);
+    let folder = references(name);
     made_up_image(&folder.join("picture.png"), 800, 900);
     folder
 }
@@ -372,7 +372,7 @@ fn a_filled_in_reading_passes_its_check_and_an_unfinished_one_is_told_what_it_la
 #[test]
 fn a_path_that_leaves_the_reference_folder_is_refused() {
     let folder = folder_with_picture("readings-outside");
-    let elsewhere = scratch("readings-outside-elsewhere");
+    let elsewhere = references("readings-outside-elsewhere");
     for out in [
         "../escaped.toml".to_string(),
         elsewhere.join("escaped.toml").display().to_string(),
@@ -409,6 +409,140 @@ fn a_path_that_leaves_the_reference_folder_is_refused() {
         ],
     );
     assert!(failure(&output).contains("outside the reference folder"));
+}
+
+/// References are kept outside every repository, so that none can be committed. A scratch
+/// folder under `target/` is inside this one.
+#[test]
+fn a_reference_folder_inside_a_git_repository_is_refused() {
+    let inside = scratch("readings-folder-in-a-repository");
+    made_up_image(&inside.join("picture.png"), 800, 900);
+    for named in [support::repository(), inside.clone()] {
+        let output = maquette_in(
+            Some(&named),
+            &[
+                "start-reading",
+                "--image",
+                "picture.png",
+                "--view",
+                "front",
+                "--reader",
+                "made-up reader",
+                "--out",
+                "front.toml",
+            ],
+        );
+        let message = failure(&output);
+        assert!(
+            message.contains("inside the Git repository")
+                && message.contains("outside every repository")
+                && message.contains("MAQUETTE_REFERENCES"),
+            "{}: {message}",
+            named.display()
+        );
+        assert!(
+            message.contains("nothing can be measured"),
+            "{}: {message}",
+            named.display()
+        );
+        assert!(!named.join("front.toml").exists());
+    }
+    // A worktree and a submodule have a file named `.git` that says where the repository is.
+    let worktree = references("readings-folder-in-a-worktree");
+    std::fs::write(worktree.join(".git"), "gitdir: /made/up/for/a/test\n").expect("written");
+    std::fs::create_dir(worktree.join("references")).expect("made");
+    let output = maquette_in(
+        Some(&worktree.join("references")),
+        &["check-reading", "--reading", "front.toml"],
+    );
+    assert!(failure(&output).contains("inside the Git repository"));
+
+    // A folder that holds a repository deeper down is in none, and neither is one beside an
+    // empty folder named `.git`: Git looks past that too.
+    let outside = folder_with_picture("readings-folder-over-a-repository");
+    std::fs::create_dir_all(outside.join("deeper/.git")).expect("made");
+    std::fs::write(
+        outside.join("deeper/.git/HEAD"),
+        "ref: refs/heads/made-up\n",
+    )
+    .expect("written");
+    std::fs::create_dir(outside.join(".git")).expect("made");
+    start(&outside, "front", &[], "front.toml");
+}
+
+/// A link inside the reference folder that leads out of it is a way out of it like any other.
+#[cfg(unix)]
+#[test]
+fn a_path_that_leaves_the_reference_folder_through_a_link_is_refused() {
+    let folder = folder_with_picture("readings-outside-by-link");
+    let elsewhere = references("readings-outside-by-link-elsewhere");
+    std::fs::write(elsewhere.join("outside.toml"), "made up for a test\n").expect("written");
+    std::os::unix::fs::symlink(&elsewhere, folder.join("link")).expect("a link to a folder");
+    std::os::unix::fs::symlink(elsewhere.join("outside.toml"), folder.join("linked.toml"))
+        .expect("a link to a file");
+    // A link to a file that is not there yet: writing to it would make the file outside.
+    std::os::unix::fs::symlink(elsewhere.join("not-yet.toml"), folder.join("dangling.toml"))
+        .expect("a link to nothing");
+
+    for out in [
+        "link/escaped.toml",
+        "link/deeper/escaped.toml",
+        "dangling.toml",
+    ] {
+        let output = maquette_in(
+            Some(&folder),
+            &[
+                "start-reading",
+                "--image",
+                "picture.png",
+                "--view",
+                "front",
+                "--reader",
+                "made-up reader",
+                "--out",
+                out,
+            ],
+        );
+        let message = failure(&output);
+        assert!(
+            message.contains("outside the reference folder"),
+            "{out}: {message}"
+        );
+    }
+    let written: Vec<_> = std::fs::read_dir(&elsewhere)
+        .expect("the other folder")
+        .map(|entry| entry.expect("an entry").file_name())
+        .collect();
+    assert_eq!(written, ["outside.toml"], "something was written outside");
+
+    // Nothing is read through a link either.
+    for reading in ["link/outside.toml", "linked.toml"] {
+        let output = maquette_in(Some(&folder), &["check-reading", "--reading", reading]);
+        let message = failure(&output);
+        assert!(
+            message.contains("outside the reference folder"),
+            "{reading}: {message}"
+        );
+    }
+
+    // A link that stays inside the folder is the folder still.
+    std::fs::create_dir(folder.join("readings")).expect("made");
+    std::os::unix::fs::symlink(folder.join("readings"), folder.join("inside")).expect("a link");
+    measure_ok(
+        &folder,
+        &[
+            "start-reading",
+            "--image",
+            "picture.png",
+            "--view",
+            "front",
+            "--reader",
+            "made-up reader",
+            "--out",
+            "inside/front.toml",
+        ],
+    );
+    assert!(folder.join("readings/front.toml").is_file());
 }
 
 #[test]

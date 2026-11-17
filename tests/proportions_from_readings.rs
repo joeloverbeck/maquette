@@ -12,7 +12,8 @@ use std::path::{Path, PathBuf};
 
 use support::{
     LandmarkFile, MADE_UP, assert_close, draw, failure, filled_in, made_up_image, maquette,
-    maquette_in, maquette_ok, measure_ok, number, path_text, proportions, scratch, text,
+    maquette_in, maquette_ok, measure_ok, number, path_text, proportions, references, scratch,
+    text,
 };
 
 const SKULL: [&str; 3] = ["skull_radius", "skull_centre_rise", "skull_centre_depth"];
@@ -22,7 +23,7 @@ const SKULL: [&str; 3] = ["skull_radius", "skull_centre_rise", "skull_centre_dep
 /// not seen.
 fn folder_with_readings(name: &str, seen: &dyn Fn(&str) -> bool) -> PathBuf {
     let generated = draw(&format!("{name}-generated"), MADE_UP, &[]);
-    let folder = scratch(name);
+    let folder = references(name);
     for (view, faces) in [("front", None), ("three-quarter", Some("right"))] {
         let picture = format!("{view}.png");
         made_up_image(&folder.join(&picture), 1000, 1000);
