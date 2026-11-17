@@ -6,10 +6,12 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use maquette::head_model;
+use maquette::reference_folder::Folder;
 use maquette::views::Placement;
 use maquette::{
-    Error, Result, armature, differences, hand_made_drawings, hand_made_views, hard_case, overlay,
-    proportions, read_back, vectorcraft,
+    Error, Result, armature, differences, enlargement, hand_made_drawings, hand_made_views,
+    hard_case, known_positions, measuring, overlay, proportions, read_back, readings,
+    reference_check_sheet, vectorcraft,
 };
 
 const USAGE: &str = "\
@@ -115,6 +117,88 @@ Usage:
       The spoiled copies are made in a temporary folder and removed. Each line and what was
       found is printed. --record writes VectorCraft's replies for the view and for each
       spoiled copy into a folder. Exit status as for read-back.
+
+  maquette skull-by-rule --proportions <file>
+      Run the rule that builds the skull where nothing is drawn on a set of proportions,
+      and set what it builds against the set's own skull, part by part: the centre's height,
+      its depth, and the radius. It tests the rule on a head whose skull is drawn.
+
+  maquette compare-proportions --first <file> --second <file>
+      Set two files of proportions against each other, proportion by proportion: each
+      difference in units and as a share of head height, with the heights, the widths, the
+      depths and the conventions summed up apart. A file that lacks some proportions is
+      compared in the ones it has.
+
+  maquette reading-instructions
+      Print the reading instructions: what a reader judges and places on a drawing.
+
+Measuring. The commands below read and write in the reference folder, the one folder
+outside the repository that holds reference images, readings and reference check sheets.
+The environment variable MAQUETTE_REFERENCES names it. Every path given to them is taken
+from that folder, and one that leaves it is refused; with no folder they stop and say so.
+Where a view is asked for, <readings> is one reading, or the two readings of the drawing
+with a comma between them: a landmark then stands midway between the two.
+
+  maquette start-reading --image <picture> --view front|three-quarter|side
+                         [--faces right|left] --reader <label> --out <reading>
+      Start a reading of a picture: a file with the picture's SHA-256 digest and size, the
+      questions of the judgement, and a line for every landmark the view asks for.
+      --faces is for a turned view: which way the head faces, from the viewer's side.
+
+  maquette check-reading --reading <reading>
+      Say what a reading lacks or gets wrong: an unanswered judgement, a landmark neither
+      placed nor stated as not seen, a position outside the picture, a pair whose names
+      may be exchanged, a picture that has changed. Exit status 0 when it is complete, 1
+      when it is not.
+
+  maquette enlarge-image --image <picture> --left <x> --top <y> --width <w> --height <h>
+                         --factor <n> [--grid <step>] --out <picture>
+      Enlarge a part of a picture a whole number of times, each pixel as a block. --grid
+      draws a line every so many pixels of the picture and labels it with its position in
+      the picture. An enlargement with an edge above 1568 pixels is refused: an agent is
+      shown it resized.
+
+  maquette agreement-of-readings --first <reading> --second <reading> [--out <file>]
+      Set two readings of one drawing against each other: for every landmark both place,
+      how far apart they put it as a share of head height, with every disagreement above 1%
+      numbered, the landmarks only one places, and what the readers judge differently.
+
+  maquette turn-from-readings --front <readings> --three-quarter <readings> [--out <file>]
+      Work out the turn a three-quarter drawing shows, from how far the spacing of its left
+      and right pairs narrows against the front view of the same character. Each pair's own
+      turn and misfit is listed, and the readers' own estimates beside it.
+
+  maquette fit-of-views --front <readings> --three-quarter <readings> [--side <readings>]
+                        [--out <file>]
+      Say, as one figure, how far a character's views are from being drawings of one level,
+      symmetric head: the largest misfit in level, in spacing against the turn, and from the
+      front view's centre line, as a share of head height. A side view is compared in height.
+
+  maquette proportions-from-readings --front <readings> --three-quarter <readings>
+                                     [--out <file>]
+      Take a character's readings back into proportions, at the turn the readings show.
+      The skull is built by rule from the ears and the temples. The proportions the
+      readings do not give are listed with the reason; when all are given, the file is a
+      set of proportions that `maquette draw` reads.
+
+  maquette score-reading --reading <reading> --known-positions <record> [--out <file>]
+      Score a reading against a drawing whose true positions are on record, such as
+      data/saffi/hand-made-views.toml: the reader's error as a share of head height, by
+      kind of landmark, with what cannot be seen in the picture kept apart. The record is
+      read from where it is named.
+
+  maquette known-positions-as-reading --known-positions <record> --view front|three-quarter
+                                      --image <picture> --out <reading>
+      Write a record's own positions as a reading of the picture: what a reader who placed
+      every visible point exactly would write. It is not a reading. The measuring commands
+      run on it show what they make of exact positions.
+
+  maquette reference-check-sheet --sheet <description> --out <svg>
+      Render a reference check sheet from a description: a TOML file with a `note`, a `look`
+      (which of Jon's looks it is, or that none is asked) and, for each row, a
+      [[character]] with a `label` and the `readings` of its drawings. Each character's
+      views stand side by side with the points read, what was set aside and why, and the
+      fit. The sheet is one SVG that holds its drawings, and stays in the reference folder.
 ";
 
 /// How a command ended, when nothing went wrong in running it.
@@ -170,6 +254,28 @@ fn run(arguments: &[String]) -> Result<Ended> {
             print!("{listed}");
         }
         "record-hand-made-drawings" => record_hand_made_drawings(rest)?,
+        "reading-instructions" => {
+            options(rest, &[])?;
+            print!("{}", readings::INSTRUCTIONS);
+        }
+        "start-reading" => start_reading(rest)?,
+        "check-reading" => return check_reading(rest),
+        "enlarge-image" => enlarge_image(rest)?,
+        "skull-by-rule" => {
+            let found = options(rest, &["--proportions"])?;
+            let path = required(&found, "--proportions")?;
+            let set = proportions::Set::read(&read(path)?)
+                .map_err(|error| Error::new(format!("{path}: {error}")))?;
+            print!("{}", measuring::skull_rule_on(&set, path)?);
+        }
+        "agreement-of-readings" => agreement_of_readings(rest)?,
+        "turn-from-readings" => turn_from_readings(rest)?,
+        "fit-of-views" => fit_of_views(rest)?,
+        "proportions-from-readings" => proportions_from_readings(rest)?,
+        "score-reading" => score_reading(rest)?,
+        "known-positions-as-reading" => known_positions_as_reading(rest)?,
+        "reference-check-sheet" => reference_check_sheet(rest)?,
+        "compare-proportions" => compare_proportions(rest)?,
         "read-back" => return read_back_command(rest),
         "read-back-hard-case" => return read_back_hard_case(rest),
         other => {
@@ -503,6 +609,327 @@ fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
         &found,
         &hand_made.proportions_file(record_path, lower_face_set_back)?,
     )
+}
+
+/// The reference folder and the options of a measuring command. The folder comes first: with
+/// none, a measuring command stops before it looks at anything else.
+fn measuring<'a>(
+    arguments: &'a [String],
+    allowed: &[&str],
+) -> Result<(Folder, BTreeMap<&'a str, &'a str>)> {
+    let folder = Folder::configured()?;
+    Ok((folder, options(arguments, allowed)?))
+}
+
+/// A reading of the reference folder, read. Its path is named in what goes wrong.
+fn reading(folder: &Folder, path: &str) -> Result<readings::Record> {
+    readings::Record::read(&folder.read_text(path)?)
+        .map_err(|error| Error::new(format!("{path}: {error}")))
+}
+
+/// A view as a measuring command is given it: one reading, or the two readings of the
+/// drawing with a comma between them.
+fn drawing(folder: &Folder, named: &str) -> Result<readings::Drawing> {
+    let records = named
+        .split(',')
+        .map(|path| reading(folder, path.trim()))
+        .collect::<Result<Vec<_>>>()?;
+    readings::Drawing::of(&records)
+}
+
+/// Writes what a measuring command worked out into the reference folder, at `--out`, and
+/// prints its summary; or prints the whole of it.
+fn deliver_measured(
+    folder: &Folder,
+    found: &BTreeMap<&str, &str>,
+    file: &str,
+    summary: &str,
+) -> Result<()> {
+    match found.get("--out") {
+        Some(out) => {
+            folder.write(out, file.as_bytes())?;
+            print!("{summary}");
+        }
+        None => print!("{file}"),
+    }
+    Ok(())
+}
+
+fn agreement_of_readings(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(arguments, &["--first", "--second", "--out"])?;
+    let first = required(&found, "--first")?;
+    let second = required(&found, "--second")?;
+    let agreement = measuring::agreement(
+        first,
+        &reading(&folder, first)?,
+        second,
+        &reading(&folder, second)?,
+    )?;
+    deliver_measured(&folder, &found, &agreement.file(), &agreement.summary())
+}
+
+fn turn_from_readings(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(arguments, &["--front", "--three-quarter", "--out"])?;
+    let front = required(&found, "--front")?;
+    let three_quarter = required(&found, "--three-quarter")?;
+    let turn = measuring::turn(
+        &measuring::Given {
+            named: front,
+            drawing: &drawing(&folder, front)?,
+        },
+        &measuring::Given {
+            named: three_quarter,
+            drawing: &drawing(&folder, three_quarter)?,
+        },
+    )?;
+    deliver_measured(&folder, &found, &turn.file(), &turn.summary())
+}
+
+fn fit_of_views(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(
+        arguments,
+        &["--front", "--three-quarter", "--side", "--out"],
+    )?;
+    let front = required(&found, "--front")?;
+    let three_quarter = required(&found, "--three-quarter")?;
+    let side = match found.get("--side") {
+        Some(side) => Some((*side, drawing(&folder, side)?)),
+        None => None,
+    };
+    let fit = measuring::fit(
+        &measuring::Given {
+            named: front,
+            drawing: &drawing(&folder, front)?,
+        },
+        &measuring::Given {
+            named: three_quarter,
+            drawing: &drawing(&folder, three_quarter)?,
+        },
+        side.as_ref()
+            .map(|(named, drawing)| measuring::Given { named, drawing })
+            .as_ref(),
+    )?;
+    deliver_measured(&folder, &found, &fit.file(), &fit.summary())
+}
+
+fn proportions_from_readings(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(arguments, &["--front", "--three-quarter", "--out"])?;
+    let front = required(&found, "--front")?;
+    let three_quarter = required(&found, "--three-quarter")?;
+    let taken = measuring::proportions(
+        &measuring::Given {
+            named: front,
+            drawing: &drawing(&folder, front)?,
+        },
+        &measuring::Given {
+            named: three_quarter,
+            drawing: &drawing(&folder, three_quarter)?,
+        },
+    )?;
+    deliver_measured(&folder, &found, &taken.file()?, &taken.summary())
+}
+
+fn enlarge_image(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(
+        arguments,
+        &[
+            "--image", "--left", "--top", "--width", "--height", "--factor", "--grid", "--out",
+        ],
+    )?;
+    let image = required(&found, "--image")?;
+    let out = required(&found, "--out")?;
+    let whole = |name: &str| -> Result<u32> {
+        let value = required(&found, name)?;
+        value.parse().map_err(|_| {
+            Error::new(format!(
+                "`{name}` needs a whole number of pixels, not below zero, and `{value}` is not one"
+            ))
+        })
+    };
+    let part = enlargement::Part {
+        left: whole("--left")?,
+        top: whole("--top")?,
+        width: whole("--width")?,
+        height: whole("--height")?,
+        factor: whole("--factor")?,
+        grid: match found.contains_key("--grid") {
+            true => Some(whole("--grid")?),
+            false => None,
+        },
+    };
+    let enlarged = enlargement::enlarge(&folder.read(image)?, &part)
+        .map_err(|error| Error::new(format!("{image}: {error}")))?;
+    folder.write(out, &enlarged.png)?;
+    println!(
+        "Wrote `{out}`, {} by {} pixels: the part of `{image}` from {}, {} to {}, {}, enlarged {} times.",
+        enlarged.width,
+        enlarged.height,
+        part.left,
+        part.top,
+        part.left + part.width,
+        part.top + part.height,
+        part.factor
+    );
+    if let Some(step) = part.grid {
+        println!(
+            "A grid line stands every {step} pixels of the picture and is labelled with its position in the picture: across the top, and down the left side."
+        );
+    }
+    println!("{}", enlarged.way_back(&part));
+    Ok(())
+}
+
+fn reference_check_sheet(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(arguments, &["--sheet", "--out"])?;
+    let sheet = required(&found, "--sheet")?;
+    let out = required(&found, "--out")?;
+    let description = reference_check_sheet::describe(&folder.read_text(sheet)?)
+        .map_err(|error| Error::new(format!("{sheet}: {error}")))?;
+    let mut pictures = BTreeMap::new();
+    let mut characters = Vec::new();
+    for (label, named) in &description.characters {
+        let mut reads = Vec::new();
+        for path in named {
+            let record = reading(&folder, path)?;
+            // A sheet shows the picture that was read, and no other.
+            let bytes = folder.read(&record.picture.file)?;
+            let digest = readings::sha256_hex(&bytes);
+            if digest != record.picture.sha256 {
+                return Err(Error::new(format!(
+                    "{path}: the picture `{}` now has the digest {digest}, and the reading was started from {}: it is not the picture that was read",
+                    record.picture.file, record.picture.sha256
+                )));
+            }
+            pictures.insert(digest, bytes);
+            reads.push(reference_check_sheet::Read {
+                path: path.clone(),
+                record,
+            });
+        }
+        characters.push((label.clone(), reads));
+    }
+    let svg = reference_check_sheet::render(&description, &characters, &pictures)?;
+    folder.write(out, svg.as_bytes())?;
+    println!(
+        "Wrote the reference check sheet `{out}` in the reference folder. It shows the drawings that were read: it stays there and is never committed."
+    );
+    Ok(())
+}
+
+fn score_reading(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(arguments, &["--reading", "--known-positions", "--out"])?;
+    let path = required(&found, "--reading")?;
+    // The record of known positions is committed numbers, read from where it is named.
+    let record = required(&found, "--known-positions")?;
+    let score = known_positions::score(path, &reading(&folder, path)?, record, &read(record)?)?;
+    deliver_measured(&folder, &found, &score.file(), &score.summary())
+}
+
+fn known_positions_as_reading(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(
+        arguments,
+        &["--known-positions", "--view", "--image", "--out"],
+    )?;
+    let record = required(&found, "--known-positions")?;
+    let view = readings::view_named(required(&found, "--view")?)?;
+    let image = required(&found, "--image")?;
+    let out = required(&found, "--out")?;
+    let bytes = folder.read(image)?;
+    let (width, height) =
+        readings::picture_size(&bytes).map_err(|error| Error::new(format!("{image}: {error}")))?;
+    let picture = readings::Picture {
+        file: folder.name_of(&folder.path(image)?),
+        sha256: readings::sha256_hex(&bytes),
+        width: f64::from(width),
+        height: f64::from(height),
+    };
+    let text = known_positions::as_reading(record, &read(record)?, view, &picture)?;
+    folder.write(out, text.as_bytes())?;
+    println!(
+        "Wrote the record's positions for the {} view as a reading in `{out}`. It is not a reading: nobody read it from a picture.",
+        view.name()
+    );
+    Ok(())
+}
+
+fn compare_proportions(arguments: &[String]) -> Result<()> {
+    let found = options(arguments, &["--first", "--second"])?;
+    let first = required(&found, "--first")?;
+    let second = required(&found, "--second")?;
+    print!(
+        "{}",
+        known_positions::compare_proportions(first, &read(first)?, second, &read(second)?)?
+    );
+    Ok(())
+}
+
+fn start_reading(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(
+        arguments,
+        &["--image", "--view", "--faces", "--reader", "--out"],
+    )?;
+    let image = required(&found, "--image")?;
+    let view = readings::view_named(required(&found, "--view")?)?;
+    let faces = match found.get("--faces") {
+        Some(&"right") => Some(readings::Faces::ViewersRight),
+        Some(&"left") => Some(readings::Faces::ViewersLeft),
+        Some(other) => {
+            return Err(Error::new(format!(
+                "`--faces` is `right` or `left`, the viewer's, and `{other}` is neither"
+            )));
+        }
+        None => None,
+    };
+    let reader = required(&found, "--reader")?;
+    let out = required(&found, "--out")?;
+    let bytes = folder.read(image)?;
+    let (width, height) =
+        readings::picture_size(&bytes).map_err(|error| Error::new(format!("{image}: {error}")))?;
+    let picture = readings::Picture {
+        file: folder.name_of(&folder.path(image)?),
+        sha256: readings::sha256_hex(&bytes),
+        width: f64::from(width),
+        height: f64::from(height),
+    };
+    let template = readings::template(&picture, view, faces, reader)?;
+    if folder.path(out)?.exists() {
+        return Err(Error::new(format!(
+            "`{out}` is already there: a reading that has been started is not written over"
+        )));
+    }
+    folder.write(out, template.as_bytes())?;
+    println!(
+        "Started a reading of `{}`, a {} view, in `{out}`: {} landmarks to place or to state as not seen.",
+        picture.file,
+        view.name(),
+        readings::asked(view, faces).len()
+    );
+    Ok(())
+}
+
+fn check_reading(arguments: &[String]) -> Result<Ended> {
+    let (folder, found) = measuring(arguments, &["--reading"])?;
+    let path = required(&found, "--reading")?;
+    let record = reading(&folder, path)?;
+    let picture = folder.read(&record.picture.file).ok();
+    let problems = record.problems(picture.as_deref());
+    if problems.is_empty() {
+        if record.set_aside {
+            println!("The reading is complete: the drawing is set aside, and nothing is placed.");
+        } else {
+            println!(
+                "The reading is complete: {} landmarks placed, {} stated as not seen.",
+                record.placed.len(),
+                record.not_seen.len()
+            );
+        }
+        return Ok(Ended::Well);
+    }
+    println!("The reading is not complete:");
+    for problem in &problems {
+        println!("- {problem}");
+    }
+    Ok(Ended::CheckFailed)
 }
 
 /// The record of the final drawings, when `--final-record` names one: its path and its text.

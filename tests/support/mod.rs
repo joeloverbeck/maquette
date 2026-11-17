@@ -2,6 +2,8 @@
 //! Every test goes through the command line, files in and files out.
 #![allow(dead_code)]
 
+pub mod made_up_head;
+
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -185,4 +187,95 @@ pub fn assert_close(actual: f64, expected: f64, tolerance: f64, what: &str) {
         (actual - expected).abs() <= tolerance,
         "{what}: expected {expected}, found {actual} (tolerance {tolerance})"
     );
+}
+
+/// Runs the program with the reference folder configured as `references`, or with no
+/// reference folder configured at all: the environment variable is set or removed for this
+/// one run, so a test never depends on the machine it runs on.
+pub fn maquette_in(references: Option<&Path>, arguments: &[&str]) -> Output {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_maquette"));
+    command.args(arguments).current_dir(repository());
+    match references {
+        Some(folder) => command.env("MAQUETTE_REFERENCES", folder),
+        None => command.env_remove("MAQUETTE_REFERENCES"),
+    };
+    command.output().expect("the program starts")
+}
+
+/// Runs a measuring command in a reference folder and insists that it succeeds, returning
+/// what it printed.
+pub fn measure_ok(references: &Path, arguments: &[&str]) -> String {
+    let output = maquette_in(Some(references), arguments);
+    assert!(
+        output.status.success(),
+        "`maquette {}` failed:\n{}",
+        arguments.join(" "),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    String::from_utf8(output.stdout).expect("the output is text")
+}
+
+/// What a command that failed wrote to its error output.
+pub fn failure(output: &Output) -> String {
+    assert!(
+        !output.status.success(),
+        "the command succeeded:\n{}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+    String::from_utf8_lossy(&output.stderr).into_owned()
+}
+
+/// A made-up picture for a made-up reference folder: plain grey with one darker block, so
+/// that a crop can be told from the whole. It shows no drawing.
+pub fn made_up_image(path: &Path, width: u32, height: u32) {
+    let picture = image::RgbImage::from_fn(width, height, |x, y| {
+        if (40..60).contains(&x) && (20..30).contains(&y) {
+            image::Rgb([40, 40, 40])
+        } else {
+            image::Rgb([200, 200, 200])
+        }
+    });
+    picture.save(path).expect("the made-up picture is written");
+}
+
+/// A reading template, as `maquette start-reading` writes it, filled in with made-up answers:
+/// every text given, the head called level, a turn of `turn_degrees` where one is asked, and
+/// every landmark placed where `place` puts it, or left for `[not_seen]` when it gives none.
+/// Nothing in it was read from a drawing.
+pub fn filled_in(
+    template: &str,
+    turn_degrees: f64,
+    place: &dyn Fn(&str) -> Option<[f64; 2]>,
+) -> String {
+    let mut out = String::new();
+    let mut not_seen = Vec::new();
+    for line in template.lines() {
+        if let Some(name) = line
+            .strip_prefix("# ")
+            .and_then(|rest| rest.strip_suffix(" = { x = , y = }"))
+        {
+            match place(name) {
+                Some([x, y]) => out.push_str(&format!("{name} = {{ x = {x:?}, y = {y:?} }}\n")),
+                None => not_seen.push(name.to_string()),
+            }
+        } else if line == "# level = " {
+            out.push_str("level = true\n");
+        } else if line == "# turn_degrees = " {
+            out.push_str(&format!("turn_degrees = {turn_degrees:?}\n"));
+        } else if let Some(key) = line.strip_suffix(" = \"\"") {
+            if key == "set_aside_why" {
+                out.push_str(line);
+            } else {
+                out.push_str(&format!("{key} = \"made up for a test\""));
+            }
+            out.push('\n');
+        } else {
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    for name in not_seen {
+        out.push_str(&format!("{name} = \"made up: left out for a test\"\n"));
+    }
+    out
 }

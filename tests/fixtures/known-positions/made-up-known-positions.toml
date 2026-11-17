@@ -1,0 +1,54 @@
+# A made-up record of known positions, for the tests in tests/known_positions.rs.
+#
+# Every number here was invented so that a reading's error can be worked out by hand.
+# There is no drawing behind it, it is no character's, and it is no part of a table.
+# It has the shape of data/saffi/hand-made-views.toml and only the entries the tests need.
+
+[source]
+what = "Made-up positions for the tests. No drawing stands behind them."
+
+# Hair top at y = 100 and chin at y = 500: head height is 400, so 1% of it is 4 units.
+[views.front]
+sha256 = "made-up: there is no drawing"
+
+[views.front.landmarks]
+hair_top = { x = 480.0, y = 100.0, kind = "highest" }
+chin = { x = 500.0, y = 500.0, kind = "lowest" }
+eye_right_opening_top = { x = 400.0, y = 290.0, kind = "highest" }
+eye_right_opening_bottom = { x = 400.0, y = 310.0, kind = "lowest" }
+eye_left_opening_top = { x = 600.0, y = 290.0, kind = "highest" }
+eye_left_opening_bottom = { x = 600.0, y = 310.0, kind = "lowest" }
+eye_right_outer_corner = { x = 350.0, y = 300.0, kind = "node" }
+eye_left_outer_corner = { x = 650.0, y = 300.0, kind = "node" }
+eye_right_inner_corner = { x = 450.0, y = 302.0, kind = "node" }
+eye_left_inner_corner = { x = 550.0, y = 302.0, kind = "node" }
+nose_mark_bottom = { x = 500.0, y = 380.0, kind = "node" }
+mouth_line_centre = { x = 500.0, y = 420.0, kind = "node" }
+mouth_line_right_end = { x = 470.0, y = 418.0, kind = "node" }
+mouth_line_left_end = { x = 530.0, y = 418.0, kind = "node" }
+# A brow line is the middle of the drawn band: this end is at 660, 254.
+brow_left_outer_top = { x = 660.0, y = 250.0, kind = "node" }
+brow_left_outer_bottom = { x = 660.0, y = 258.0, kind = "node" }
+# The hair is painted over the top end of the face outline: it cannot be seen in a picture.
+face_outline_left_node_1 = { x = 640.0, y = 270.0, kind = "outline_node", under = ["head/hair_front"] }
+# A crossing is taken at the height of the drawn level line, so it is compared sideways only.
+face_outline_left_at_eye_level = { x = 642.0, y = 296.0, kind = "crossing" }
+hair_right_extent = { x = 300.0, y = 222.0, kind = "side_extent" }
+hair_left_extent = { x = 700.0, y = 333.0, kind = "side_extent" }
+
+# Hair top at y = 98 and chin at y = 500: this view's head height is 402.
+[views.three_quarter]
+sha256 = "made-up: there is no drawing"
+
+[views.three_quarter.landmarks]
+hair_top = { x = 490.0, y = 98.0, kind = "highest" }
+chin = { x = 570.0, y = 500.0, kind = "lowest" }
+eye_right_opening_top = { x = 480.0, y = 290.0, kind = "highest" }
+eye_right_opening_bottom = { x = 480.0, y = 310.0, kind = "lowest" }
+nose_mark_bottom = { x = 560.0, y = 380.0, kind = "node" }
+# The near side's outline is the jaw line in a turned view. A reader places it under the
+# face outline's name.
+face_outline_right_at_nose_level = { x = 400.0, y = 380.0, kind = "crossing" }
+ear_right_base_outer = { x = 380.0, y = 170.0, kind = "node" }
+# The head covers this point in the turned view: it cannot be seen in a picture.
+ear_left_base_outer = { x = 640.0, y = 180.0, kind = "node", under = ["face/cranium"] }

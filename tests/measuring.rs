@@ -1,0 +1,482 @@
+//! What readings say when they are set against each other, through the command line: the
+//! agreement between two readings of a drawing, the turn a three-quarter drawing shows, and
+//! the fit of a character's views to one head.
+//!
+//! Every reading here is made up: a view of the head invented in
+//! `tests/support/made_up_head.rs`, whose numbers are chosen so that the sums can be done by
+//! hand. Its unit is 200 pixels and its head height 2.4 units, so 480 pixels: 1% of head
+//! height is 4.8 pixels. No reading was read from a drawing, and no picture exists behind
+//! the digests.
+
+mod support;
+
+use std::path::{Path, PathBuf};
+
+use support::made_up_head::{MadeUp, flipped, seen};
+use support::{assert_close, failure, maquette_in, measure_ok, number, scratch, text};
+
+/// Runs a measuring command that writes a file, and reads the file.
+fn measured(folder: &Path, arguments: &[&str], out: &str) -> toml::Table {
+    let mut arguments = arguments.to_vec();
+    arguments.extend(["--out", out]);
+    measure_ok(folder, &arguments);
+    text(&folder.join(out)).parse().expect("the result is TOML")
+}
+
+fn entries<'a>(table: &'a toml::Table, list: &str) -> Vec<&'a toml::Table> {
+    table
+        .get(list)
+        .and_then(toml::Value::as_array)
+        .map(|entries| entries.iter().filter_map(toml::Value::as_table).collect())
+        .unwrap_or_default()
+}
+
+fn names(table: &toml::Table, list: &str) -> Vec<String> {
+    entries(table, list)
+        .iter()
+        .map(|entry| entry["landmark"].as_str().expect("a name").to_string())
+        .collect()
+}
+
+fn texts(value: &toml::Value) -> Vec<String> {
+    value
+        .as_array()
+        .expect("a list")
+        .iter()
+        .map(|entry| entry.as_str().expect("text").to_string())
+        .collect()
+}
+
+fn folder(name: &str) -> PathBuf {
+    scratch(name)
+}
+
+// ---------------------------------------------------------------- agreement
+
+#[test]
+fn a_disagreement_between_two_readings_above_1_percent_of_head_height_is_flagged() {
+    let folder = folder("measuring-agreement");
+    let first = seen(0.0, 500.0);
+    let mut second = first.clone();
+    // 3 across and 4 down is 5 pixels: 5 / 480 = 1.0417% of head height. Flagged.
+    let at = second.get_mut("mouth-line-left-end").expect("in the head");
+    *at = [at[0] + 3.0, at[1] + 4.0];
+    // 4.5 pixels is 0.9375%. Not flagged.
+    second.get_mut("nose-mark-bottom").expect("in the head")[1] += 4.5;
+    // The hair's top says how high the hair reaches: two readers may put it anywhere along a
+    // level top, so it is compared in height only. 30 pixels across, 1.2 down: 0.25%.
+    let at = second.get_mut("hair-top").expect("in the head");
+    *at = [at[0] + 30.0, at[1] + 1.2];
+    // The second reader does not place one ear.
+    second.remove("ear-left-top");
+    MadeUp::front("first", first).write(&folder, "first.toml");
+    MadeUp::front("second", second).write(&folder, "second.toml");
+
+    let found = measured(
+        &folder,
+        &[
+            "agreement-of-readings",
+            "--first",
+            "first.toml",
+            "--second",
+            "second.toml",
+        ],
+        "agreement.toml",
+    );
+    // Head height is the mean of the two readings': 480 and 478.8, so 479.4.
+    assert_close(
+        number(&found["yardstick"]["head_height"]),
+        479.4,
+        1e-9,
+        "the yardstick",
+    );
+    assert_eq!(names(&found, "above"), ["mouth-line-left-end"]);
+    let above = entries(&found, "above")[0];
+    assert_eq!(above["number"].as_integer(), Some(1));
+    assert_close(number(&above["distance"]), 5.0, 1e-9, "the distance");
+    assert_close(
+        number(&above["percent_of_head_height"]),
+        5.0 / 479.4 * 100.0,
+        0.0005,
+        "the share",
+    );
+
+    let under = entries(&found, "at_or_under");
+    let share = |name: &str| -> f64 {
+        let entry = under
+            .iter()
+            .find(|entry| entry["landmark"].as_str() == Some(name))
+            .unwrap_or_else(|| panic!("{name} is not listed"));
+        number(&entry["percent_of_head_height"])
+    };
+    assert_close(
+        share("nose-mark-bottom"),
+        4.5 / 479.4 * 100.0,
+        0.0005,
+        "the nose mark",
+    );
+    assert_close(
+        share("hair-top"),
+        1.2 / 479.4 * 100.0,
+        0.0005,
+        "the hair's top",
+    );
+    assert_close(share("chin"), 0.0, 1e-9, "the chin");
+
+    let summary = &found["summary"];
+    // 22 landmarks in the made-up head, one of them placed by the first reading only.
+    assert_eq!(summary["compared"].as_integer(), Some(21));
+    assert_eq!(summary["above_1_percent"].as_integer(), Some(1));
+    assert_close(
+        number(&summary["largest_percent_of_head_height"]),
+        5.0 / 479.4 * 100.0,
+        0.0005,
+        "the largest",
+    );
+    assert_eq!(texts(&summary["placed_by_first_only"]), ["ear-left-top"]);
+    assert!(texts(&summary["placed_by_second_only"]).is_empty());
+
+    // The printed summary says the same, for a person.
+    let printed = measure_ok(
+        &folder,
+        &[
+            "agreement-of-readings",
+            "--first",
+            "first.toml",
+            "--second",
+            "second.toml",
+            "--out",
+            "again.toml",
+        ],
+    );
+    assert!(printed.contains("1 of 21"), "{printed}");
+    assert!(printed.contains("mouth-line-left-end"), "{printed}");
+    assert!(printed.contains("1.043%"), "{printed}");
+}
+
+#[test]
+fn two_readings_that_are_not_of_one_picture_are_not_compared() {
+    let folder = folder("measuring-agreement-other-picture");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "first.toml");
+    MadeUp::turned("second", seen(30.0, 500.0)).write(&folder, "second.toml");
+    let output = maquette_in(
+        Some(&folder),
+        &[
+            "agreement-of-readings",
+            "--first",
+            "first.toml",
+            "--second",
+            "second.toml",
+        ],
+    );
+    let message = failure(&output);
+    assert!(message.contains("not of one picture"), "{message}");
+}
+
+// ---------------------------------------------------------------- turn
+
+fn turn_of(folder: &Path, front: &str, turned: &str, out: &str) -> toml::Table {
+    measured(
+        folder,
+        &[
+            "turn-from-readings",
+            "--front",
+            front,
+            "--three-quarter",
+            turned,
+        ],
+        out,
+    )
+}
+
+#[test]
+fn the_turn_is_recovered_from_made_up_heads_projected_at_known_turns() {
+    let folder = folder("measuring-turn");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front.toml");
+    for turn in [12.0, 20.0, 29.0, 36.87, 45.0, 60.0] {
+        // The turned drawing is another picture: its head stands elsewhere on the page.
+        MadeUp::turned("first", seen(turn, 470.0)).write(&folder, "turned.toml");
+        let found = turn_of(&folder, "front.toml", "turned.toml", "turn.toml");
+        assert_close(
+            number(&found["turn"]["degrees"]),
+            turn,
+            0.0005,
+            "the turn recovered",
+        );
+        assert_eq!(
+            found["turn"]["faces"].as_str(),
+            Some("the viewer's right"),
+            "{turn}"
+        );
+        // Six of the made-up head's nine pairs mark a place sideways: the eye's corners, the
+        // brow's ends, the nose mark's corners and the mouth's ends. The top and the bottom
+        // of the eye opening and the ear's top are where an outline runs level.
+        assert_eq!(found["turn"]["pairs"].as_integer(), Some(6), "{turn}");
+        // The reader's own estimate stands beside it and is not used.
+        assert_close(
+            number(
+                &found["turn"]["stated_by_the_readers"]
+                    .as_array()
+                    .expect("a list")[0],
+            ),
+            30.0,
+            1e-9,
+            "the stated turn",
+        );
+        for pair in entries(&found, "pair") {
+            assert_close(
+                number(&pair["turn_degrees"]),
+                turn,
+                0.0005,
+                pair["pair"].as_str().expect("a name"),
+            );
+            assert_close(
+                number(&pair["misfit_percent_of_head_height"]),
+                0.0,
+                1e-9,
+                "a rigid head's misfit",
+            );
+        }
+    }
+}
+
+#[test]
+fn a_head_that_faces_the_viewers_left_gives_the_same_turn() {
+    let folder = folder("measuring-turn-left");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front.toml");
+    let mut turned = MadeUp::turned("first", flipped(&seen(29.0, 470.0)));
+    turned.faces = Some("the viewer's left");
+    turned.write(&folder, "turned.toml");
+    let found = turn_of(&folder, "front.toml", "turned.toml", "turn.toml");
+    assert_close(number(&found["turn"]["degrees"]), 29.0, 0.0005, "the turn");
+    assert_eq!(found["turn"]["faces"].as_str(), Some("the viewer's left"));
+}
+
+#[test]
+fn the_turn_is_taken_from_the_midpoints_of_two_readings_of_each_drawing() {
+    let folder = folder("measuring-turn-two-readings");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front.toml");
+    // Two readings of the turned drawing that err in opposite ways: each moves every point of
+    // the character's left 2 pixels, one outward and one inward. Their midpoints are the head's.
+    let truth = seen(29.0, 470.0);
+    for (name, shift) in [("turned-first.toml", 2.0), ("turned-second.toml", -2.0)] {
+        let points = truth
+            .iter()
+            .map(|(landmark, at)| {
+                let moved = if landmark.contains("-left-") {
+                    [at[0] + shift, at[1]]
+                } else {
+                    *at
+                };
+                (landmark.clone(), moved)
+            })
+            .collect();
+        MadeUp::turned(if shift > 0.0 { "first" } else { "second" }, points).write(&folder, name);
+    }
+    let one = turn_of(&folder, "front.toml", "turned-first.toml", "one.toml");
+    assert!(
+        (number(&one["turn"]["degrees"]) - 29.0).abs() > 0.2,
+        "one reading alone should be off"
+    );
+    let both = turn_of(
+        &folder,
+        "front.toml",
+        "turned-first.toml,turned-second.toml",
+        "both.toml",
+    );
+    assert_close(number(&both["turn"]["degrees"]), 29.0, 0.0005, "the turn");
+}
+
+#[test]
+fn a_drawing_set_aside_or_not_level_is_not_measured() {
+    let folder = folder("measuring-set-aside");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front.toml");
+    let mut tilted = MadeUp::turned("first", seen(29.0, 470.0));
+    tilted.level = false;
+    tilted.write(&folder, "tilted.toml");
+    let mut aside = MadeUp::turned("first", seen(29.0, 470.0));
+    aside.set_aside = true;
+    aside.write(&folder, "aside.toml");
+    for (reading, what) in [
+        ("tilted.toml", "level"),
+        ("aside.toml", "sets the drawing aside"),
+    ] {
+        for command in [
+            "turn-from-readings",
+            "fit-of-views",
+            "proportions-from-readings",
+        ] {
+            let output = maquette_in(
+                Some(&folder),
+                &[command, "--front", "front.toml", "--three-quarter", reading],
+            );
+            let message = failure(&output);
+            assert!(message.contains(what), "{command} {reading}: {message}");
+        }
+    }
+    // A front reading named where a three-quarter one belongs is refused too.
+    let output = maquette_in(
+        Some(&folder),
+        &[
+            "turn-from-readings",
+            "--front",
+            "front.toml",
+            "--three-quarter",
+            "front.toml",
+        ],
+    );
+    assert!(failure(&output).contains("front view"));
+}
+
+// ---------------------------------------------------------------- fit
+
+fn fit_of(folder: &Path, front: &str, turned: &str, out: &str) -> toml::Table {
+    measured(
+        folder,
+        &["fit-of-views", "--front", front, "--three-quarter", turned],
+        out,
+    )
+}
+
+#[test]
+fn the_fit_is_zero_for_a_made_up_rigid_head() {
+    let folder = folder("measuring-fit-rigid");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front.toml");
+    for turn in [20.0, 29.0, 45.0] {
+        MadeUp::turned("first", seen(turn, 470.0)).write(&folder, "turned.toml");
+        let found = fit_of(&folder, "front.toml", "turned.toml", "fit.toml");
+        assert_eq!(
+            number(&found["fit"]["percent_of_head_height"]),
+            0.0,
+            "a rigid head turned {turn} degrees"
+        );
+        for misfit in entries(&found, "misfit") {
+            assert_eq!(number(&misfit["percent_of_head_height"]), 0.0);
+        }
+    }
+}
+
+#[test]
+fn the_fit_is_above_zero_for_a_perturbed_head_and_names_the_worst_misfit() {
+    let folder = folder("measuring-fit-perturbed");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front.toml");
+
+    // One landmark 6 pixels lower in the turned view than one head shows it: 6 / 480 = 1.25%
+    // of head height. A height says nothing of the turn, so every other misfit stays zero.
+    let mut lower = seen(29.0, 470.0);
+    lower
+        .get_mut("brow-line-left-outer-end")
+        .expect("in the head")[1] += 6.0;
+    MadeUp::turned("first", lower).write(&folder, "lower.toml");
+    let found = fit_of(&folder, "front.toml", "lower.toml", "fit-level.toml");
+    assert_close(
+        number(&found["fit"]["percent_of_head_height"]),
+        1.25,
+        1e-9,
+        "the fit",
+    );
+    let worst = entries(&found, "misfit")[0];
+    assert_eq!(worst["kind"].as_str(), Some("level"));
+    assert_eq!(worst["landmark"].as_str(), Some("brow-line-left-outer-end"));
+    assert_close(
+        number(&worst["percent_of_head_height"]),
+        1.25,
+        1e-9,
+        "the worst",
+    );
+    assert_eq!(
+        number(&entries(&found, "misfit")[1]["percent_of_head_height"]),
+        0.0
+    );
+
+    // The front view's nose mark 7.2 pixels off the centre line. The centre line is the mean
+    // of nine sideways positions: the chin, the nose mark's bottom, the mouth line's centre
+    // and the midpoints of the six counted pairs. Eight stand at x = 500, so the mean is
+    // 500 + 7.2 / 9 and the nose mark stands 7.2 * 8 / 9 = 6.4 pixels from it: 1.333%.
+    let mut off_centre = seen(0.0, 500.0);
+    off_centre.get_mut("nose-mark-bottom").expect("in the head")[0] += 7.2;
+    MadeUp::front("first", off_centre).write(&folder, "off-centre.toml");
+    MadeUp::turned("first", seen(29.0, 470.0)).write(&folder, "turned.toml");
+    let found = fit_of(&folder, "off-centre.toml", "turned.toml", "fit-centre.toml");
+    let worst = entries(&found, "misfit")[0];
+    assert_eq!(worst["kind"].as_str(), Some("centre"));
+    assert_eq!(worst["landmark"].as_str(), Some("nose-mark-bottom"));
+    assert_close(
+        number(&found["fit"]["percent_of_head_height"]),
+        6.4 / 480.0 * 100.0,
+        0.0005,
+        "the fit",
+    );
+
+    // One pair too wide in the turned view. The fitted turn moves a little with it, so the
+    // figure is not worked by hand here: the fit is above zero and the pair is the worst.
+    let mut wide = seen(29.0, 470.0);
+    wide.get_mut("mouth-line-left-end").expect("in the head")[0] += 9.0;
+    MadeUp::turned("first", wide).write(&folder, "wide.toml");
+    let found = fit_of(&folder, "front.toml", "wide.toml", "fit-spacing.toml");
+    assert!(number(&found["fit"]["percent_of_head_height"]) > 1.0);
+    let worst = entries(&found, "misfit")[0];
+    assert_eq!(worst["kind"].as_str(), Some("spacing"));
+    assert_eq!(worst["landmark"].as_str(), Some("mouth-line-end"));
+}
+
+#[test]
+fn a_side_view_counts_in_the_fit_by_its_heights() {
+    let folder = folder("measuring-fit-side");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front.toml");
+    MadeUp::turned("first", seen(29.0, 470.0)).write(&folder, "turned.toml");
+    // A side view is the same head turned 90 degrees, and shows the near side only: the
+    // character's right, when it faces the viewer's right.
+    let side_view = |points: std::collections::BTreeMap<String, [f64; 2]>| {
+        let mut side = MadeUp::turned("first", points);
+        side.picture = "made-up-side.png".to_string();
+        side.sha256 = "made-up-side-digest".to_string();
+        side.view = "side";
+        side.stated_turn = 90.0;
+        side.points.retain(|name, _| !name.contains("-left-"));
+        side
+    };
+    let fit = |side: &str, out: &str| {
+        measured(
+            &folder,
+            &[
+                "fit-of-views",
+                "--front",
+                "front.toml",
+                "--three-quarter",
+                "turned.toml",
+                "--side",
+                side,
+            ],
+            out,
+        )
+    };
+    side_view(seen(90.0, 430.0)).write(&folder, "side.toml");
+    let found = fit("side.toml", "fit-rigid.toml");
+    assert_eq!(number(&found["fit"]["percent_of_head_height"]), 0.0);
+
+    // The near brow's outer end 6 pixels lower in the side view than in the two others:
+    // 6 / 480 = 1.25% of head height.
+    let mut lower = seen(90.0, 430.0);
+    lower
+        .get_mut("brow-line-right-outer-end")
+        .expect("in the head")[1] += 6.0;
+    side_view(lower).write(&folder, "side-lower.toml");
+    let found = fit("side-lower.toml", "fit-lower.toml");
+    assert_close(
+        number(&found["fit"]["percent_of_head_height"]),
+        1.25,
+        1e-9,
+        "the fit",
+    );
+    let worst = entries(&found, "misfit")[0];
+    assert_eq!(worst["kind"].as_str(), Some("level"));
+    assert_eq!(
+        worst["landmark"].as_str(),
+        Some("brow-line-right-outer-end")
+    );
+    assert!(
+        worst["what"].as_str().expect("words").contains("side view"),
+        "{worst:?}"
+    );
+}
