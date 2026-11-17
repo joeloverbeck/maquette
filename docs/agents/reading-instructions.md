@@ -43,6 +43,8 @@ Three heights are worked out from landmarks, and the face outline is read where 
 
 Place the eyes, the nose mark and the mouth line first, work out the three heights, and then read the face outline at them.
 
+A drawing may show construction lines of its own, as an underdrawing does: a circle for the skull, level lines, a centre line. They are not read, and a drawn level line is not the level: work each level out from the features.
+
 ## The landmarks
 
 `<side>` is `left` or `right`. A front view and a three-quarter view ask for both sides; a side view asks for the near side only.
