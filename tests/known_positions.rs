@@ -393,6 +393,51 @@ fn a_side_reading_is_scored_against_where_an_armatures_side_view_draws_its_landm
 }
 
 #[test]
+fn a_record_written_as_a_landmark_file_is_said_to_be_what_it_states_it_is() {
+    // A drawing made by hand to test a reader, whose positions are written down as a landmark
+    // file is: the record says what the drawing is, and the score says so in its words, not
+    // that it is a generated armature of guides.
+    let generated = support::draw("known-positions-stated", MADE_UP, &[]);
+    let landmarks = text(&generated.join("side.landmarks.toml"));
+    let folder = references("known-positions-stated");
+    let record = folder.join("record.toml");
+    std::fs::write(
+        &record,
+        format!(
+            "what = \"made up: a painted profile drawn by hand for a test, whose positions are written down here\"\n{landmarks}"
+        ),
+    )
+    .expect("written");
+    let chin = support::LandmarkFile::read(&generated.join("side.landmarks.toml")).point("chin");
+    write_reading(
+        &folder,
+        "side.toml",
+        "side",
+        &[("chin", chin.x, chin.y)],
+        &[],
+    );
+    measure_ok(
+        &folder,
+        &[
+            "score-reading",
+            "--reading",
+            "side.toml",
+            "--known-positions",
+            support::path_text(&record),
+            "--out",
+            "score.toml",
+        ],
+    );
+    let found: toml::Table = text(&folder.join("score.toml")).parse().expect("TOML");
+    let what = found["known_positions"]["what"]
+        .as_str()
+        .expect("what the record is");
+    assert!(what.contains("a painted profile drawn by hand"), "{what}");
+    assert!(!what.contains("generated armature"), "{what}");
+    assert_eq!(found["summary"]["scored"].as_integer(), Some(1));
+}
+
+#[test]
 fn two_sets_of_proportions_are_set_against_each_other() {
     // The made-up set against itself with three values changed. Head height is
     // 1.3127 + 1 = 2.3127 units.

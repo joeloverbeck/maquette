@@ -184,13 +184,21 @@ impl Known {
                 )));
             }
         };
-        Ok(Known {
-            view,
-            what: format!(
+        // A drawing made by hand to test readers may have its positions written down as a
+        // landmark file is, and then says what it is.
+        let what = match said("what") {
+            "" => format!(
                 "the {} view of a generated armature, `{}`, as its landmark file draws it: a drawing of guides and not a painted head. The digest given for the drawing is the landmark file's",
                 view.name(),
                 said("svg")
             ),
+            stated => format!(
+                "{stated}. Its positions are written as a landmark file is, and the digest given for the drawing is that file's"
+            ),
+        };
+        Ok(Known {
+            view,
+            what,
             sha256: crate::readings::sha256_hex(record_text.as_bytes()),
             head_height,
             points,
