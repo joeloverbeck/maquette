@@ -10,7 +10,7 @@ use maquette::reference_folder::Folder;
 use maquette::views::Placement;
 use maquette::{
     Error, Result, armature, differences, enlargement, hand_made_drawings, hand_made_views,
-    hard_case, known_positions, measuring, overlay, proportions, read_back, readings,
+    hard_case, jons_check, known_positions, measuring, overlay, proportions, read_back, readings,
     reference_check_sheet, vectorcraft,
 };
 
@@ -143,6 +143,9 @@ A reading is measured only when it passes what check-reading checks: complete, a
 picture still the one that was read. The two readings of a drawing are two files, by two
 readers under two labels, and follow one revision of the reading instructions. A reading
 under an earlier revision is measured, and what is written says which it followed.
+A picture is a PNG or a JPEG. It is read as it was published and never converted: a reading
+records the digest of the file it was read from. One whose file says it is shown turned or
+mirrored, by an EXIF orientation, is refused.
 
   maquette start-reading --image <picture> --view front|three-quarter|side
                          [--faces right|left] --reader <label> --out <reading>
@@ -161,39 +164,52 @@ under an earlier revision is measured, and what is written says which it followe
       Enlarge a part of a picture a whole number of times, at most 16, each pixel as a
       block. --grid draws a line every so many pixels of the picture and labels it with its
       position in the picture. An enlargement with an edge above 1568 pixels is refused: an
-      agent is shown it resized.
+      agent is shown it resized. The enlargement is written as a PNG.
 
   maquette agreement-of-readings --first <reading> --second <reading> [--out <file>]
       Set two readings of one drawing against each other: for every landmark both place,
       how far apart they put it as a share of head height, with every disagreement above 1%
       numbered, the landmarks only one places, and what the readers judge differently.
 
-  maquette turn-from-readings --front <readings> --three-quarter <readings> [--out <file>]
+  maquette turn-from-readings --front <readings> --three-quarter <readings>
+                              [--check <check>] [--out <file>]
       Work out the turn a three-quarter drawing shows, from how far the spacing of its left
       and right pairs narrows against the front view of the same character. Each pair's own
       turn and misfit is listed, and the readers' own estimates beside it. It fails, and
       writes nothing, where no turn gives what the readings show: a pair with no spacing in
       the front view, or pairs wider apart in the three-quarter view than in the front view.
 
-  maquette fit-of-views --front <readings> --three-quarter <readings> [--side <readings>]
-                        [--out <file>]
+  maquette fit-of-views --front <readings> [--three-quarter <readings>] [--side <readings>]
+                        [--check <check>] [--out <file>]
       Say, as one figure, how far a character's views are from being drawings of one level,
       symmetric head: the largest misfit in level, in spacing against the turn, and from the
-      front view's centre line, as a share of head height. A side view is compared in height.
+      front view's centre line, as a share of head height. The front view is set against a
+      three-quarter view, a side view or both. A side view is compared in height, but for
+      the nose mark's bottom and corner, which a profile puts on other points of the nose;
+      with no three-quarter view there is no turn and no spacing to compare.
 
-  maquette proportions-from-readings --front <readings> --three-quarter <readings>
-                                     [--out <file>]
-      Take a character's readings back into proportions, at the turn the readings show.
-      The skull is built by rule from the ears and the temples. The proportions the
-      readings do not give are listed with the reason; when all are given, the file is a
-      set of proportions that `maquette draw` reads.
+  maquette proportions-from-readings --front <readings>
+                                     [--three-quarter <readings> | --side <readings>]
+                                     [--check <check>] [--out <file>]
+      Take a character's readings back into proportions. A front view alone gives heights
+      and widths and no depth. With a three-quarter view, depth is taken at the turn the
+      readings show. With a side view, depth is taken as the side view shows it: each view
+      is measured in its own unit, eye line to chin, so the two may be drawn at two sizes,
+      and a side view may face either way. A side view is asked for no temple, no cheek
+      point and no jaw point, so it gives those no depth. The skull is built by rule from
+      the ears and the temples, where the readings give them. The proportions the readings
+      do not give are listed with the reason; when all are given, the file is a set of
+      proportions that `maquette draw` reads.
 
   maquette score-reading --reading <reading> --known-positions <record> [--out <file>]
       Score a reading against a drawing whose true positions are on record, such as
       data/saffi/hand-made-views.toml: the reader's error as a share of head height, by
       kind of landmark, with what cannot be seen in the picture kept apart. The record is
       read from where it is named. The reading is scored as it stands: what it leaves out
-      is listed, and its picture is not checked.
+      is listed, and its picture is not checked. The record may also be the landmark file
+      of one view of an armature, such as armatures/saffi/side.landmarks.toml, which is the
+      only side drawing with known positions: a landmark is then known where that view
+      draws it.
 
   maquette known-positions-as-reading --known-positions <record> --view front|three-quarter
                                       --image <picture> --out <reading>
@@ -208,7 +224,33 @@ under an earlier revision is measured, and what is written says which it followe
       views stand side by side with the points read, what was set aside and why, and the
       fit. Where two readings of a drawing cannot be compared, its card says so and the
       sheet is still rendered. The sheet is one SVG that holds its drawings, and stays in
-      the reference folder.
+      the reference folder. Where one picture holds two heads of a character, each drawing
+      is named by itself: a [[character.drawing]] with its own `readings` and, in words,
+      which `picture` and head it is. A character's `about` says which character of which
+      work it is. Each card says which picture it is and how high its head is in pixels,
+      and the header says what the numbers are set against.
+
+  maquette start-jons-check --sheet <description> --out <check>
+      Start the record of Jon's check of a sheet: a TOML file with every character of the
+      sheet, each of its drawings, and each reading with the digest of its file, to be
+      filled in with what Jon said. A `verdict` for each character, accepted or rejected;
+      for a drawing, a `ruling` where he overrules its readers (measure, or set aside) and
+      the landmarks he marks as `off`, in every reading or in one reader's alone; for a
+      character, the proportions he marks as off.
+
+  maquette jons-check --check <check>
+      Say what a record of Jon's check does and what it lacks: each character accepted or
+      rejected, each drawing measured or not and from which readings, what his marks leave
+      out, and the number of accepted works for each view, with a view under five reported
+      as too thin. Exit status 0 when the record is complete, 1 when it is not.
+
+turn-from-readings, fit-of-views and proportions-from-readings take `--check <check>`, the
+record of Jon's check. A record that is not complete measures nothing. With a complete one
+only the readings of a character he accepted are measured, each drawing from all the
+readings the record lists for it and as it rules, with what he marked as off left out; a
+reading that has changed since the record was started is refused. Without it the readings
+are measured as their readers judged them, and what is written says that Jon has not
+checked them.
 ";
 
 /// How a command ended, when nothing went wrong in running it.
@@ -285,6 +327,8 @@ fn run(arguments: &[String]) -> Result<Ended> {
         "score-reading" => score_reading(rest)?,
         "known-positions-as-reading" => known_positions_as_reading(rest)?,
         "reference-check-sheet" => reference_check_sheet(rest)?,
+        "start-jons-check" => start_jons_check(rest)?,
+        "jons-check" => return jons_check_command(rest),
         "compare-proportions" => compare_proportions(rest)?,
         "read-back" => return read_back_command(rest),
         "read-back-hard-case" => return read_back_hard_case(rest),
@@ -677,6 +721,121 @@ fn drawing(folder: &Folder, named: &str) -> Result<readings::Drawing> {
     readings::Drawing::of(&records)
 }
 
+/// The views a measuring command was given, read: each with the path or paths it was named
+/// by, and what Jon's check says of them when `--check` names its record.
+struct ViewsGiven<'a> {
+    drawings: BTreeMap<&'static str, (&'a str, readings::Drawing)>,
+    /// What Jon's check says of the readings. None when no record was given.
+    checked: Option<String>,
+    /// The proportions Jon marked as off for the character.
+    proportions_off: Vec<String>,
+}
+
+impl ViewsGiven<'_> {
+    /// A view the command may be given, as measuring takes it.
+    fn get(&self, option: &str) -> Option<measuring::Given<'_>> {
+        self.drawings
+            .get(option)
+            .map(|(named, drawing)| measuring::Given { named, drawing })
+    }
+
+    /// A view the command must be given.
+    fn need(&self, option: &str) -> Result<measuring::Given<'_>> {
+        self.get(option).ok_or_else(|| {
+            Error::new(format!(
+                "`{option}` is missing. Run `maquette help` for the options."
+            ))
+        })
+    }
+
+    /// Says in what was worked out what Jon's check says of its readings.
+    fn mark(&self, read: &mut measuring::ReadFrom) {
+        if let Some(checked) = &self.checked {
+            read.checked = checked.clone();
+        }
+    }
+}
+
+/// Reads the views a measuring command was given. With `--check`, the record decides what is
+/// measured, as [`jons_check::Review::measured`] says: nothing when the record is not
+/// complete, only the readings of a character Jon accepted, and each drawing from all the
+/// readings the record lists for it, as it rules, with his marks left out.
+fn views_given<'a>(
+    folder: &Folder,
+    found: &BTreeMap<&str, &'a str>,
+    options: &[&'static str],
+) -> Result<ViewsGiven<'a>> {
+    let check = match found.get("--check") {
+        Some(path) => Some((*path, check_record(folder, path)?)),
+        None => None,
+    };
+    let review = match &check {
+        Some((path, check)) => {
+            let review = check.review(path, &|reading| reading_now(folder, reading));
+            if !review.complete() {
+                return Err(Error::new(format!(
+                    "the record of Jon's check `{path}` is not complete, so nothing is measured by it: {}. `maquette jons-check --check {path}` says what it does and lacks",
+                    review.problems.join("; ")
+                )));
+            }
+            Some((*path, review))
+        }
+        None => None,
+    };
+    let mut drawings = BTreeMap::new();
+    let mut character: Option<&jons_check::Checked> = None;
+    let mut notes = Vec::new();
+    for option in options {
+        let Some(named) = found.get(option).copied() else {
+            continue;
+        };
+        let Some((_, review)) = &review else {
+            drawings.insert(*option, (named, drawing(folder, named)?));
+            continue;
+        };
+        let view = option.trim_start_matches("--");
+        let paths: Vec<&str> = named.split(',').map(str::trim).collect();
+        separate_files(folder, &paths)?;
+        let same = |recorded: &str, given: &str| {
+            folder
+                .path(recorded)
+                .is_ok_and(|recorded| folder.path(given).is_ok_and(|given| given == recorded))
+        };
+        let measured = review.measured(&paths, &same)?;
+        match character {
+            Some(other) if other.label != measured.character.label => {
+                return Err(Error::new(format!(
+                    "the views named are of two characters of the record of Jon's check, `{}` and `{}`: a character's own views are measured together",
+                    other.label, measured.character.label
+                )));
+            }
+            _ => character = Some(measured.character),
+        }
+        // Each reading is still held to what `check-reading` checks, against its picture.
+        for path in &paths {
+            checked_reading(folder, path)?;
+        }
+        notes.push(format!("the {view} view is {}", measured.said));
+        drawings.insert(*option, (named, measured.drawing.clone()));
+    }
+    let (checked, proportions_off) = match (&review, character) {
+        (Some((check_path, _)), Some(of)) => (
+            Some(format!(
+                "By the record of Jon's check `{check_path}`, the character `{}` is accepted: {}.",
+                of.label,
+                notes.join("; ")
+            )),
+            of.proportions_off.clone(),
+        ),
+        _ => (None, Vec::new()),
+    };
+    Ok(ViewsGiven {
+        drawings,
+        checked,
+        proportions_off,
+    })
+}
+
 /// Writes what a measuring command worked out into the reference folder, at `--out`, and
 /// prints its summary; or prints the whole of it.
 fn deliver_measured(
@@ -710,63 +869,44 @@ fn agreement_of_readings(arguments: &[String]) -> Result<()> {
 }
 
 fn turn_from_readings(arguments: &[String]) -> Result<()> {
-    let (folder, found) = measuring(arguments, &["--front", "--three-quarter", "--out"])?;
-    let front = required(&found, "--front")?;
-    let three_quarter = required(&found, "--three-quarter")?;
-    let turn = measuring::turn(
-        &measuring::Given {
-            named: front,
-            drawing: &drawing(&folder, front)?,
-        },
-        &measuring::Given {
-            named: three_quarter,
-            drawing: &drawing(&folder, three_quarter)?,
-        },
+    let (folder, found) = measuring(
+        arguments,
+        &["--front", "--three-quarter", "--check", "--out"],
     )?;
+    let views = views_given(&folder, &found, &["--front", "--three-quarter"])?;
+    let mut turn = measuring::turn(&views.need("--front")?, &views.need("--three-quarter")?)?;
+    views.mark(&mut turn.read);
     deliver_measured(&folder, &found, &turn.file(), &turn.summary())
 }
 
 fn fit_of_views(arguments: &[String]) -> Result<()> {
     let (folder, found) = measuring(
         arguments,
-        &["--front", "--three-quarter", "--side", "--out"],
+        &["--front", "--three-quarter", "--side", "--check", "--out"],
     )?;
-    let front = required(&found, "--front")?;
-    let three_quarter = required(&found, "--three-quarter")?;
-    let side = match found.get("--side") {
-        Some(side) => Some((*side, drawing(&folder, side)?)),
-        None => None,
-    };
-    let fit = measuring::fit(
-        &measuring::Given {
-            named: front,
-            drawing: &drawing(&folder, front)?,
-        },
-        &measuring::Given {
-            named: three_quarter,
-            drawing: &drawing(&folder, three_quarter)?,
-        },
-        side.as_ref()
-            .map(|(named, drawing)| measuring::Given { named, drawing })
-            .as_ref(),
+    let views = views_given(&folder, &found, &["--front", "--three-quarter", "--side"])?;
+    let mut fit = measuring::fit(
+        &views.need("--front")?,
+        views.get("--three-quarter").as_ref(),
+        views.get("--side").as_ref(),
     )?;
+    views.mark(&mut fit.read);
     deliver_measured(&folder, &found, &fit.file(), &fit.summary())
 }
 
 fn proportions_from_readings(arguments: &[String]) -> Result<()> {
-    let (folder, found) = measuring(arguments, &["--front", "--three-quarter", "--out"])?;
-    let front = required(&found, "--front")?;
-    let three_quarter = required(&found, "--three-quarter")?;
-    let taken = measuring::proportions(
-        &measuring::Given {
-            named: front,
-            drawing: &drawing(&folder, front)?,
-        },
-        &measuring::Given {
-            named: three_quarter,
-            drawing: &drawing(&folder, three_quarter)?,
-        },
+    let (folder, found) = measuring(
+        arguments,
+        &["--front", "--three-quarter", "--side", "--check", "--out"],
     )?;
+    let views = views_given(&folder, &found, &["--front", "--three-quarter", "--side"])?;
+    let mut taken = measuring::proportions(
+        &views.need("--front")?,
+        views.get("--three-quarter").as_ref(),
+        views.get("--side").as_ref(),
+    )?;
+    views.mark(&mut taken.read);
+    taken.leave_out(&views.proportions_off);
     deliver_measured(&folder, &found, &taken.file()?, &taken.summary())
 }
 
@@ -824,34 +964,133 @@ fn reference_check_sheet(arguments: &[String]) -> Result<()> {
     let (folder, found) = measuring(arguments, &["--sheet", "--out"])?;
     let sheet = required(&found, "--sheet")?;
     let out = required(&found, "--out")?;
-    let description = reference_check_sheet::describe(&folder.read_text(sheet)?)
-        .map_err(|error| Error::new(format!("{sheet}: {error}")))?;
-    let mut pictures = BTreeMap::new();
-    let mut characters = Vec::new();
-    for (label, named) in &description.characters {
-        let of_character = |error: Error| Error::new(format!("the character `{label}`: {error}"));
-        let paths: Vec<&str> = named.iter().map(String::as_str).collect();
-        separate_files(&folder, &paths).map_err(of_character)?;
-        let mut reads = Vec::new();
-        for path in named {
-            // A sheet shows the picture that was read, and no other: the check says so.
-            let (record, picture) = checked_reading(&folder, path).map_err(of_character)?;
-            if let Some(bytes) = picture {
-                pictures.insert(record.picture.sha256.clone(), bytes);
-            }
-            reads.push(reference_check_sheet::Read {
-                path: path.clone(),
-                record,
-            });
-        }
-        characters.push((label.clone(), reads));
-    }
+    let (description, characters, pictures) = sheet_readings(&folder, sheet)?;
     let svg = reference_check_sheet::render(&description, &characters, &pictures)?;
     folder.write(out, svg.as_bytes())?;
     println!(
         "Wrote the reference check sheet `{out}` in the reference folder. It shows the drawings that were read: it stays there and is never committed."
     );
     Ok(())
+}
+
+/// What a sheet description names, read: for each of its characters the readings of each
+/// of its drawings, and every picture by its digest.
+type SheetReadings = (
+    reference_check_sheet::Description,
+    Vec<Vec<Vec<reference_check_sheet::Read>>>,
+    BTreeMap<String, Vec<u8>>,
+);
+
+fn sheet_readings(folder: &Folder, sheet: &str) -> Result<SheetReadings> {
+    let description = reference_check_sheet::describe(&folder.read_text(sheet)?)
+        .map_err(|error| Error::new(format!("{sheet}: {error}")))?;
+    let mut pictures = BTreeMap::new();
+    let mut characters = Vec::new();
+    for character in &description.characters {
+        let label = &character.label;
+        let of_character = |error: Error| Error::new(format!("the character `{label}`: {error}"));
+        let paths: Vec<&str> = character
+            .drawings
+            .iter()
+            .flat_map(|drawing| drawing.readings.iter().map(String::as_str))
+            .collect();
+        separate_files(folder, &paths).map_err(of_character)?;
+        let mut drawings = Vec::new();
+        for drawing in &character.drawings {
+            let mut reads = Vec::new();
+            for path in &drawing.readings {
+                // A sheet shows the picture that was read, and no other: the check says so.
+                let (record, picture) = checked_reading(folder, path).map_err(of_character)?;
+                if let Some(bytes) = picture {
+                    pictures.insert(record.picture.sha256.clone(), bytes);
+                }
+                reads.push(reference_check_sheet::Read {
+                    path: path.clone(),
+                    record,
+                });
+            }
+            drawings.push(reads);
+        }
+        characters.push(drawings);
+    }
+    Ok((description, characters, pictures))
+}
+
+/// The SHA-256 digest of a reading's file as it is now, with the reading.
+fn reading_now(folder: &Folder, path: &str) -> Result<(String, readings::Record)> {
+    let bytes = folder.read(path)?;
+    let text = String::from_utf8(bytes.clone()).map_err(|_| {
+        Error::new(format!(
+            "`{path}` in the reference folder is not a text file"
+        ))
+    })?;
+    let record =
+        readings::Record::read(&text).map_err(|error| Error::new(format!("{path}: {error}")))?;
+    Ok((readings::sha256_hex(&bytes), record))
+}
+
+fn start_jons_check(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(arguments, &["--sheet", "--out"])?;
+    let sheet = required(&found, "--sheet")?;
+    let out = required(&found, "--out")?;
+    let (description, characters, _) = sheet_readings(&folder, sheet)?;
+    let mut digests = BTreeMap::new();
+    for read in characters.iter().flatten().flatten() {
+        digests.insert(read.path.clone(), reading_now(&folder, &read.path)?.0);
+    }
+    let mut to_check = Vec::new();
+    for (character, reads) in description.characters.iter().zip(&characters) {
+        let drawings = reference_check_sheet::on_sheet(character, reads)?
+            .into_iter()
+            .map(|drawing| jons_check::ToCheck {
+                card: drawing.card,
+                picture: drawing.picture,
+                readings: drawing
+                    .readings
+                    .iter()
+                    .map(|read| {
+                        (
+                            read.path.as_str(),
+                            digests[&read.path].clone(),
+                            &read.record,
+                        )
+                    })
+                    .collect(),
+            })
+            .collect();
+        to_check.push((character.label.as_str(), drawings));
+    }
+    if folder.path(out)?.exists() {
+        return Err(Error::new(format!(
+            "`{out}` is already there: a record of Jon's check that has been started is not written over"
+        )));
+    }
+    folder.write(out, jons_check::template(sheet, &to_check).as_bytes())?;
+    println!(
+        "Started the record of Jon's check in `{out}`: {} to give a verdict on. Write in it what Jon said, and nothing else; `maquette jons-check --check {out}` then says what it does. It stays in the reference folder and is never committed.",
+        maquette::number::counted(to_check.len(), "character")
+    );
+    Ok(())
+}
+
+/// A record of Jon's check of the reference folder, read. Its path is named in what goes
+/// wrong.
+fn check_record(folder: &Folder, path: &str) -> Result<jons_check::Check> {
+    jons_check::Check::read(&folder.read_text(path)?)
+        .map_err(|error| Error::new(format!("{path}: {error}")))
+}
+
+fn jons_check_command(arguments: &[String]) -> Result<Ended> {
+    let (folder, found) = measuring(arguments, &["--check"])?;
+    let path = required(&found, "--check")?;
+    let check = check_record(&folder, path)?;
+    let review = check.review(path, &|reading| reading_now(&folder, reading));
+    print!("{}", review.said());
+    Ok(if review.complete() {
+        Ended::Well
+    } else {
+        Ended::CheckFailed
+    })
 }
 
 fn score_reading(arguments: &[String]) -> Result<()> {
@@ -952,7 +1191,7 @@ fn check_reading(arguments: &[String]) -> Result<Ended> {
     let picture = folder.read(&record.picture.file).ok();
     let problems = record.problems(picture.as_deref());
     if problems.is_empty() {
-        if record.set_aside {
+        if record.set_aside && !record.set_aside_overruled {
             println!("The reading is complete: the drawing is set aside, and nothing is placed.");
         } else {
             println!(

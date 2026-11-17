@@ -566,6 +566,124 @@ fn a_side_view_counts_in_the_fit_by_its_heights() {
     );
 }
 
+#[test]
+fn a_front_and_a_side_view_are_fitted_with_no_three_quarter_view_at_any_two_sizes() {
+    let folder = folder("measuring-fit-front-and-side");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front.toml");
+    // The side view drawn at 0.6 of the front view's size, and moved: each view is measured
+    // in its own unit, so the two still show one head.
+    let side_view = |points: std::collections::BTreeMap<String, [f64; 2]>| {
+        let mut side = MadeUp::turned("first", points);
+        side.picture = "made-up-side.png".to_string();
+        side.view = "side";
+        side.stated_turn = 90.0;
+        side.points.retain(|name, _| !name.contains("-left-"));
+        for at in side.points.values_mut() {
+            *at = [100.0 + 0.6 * at[0], 150.0 + 0.6 * at[1]];
+        }
+        side
+    };
+    let fit = |side: &str, out: &str| {
+        measured(
+            &folder,
+            &["fit-of-views", "--front", "front.toml", "--side", side],
+            out,
+        )
+    };
+    side_view(seen(90.0, 430.0)).write(&folder, "side.toml");
+    let found = fit("side.toml", "fit-rigid.toml");
+    assert_close(
+        number(&found["fit"]["percent_of_head_height"]),
+        0.0,
+        1e-9,
+        "a rigid head",
+    );
+    // No three-quarter view: no turn, and no spacing to set against one.
+    assert!(!found.contains_key("turn"), "{found:?}");
+    assert_eq!(found["fit"]["spacing_compared"].as_integer(), Some(0));
+    assert!(found["fit"]["level_compared"].as_integer() > Some(5));
+    assert!(found["fit"]["centre_compared"].as_integer() > Some(5));
+
+    // The near brow's outer end 6 pixels of the front view's size lower in the side view:
+    // 6 / 480 = 1.25% of head height, which is the front view's.
+    let mut lower = seen(90.0, 430.0);
+    lower
+        .get_mut("brow-line-right-outer-end")
+        .expect("in the head")[1] += 6.0;
+    side_view(lower).write(&folder, "side-lower.toml");
+    let found = fit("side-lower.toml", "fit-lower.toml");
+    assert_close(
+        number(&found["fit"]["percent_of_head_height"]),
+        1.25,
+        1e-9,
+        "the fit",
+    );
+    let worst = entries(&found, "misfit")[0];
+    assert_eq!(worst["kind"].as_str(), Some("level"));
+    assert_eq!(
+        worst["landmark"].as_str(),
+        Some("brow-line-right-outer-end")
+    );
+
+    // In a side view the reading instructions put the nose mark's bottom under the tip of
+    // the nose, and its corner at the middle of the nostril: other points of the nose than a
+    // front view's bottom of the drawn mark and its point furthest to the side. Made up: the
+    // side view puts both 40 pixels of the front view's size higher, 8.3% of head height,
+    // and the fit does not count it, and says why.
+    let mut nose = seen(90.0, 430.0);
+    for name in ["nose-mark-bottom", "nose-mark-right-corner"] {
+        nose.get_mut(name).expect("in the head")[1] -= 40.0;
+    }
+    side_view(nose).write(&folder, "side-nose.toml");
+    let output = maquette_in(
+        Some(&folder),
+        &[
+            "fit-of-views",
+            "--front",
+            "front.toml",
+            "--side",
+            "side-nose.toml",
+            "--out",
+            "fit-nose.toml",
+        ],
+    );
+    let printed = String::from_utf8_lossy(&output.stdout).into_owned();
+    assert!(output.status.success(), "{}", failure(&output));
+    let found: toml::Table = text(&folder.join("fit-nose.toml")).parse().expect("TOML");
+    assert_close(
+        number(&found["fit"]["percent_of_head_height"]),
+        0.0,
+        1e-9,
+        "the fit, without the nose's heights in the side view",
+    );
+    let levels: Vec<String> = entries(&found, "misfit")
+        .iter()
+        .filter(|misfit| misfit["kind"].as_str() == Some("level"))
+        .map(|misfit| misfit["landmark"].as_str().expect("a name").to_string())
+        .collect();
+    assert!(
+        !levels.iter().any(|name| name.starts_with("nose-mark")),
+        "{levels:?}"
+    );
+    let left_out = found["rules"]["fit_left_out"].as_str().expect("the rule");
+    assert!(
+        left_out.contains("nose-mark-bottom") && left_out.contains("under the tip of the nose"),
+        "{left_out}"
+    );
+    assert!(
+        printed.contains("nose-mark-bottom") && printed.contains("not compared"),
+        "{printed}"
+    );
+
+    // A front view alone has nothing to be fitted with.
+    let alone = maquette_in(Some(&folder), &["fit-of-views", "--front", "front.toml"]);
+    let message = failure(&alone);
+    assert!(
+        message.contains("a three-quarter view or a side view"),
+        "{message}"
+    );
+}
+
 // ---------------------------------------------------------------- what is measured
 
 /// The four commands that work something out from readings, on the readings named.

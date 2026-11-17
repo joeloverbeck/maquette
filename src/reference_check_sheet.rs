@@ -29,7 +29,7 @@ use std::collections::BTreeMap;
 use base64::Engine;
 
 use crate::measuring::{self, Given};
-use crate::number::{plain, plain3};
+use crate::number::{counted, plain, plain3};
 use crate::readings::{self, Drawing, Record};
 use crate::views::View;
 use crate::{Error, Result};
@@ -57,6 +57,10 @@ const SEMI_BOLD: f64 = 0.94;
 const DECISION: &str = "Your decision for each character: is every head level and in the view stated, and do the dots sit on the right features?";
 const MEASURED_AGAINST: &str = "Every percentage is a share of head height, from the hair's top to the chin, as the readings of that drawing place them. A fit is a share of the front view's.";
 const LEGEND: &str = "Blue dot: a point both readings place, midway between them. Orange, numbered: a point the two readings put more than 1% apart, at both places. Ring: a point only one reading places.";
+const AGAINST_NOTHING_KNOWN: &str = "A disagreement sets the two readings of a drawing against each other, and nothing on this sheet is set against a position that is known: two readers who agree may both be wrong.";
+const SIDE_VIEW_UNTESTED: &str = "The reading of a side view has been tested once on a drawing whose positions are known: Saffi's generated side view, which is a drawing of guides. It has not been tested on a painted side view, and your eye is its only check.";
+const NO_THREE_QUARTER_VIEW: &str = "No three-quarter view was read for any character on this sheet, so the front view and the side view stand beside each other.";
+const TESTED_AT: &str = "The reading instructions were tested on heads about 480 pixels high: on a smaller head a pixel is a larger share of head height.";
 
 /// A sheet as its description names it: what it says, and each character's readings.
 #[derive(Debug, Clone)]
@@ -66,11 +70,44 @@ pub struct Description {
     /// Which look this is, or that none is asked.
     pub look: String,
     pub decision: String,
-    pub characters: Vec<(String, Vec<String>)>,
+    pub characters: Vec<Character>,
+}
+
+/// One character of a sheet, as its description names it.
+#[derive(Debug, Clone)]
+pub struct Character {
+    pub label: String,
+    /// Which character of which work it is, in words. A sheet is private and may name them.
+    pub about: String,
+    pub drawings: Vec<Named>,
+    /// Whether the description names the drawings one by one. Where it does not, the
+    /// readings of one picture are taken as the readings of one drawing.
+    pub drawings_named: bool,
+}
+
+/// One drawing of a character, as a description names it: one head of one picture.
+#[derive(Debug, Clone)]
+pub struct Named {
+    /// Which picture it is, and which head of it, in words.
+    pub picture: String,
+    /// Its one reading or two.
+    pub readings: Vec<String>,
+}
+
+fn paths(entry: &toml::Value) -> Vec<String> {
+    entry
+        .get("readings")
+        .and_then(toml::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|path| path.as_str().map(str::to_string))
+        .collect()
 }
 
 /// Reads a sheet description: a TOML file with a `note`, a `look`, and a `[[character]]`
-/// for each row, with its `label` and the `readings` of its drawings.
+/// for each row, with its `label` and the `readings` of its drawings. Where one picture
+/// holds two heads of the character, each drawing is named by itself, as a
+/// `[[character.drawing]]` with its own `readings` and, in words, which `picture` it is.
 pub fn describe(text: &str) -> Result<Description> {
     let table: toml::Table = text
         .parse()
@@ -98,19 +135,54 @@ pub fn describe(text: &str) -> Result<Description> {
             .get("label")
             .and_then(toml::Value::as_str)
             .ok_or_else(|| Error::new("a [[character]] of the sheet description has no `label`"))?;
-        let named: Vec<String> = entry
-            .get("readings")
+        let words = |entry: &toml::Value, key: &str| -> String {
+            entry
+                .get(key)
+                .and_then(toml::Value::as_str)
+                .map(|text| text.trim().to_string())
+                .unwrap_or_default()
+        };
+        let named = paths(entry);
+        let drawings: Vec<Named> = entry
+            .get("drawing")
             .and_then(toml::Value::as_array)
             .into_iter()
             .flatten()
-            .filter_map(|path| path.as_str().map(str::to_string))
+            .map(|drawing| Named {
+                picture: words(drawing, "picture"),
+                readings: paths(drawing),
+            })
             .collect();
-        if named.is_empty() {
+        let drawings_named = !drawings.is_empty();
+        if drawings_named && !named.is_empty() {
             return Err(Error::new(format!(
-                "the character `{label}` of the sheet description names no `readings`"
+                "the character `{label}` of the sheet description names `readings` and [[character.drawing]] both: its readings are named once, either all together or drawing by drawing"
             )));
         }
-        characters.push((label.to_string(), named));
+        let drawings = if drawings_named {
+            drawings
+        } else {
+            vec![Named {
+                picture: String::new(),
+                readings: named,
+            }]
+        };
+        if drawings.iter().any(|drawing| drawing.readings.is_empty()) {
+            return Err(Error::new(format!(
+                "the character `{label}` of the sheet description names no `readings`{}",
+                if drawings_named {
+                    " for one of its drawings"
+                } else {
+                    ""
+                }
+            )));
+        }
+        characters.push(Character {
+            label: label.to_string(),
+            about: words(entry, "about"),
+            drawings,
+            drawings_named,
+        });
     }
     if characters.is_empty() {
         return Err(Error::new(
@@ -146,10 +218,31 @@ enum NotMeasured {
 /// One drawing of a character: its one or two readings.
 struct Shown<'a> {
     view: View,
+    /// Which picture it is, in the description's words. Empty where it gives none.
+    picture: &'a str,
     readings: Vec<&'a Read>,
 }
 
+/// How high a head is in its picture, in pixels, from the hair's top to the chin: the mean
+/// over the readings that place both. None where no reading does.
+fn head_pixels(records: &[&Record]) -> Option<f64> {
+    let heights: Vec<f64> = records
+        .iter()
+        .filter_map(|record| {
+            let height = record.placed.get("chin")?[1] - record.placed.get("hair-top")?[1];
+            (height > 0.0).then_some(height)
+        })
+        .collect();
+    (!heights.is_empty()).then(|| heights.iter().sum::<f64>() / heights.len() as f64)
+}
+
 impl Shown<'_> {
+    /// How high the head is in the picture, in whole pixels.
+    fn head_pixels(&self) -> Option<f64> {
+        let records: Vec<&Record> = self.readings.iter().map(|read| &read.record).collect();
+        head_pixels(&records).map(f64::round)
+    }
+
     fn first(&self) -> &Record {
         &self.readings[0].record
     }
@@ -168,10 +261,14 @@ impl Shown<'_> {
         {
             return Some(NotMeasured::NotTwoReadings(error.to_string()));
         }
+        // A set-aside that was overruled before the drawing was read is read and shown.
         let aside = self
             .readings
             .iter()
-            .filter(|read| read.record.set_aside || read.record.level != Some(true))
+            .filter(|read| {
+                !read.record.set_aside_overruled
+                    && (read.record.set_aside || read.record.level != Some(true))
+            })
             .count();
         match (aside, self.readings.len()) {
             (0, _) => None,
@@ -295,19 +392,34 @@ struct Card {
     notes: Vec<(String, &'static str)>,
 }
 
-/// Lays the sheet out and draws it. `pictures` holds each drawing's file by its digest.
-pub fn render(
-    description: &Description,
-    characters: &[(String, Vec<Read>)],
-    pictures: &BTreeMap<String, Vec<u8>>,
-) -> Result<String> {
-    let mut body = String::new();
-    let mut drawings = 0;
-    let mut top = 250.0;
-    for (label, reads) in characters {
+/// The drawings of one character, each with its readings: as the description names them one
+/// by one, or else the readings of one picture taken as one drawing.
+fn drawings_of<'a>(character: &'a Character, reads: &'a [Vec<Read>]) -> Result<Vec<Shown<'a>>> {
+    let label = &character.label;
+    let mut shown: Vec<Shown> = Vec::new();
+    if character.drawings_named {
+        for (named, reads) in character.drawings.iter().zip(reads) {
+            let Some(first) = reads.first() else {
+                continue;
+            };
+            if let Some(other) = reads
+                .iter()
+                .find(|read| read.record.picture.sha256 != first.record.picture.sha256)
+            {
+                return Err(Error::new(format!(
+                    "the readings named as one drawing of the character `{label}` are of two pictures, `{}` and `{}`: a drawing is one head of one picture",
+                    first.record.picture.file, other.record.picture.file
+                )));
+            }
+            shown.push(Shown {
+                view: first.record.view,
+                picture: &named.picture,
+                readings: reads.iter().collect(),
+            });
+        }
+    } else {
         // The readings of one picture are one drawing, in the order they are named.
-        let mut shown: Vec<Shown> = Vec::new();
-        for read in reads {
+        for read in reads.iter().flatten() {
             let digest = &read.record.picture.sha256;
             match shown
                 .iter_mut()
@@ -316,30 +428,121 @@ pub fn render(
                 Some(shown) => shown.readings.push(read),
                 None => shown.push(Shown {
                     view: read.record.view,
+                    picture: "",
                     readings: vec![read],
                 }),
             }
         }
-        for one in &shown {
-            if one.readings.len() > 2 {
-                return Err(Error::new(format!(
-                    "`{}` is read {} times for the character `{label}`: a drawing is read twice",
-                    one.first().picture.file,
-                    one.readings.len()
-                )));
-            }
-            if let Some(other) = shown.iter().find(|other| {
-                other.view == one.view && other.first().picture.sha256 != one.first().picture.sha256
-            }) {
-                return Err(Error::new(format!(
-                    "two drawings of the character `{label}` are read as {} views: `{}` and `{}`. A sheet shows one drawing of each view",
-                    one.view.name(),
-                    one.first().picture.file,
-                    other.first().picture.file
-                )));
-            }
+    }
+    for (index, one) in shown.iter().enumerate() {
+        if one.readings.len() > 2 {
+            return Err(Error::new(format!(
+                "`{}` is read {} times for the character `{label}`: a drawing is read twice. Where one picture holds two heads of the character, name each drawing by itself in the sheet description, as a [[character.drawing]] with its own `readings`",
+                one.first().picture.file,
+                one.readings.len()
+            )));
         }
-        drawings += shown.len();
+        if let Some(other) = shown
+            .iter()
+            .enumerate()
+            .find(|(other_index, other)| *other_index != index && other.view == one.view)
+            .map(|(_, other)| other)
+        {
+            return Err(Error::new(format!(
+                "two drawings of the character `{label}` are read as {} views: `{}` and `{}`. A sheet shows one drawing of each view",
+                one.view.name(),
+                one.first().picture.file,
+                other.first().picture.file
+            )));
+        }
+    }
+    Ok(shown)
+}
+
+/// One drawing of a character as a sheet shows it: the view of its card, which picture it
+/// is, and its readings. The record of Jon's check is started from these.
+pub struct OnSheet<'a> {
+    pub card: View,
+    pub picture: String,
+    pub readings: Vec<&'a Read>,
+}
+
+/// The drawings of one character as a sheet shows them, each on the card of its view.
+pub fn on_sheet<'a>(character: &'a Character, reads: &'a [Vec<Read>]) -> Result<Vec<OnSheet<'a>>> {
+    Ok(drawings_of(character, reads)?
+        .into_iter()
+        .map(|shown| OnSheet {
+            card: shown.view,
+            picture: if shown.picture.is_empty() {
+                format!("`{}`", shown.first().picture.file)
+            } else {
+                shown.picture.to_string()
+            },
+            readings: shown.readings,
+        })
+        .collect())
+}
+
+/// Lays the sheet out and draws it. `reads` holds, for each character of the description
+/// and in its order, the readings of each of its drawings as the description names them;
+/// `pictures` holds each drawing's file by its digest.
+pub fn render(
+    description: &Description,
+    reads: &[Vec<Vec<Read>>],
+    pictures: &BTreeMap<String, Vec<u8>>,
+) -> Result<String> {
+    let mut rows: Vec<(&Character, Vec<Shown>)> = Vec::new();
+    for (character, reads) in description.characters.iter().zip(reads) {
+        rows.push((character, drawings_of(character, reads)?));
+    }
+    let drawings: usize = rows.iter().map(|(_, shown)| shown.len()).sum();
+    let any = |view: View| {
+        rows.iter()
+            .any(|(_, shown)| shown.iter().any(|shown| shown.view == view))
+    };
+    // A view nobody on the sheet has gets no column of empty cards, so that a front view
+    // and a side view stand beside each other: the header says it once. The side view's
+    // column stays, as the mock-up has it.
+    let columns: Vec<View> = View::ALL
+        .into_iter()
+        .filter(|view| *view != View::ThreeQuarter || any(View::ThreeQuarter))
+        .collect();
+
+    // What the header says besides the note: what the numbers are set against, what is
+    // tested only on a drawing of guides, and how high each head is in its picture.
+    let mut header: Vec<String> = vec![AGAINST_NOTHING_KNOWN.to_string()];
+    if any(View::Side) {
+        header.push(SIDE_VIEW_UNTESTED.to_string());
+    }
+    if !any(View::ThreeQuarter) {
+        header.push(NO_THREE_QUARTER_VIEW.to_string());
+    }
+    let heads: Vec<String> = rows
+        .iter()
+        .map(|(character, shown)| {
+            let views: Vec<String> = View::ALL
+                .into_iter()
+                .filter_map(|view| shown.iter().find(|shown| shown.view == view))
+                .map(|shown| match shown.head_pixels() {
+                    Some(pixels) => format!("{} {}", shown.view.name(), plain(pixels, 0)),
+                    None => format!("{} not read", shown.view.name()),
+                })
+                .collect();
+            format!("{}: {}", character.label, views.join(", "))
+        })
+        .collect();
+    header.extend(wrapped(
+        &format!(
+            "Heads, from the hair's top to the chin in pixels of the picture: {}. {TESTED_AT}",
+            heads.join(" · ")
+        ),
+        270,
+    ));
+
+    let mut body = String::new();
+    let mut top = 250.0 + 32.0 * header.len() as f64;
+    for (character, shown) in &rows {
+        let label = &character.label;
 
         // The fit, from the views that are measured.
         let usable = |view: View| -> Option<(String, Drawing)> {
@@ -358,10 +561,12 @@ pub fn render(
             view.as_ref()
                 .map(|(named, drawing)| Given { named, drawing })
         }
-        let fit = match (given(&front), given(&turned)) {
-            (Some(front), Some(turned)) => {
-                Some(measuring::fit(&front, &turned, given(&side).as_ref()))
-            }
+        let fit = match given(&front) {
+            Some(front) if turned.is_some() || side.is_some() => Some(measuring::fit(
+                &front,
+                given(&turned).as_ref(),
+                given(&side).as_ref(),
+            )),
             _ => None,
         };
         let usable_views = [&front, &turned, &side]
@@ -371,8 +576,14 @@ pub fn render(
         let (fit_text, fit_colour) = match &fit {
             Some(Ok(fit)) => (
                 format!(
-                    "The views fit one head to within {}% of head height",
-                    plain(fit.percent_of_head_height, 2)
+                    "The views fit one head to within {}% of head height{}",
+                    plain(fit.percent_of_head_height, 2),
+                    match (&turned, &side) {
+                        (None, Some(_)) => {
+                            ": the front view and the side view, set against each other in height"
+                        }
+                        _ => "",
+                    }
                 ),
                 INK,
             ),
@@ -386,26 +597,32 @@ pub fn render(
             ),
             None if usable_views == 0 => ("No usable view".to_string(), SET_ASIDE_TEXT),
             None => (
-                "No front view and three-quarter view to fit".to_string(),
+                "No front view to fit the other views to".to_string(),
                 SET_ASIDE_TEXT,
             ),
         };
         let turn = fit
             .as_ref()
             .and_then(|fit| fit.as_ref().ok())
-            .map(|fit| fit.turn.degrees);
+            .and_then(|fit| fit.turn.as_ref())
+            .map(|turn| turn.degrees);
 
-        // The heading: what the character is, from its readings.
+        // The heading: which character it is, and what it is, from its readings.
         let about = &shown[0].first().reference;
         let field = |name: &str| about.get(name).cloned().unwrap_or_default();
-        let heading = format!(
-            "{label} · {} {}, {} · {}, {}",
+        let what = format!(
+            "{} {}, {} · {}, {}",
             field("age_band"),
             field("sex"),
             field("species"),
             field("work"),
             field("designer")
         );
+        let heading = if character.about.is_empty() {
+            format!("{label} · {what}")
+        } else {
+            format!("{label} · {}", character.about)
+        };
         body.push_str(&line(
             MARGIN,
             top,
@@ -413,14 +630,6 @@ pub fn render(
             600,
             INK,
             &fitted(&heading, 36.0, 2260.0 * SEMI_BOLD),
-        ));
-        body.push_str(&line(
-            MARGIN,
-            top + 52.0,
-            28.0,
-            400,
-            fit_colour,
-            &fitted(&fit_text, 28.0, 3040.0),
         ));
         for (x, text) in [
             (2400.0, "Accept"),
@@ -434,11 +643,31 @@ pub fn render(
             ));
             body.push_str(&line(x + 44.0, top + 6.0, 26.0, 400, INK, text));
         }
+        let mut under = top + 52.0;
+        if !character.about.is_empty() {
+            body.push_str(&line(
+                MARGIN,
+                under,
+                28.0,
+                400,
+                SECONDARY,
+                &fitted(&what, 28.0, 3040.0),
+            ));
+            under += 40.0;
+        }
+        body.push_str(&line(
+            MARGIN,
+            under,
+            28.0,
+            400,
+            fit_colour,
+            &fitted(&fit_text, 28.0, 3040.0),
+        ));
 
-        // The three cards, in the order front, three-quarter, side.
-        let cards_top = top + 110.0;
+        // The cards, in the order of the views.
+        let cards_top = under + 58.0;
         let mut tallest_notes = 0;
-        for (index, view) in View::ALL.into_iter().enumerate() {
+        for (index, view) in columns.iter().copied().enumerate() {
             let x = MARGIN + index as f64 * (CARD + CARD_GAP);
             let card = match shown.iter().find(|shown| shown.view == view) {
                 Some(shown) => card(shown, turn, pictures)?,
@@ -509,8 +738,8 @@ pub fn render(
         escape(&format!(
             "{} · {}, {}",
             description.look,
-            count(characters.len(), "character"),
-            count(drawings, "drawing")
+            counted(rows.len(), "character"),
+            counted(drawings, "drawing")
         ))
     ));
     out.push_str(&line(
@@ -523,17 +752,19 @@ pub fn render(
     ));
     out.push_str(&line(MARGIN, 170.0, 24.0, 400, SECONDARY, MEASURED_AGAINST));
     out.push_str(&line(MARGIN, 202.0, 24.0, 400, SECONDARY, LEGEND));
+    for (index, text) in header.iter().enumerate() {
+        out.push_str(&line(
+            MARGIN,
+            234.0 + 32.0 * index as f64,
+            24.0,
+            400,
+            SECONDARY,
+            text,
+        ));
+    }
     out.push_str(&body);
     out.push_str("</svg>\n");
     Ok(out)
-}
-
-fn count(number: usize, noun: &str) -> String {
-    if number == 1 {
-        format!("1 {noun}")
-    } else {
-        format!("{number} {noun}s")
-    }
 }
 
 /// The card of a view that no reading is of.
@@ -577,15 +808,33 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
         ),
     };
     svg.push_str(&line(PADDING, 22.0, 30.0, 600, INK, view_title(shown.view)));
+    // Which picture it is, in words, and how high the head is in it.
+    let head = match shown.head_pixels() {
+        Some(pixels) => format!("head {} px high", plain(pixels, 0)),
+        None => "head height not read".to_string(),
+    };
+    let which = if shown.picture.is_empty() {
+        format!("`{}` · {head}", first.picture.file)
+    } else {
+        format!("{} · {head}", shown.picture)
+    };
+    svg.push_str(&line(
+        PADDING,
+        60.0,
+        22.0,
+        400,
+        SECONDARY,
+        &fitted(&which, 22.0, 936.0),
+    ));
 
     // The drawing, cropped to what was read, with the points in its own pixels.
     let [left, top, width, height] = crop(&records);
-    let (frame_width, frame_height) = (CARD - 2.0 * PADDING, 700.0);
+    let (frame_width, frame_height) = (CARD - 2.0 * PADDING, 680.0);
     let scale = (frame_width / width).min(frame_height / height);
     // A length on the sheet, in pixels of the picture.
     let on_sheet = |length: f64| plain3(length / scale);
     svg.push_str(&format!(
-        "<svg x=\"{}\" y=\"70\" width=\"{}\" height=\"{}\" viewBox=\"{} {} {} {}\" preserveAspectRatio=\"xMidYMin meet\">\n",
+        "<svg x=\"{}\" y=\"92\" width=\"{}\" height=\"{}\" viewBox=\"{} {} {} {}\" preserveAspectRatio=\"xMidYMin meet\">\n",
         plain3(PADDING),
         plain3(frame_width),
         plain3(frame_height),
@@ -595,9 +844,11 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
         plain3(height)
     ));
     svg.push_str(&format!(
-        "<image width=\"{}\" height=\"{}\" href=\"data:image/png;base64,{}\"/>\n",
+        "<image width=\"{}\" height=\"{}\" href=\"data:{};base64,{}\"/>\n",
         plain3(first.picture.width),
         plain3(first.picture.height),
+        readings::picture_media_type(picture)
+            .map_err(|error| Error::new(format!("{}: {error}", first.picture.file)))?,
         base64::engine::general_purpose::STANDARD.encode(picture)
     ));
 
@@ -751,7 +1002,12 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
     svg.push_str("</svg>\n");
 
     // The judgement, the agreement and the source.
-    let level = "level";
+    // A drawing read after its set-aside was overruled is shown as measured, and says so.
+    let level = if records.iter().any(|record| record.set_aside_overruled) {
+        "a set-aside was overruled: read as level"
+    } else {
+        "level"
+    };
     match &not_measured {
         None => {
             let judgement = match shown.view {
@@ -859,9 +1115,40 @@ fn card(shown: &Shown, turn: Option<f64>, pictures: &BTreeMap<String, Vec<u8>>) 
         &fitted(&format!("Read by {}", readers.join(" and ")), 24.0, 936.0),
     ));
 
-    // Under the card: each reader's reasons, which are what Jon checks.
+    // Under the card: what each reader judged, with its reasons, which are what Jon checks.
     let mut reasons: Vec<(String, &'static str)> = Vec::new();
     for record in &records {
+        let mut judged = format!("a {} view", record.view.name());
+        if record.view != View::Front {
+            if let Some(faces) = record.faces {
+                judged.push_str(&format!(" facing {}", faces.words()));
+            }
+            if let Some(turn) = record.turn_degrees {
+                judged.push_str(&format!(", turned {}", degrees(turn)));
+            }
+        }
+        judged.push_str(match record.level {
+            Some(true) => ", level",
+            Some(false) => ", not level",
+            None => ", level not said",
+        });
+        if record.set_aside {
+            judged.push_str(", and set it aside");
+        }
+        for text in wrapped(&format!("{} judged {judged}", record.reader), 82) {
+            reasons.push((text, INK));
+        }
+        if record.set_aside_overruled {
+            for text in wrapped(
+                &format!(
+                    "{} read it because a set-aside of this drawing was overruled by {}",
+                    record.reader, record.set_aside_overruled_by
+                ),
+                82,
+            ) {
+                reasons.push((text, SET_ASIDE_TEXT));
+            }
+        }
         let mut said = vec![format!("view: {}", record.view_why)];
         if record.view != View::Front {
             said.push(format!(

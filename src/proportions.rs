@@ -7,6 +7,8 @@
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
+use crate::number::counted;
+use crate::toml_text::tables;
 use crate::{Error, Result};
 
 const LIST_TEXT: &str = include_str!("../proportions/list.toml");
@@ -37,6 +39,13 @@ pub struct Proportion {
     pub what: String,
     pub front: String,
     pub three_quarter: String,
+    /// How it is taken from a side view, or why it is not, in words: "Not seen" where a side
+    /// view shows none of it, "Not taken" where it shows something that is not read as it.
+    pub side: String,
+    /// Why a side view does not give it, where the list says it shows something that is not
+    /// read as it: the list's `side_not_taken`. The program gives this reason where a depth
+    /// is not given beside a side view.
+    pub side_not_taken: Option<String>,
     /// How a convention is built where nothing is drawn behind it. A measured proportion
     /// has none.
     pub rule: Option<String>,
@@ -69,6 +78,7 @@ pub struct List {
     pub corrections: Vec<Correction>,
     statements: Vec<(String, Vec<(String, String)>)>,
     disagreement_rules: Vec<String>,
+    side_view_rules: Vec<String>,
     constructions: Vec<(String, String)>,
 }
 
@@ -82,14 +92,6 @@ fn text_of(table: &toml::Table, key: &str, context: &str) -> Result<String> {
                 "the list of proportions: {context} has no text `{key}`"
             ))
         })
-}
-
-fn tables<'a>(table: &'a toml::Table, key: &str) -> Vec<&'a toml::Table> {
-    table
-        .get(key)
-        .and_then(toml::Value::as_array)
-        .map(|entries| entries.iter().filter_map(toml::Value::as_table).collect())
-        .unwrap_or_default()
 }
 
 fn parse_list(text: &str) -> Result<List> {
@@ -139,12 +141,27 @@ fn parse_list(text: &str) -> Result<List> {
                 )));
             }
         };
+        // A side view gives it as `side` says, or does not, for the reason `side_not_taken` gives.
+        let side_not_taken = entry
+            .get("side_not_taken")
+            .map(|_| text_of(entry, "side_not_taken", &context))
+            .transpose()?;
+        if side_not_taken.is_some() && entry.contains_key("side") {
+            return Err(Error::new(format!(
+                "the list of proportions: {context} says both how a side view gives it and why a side view does not"
+            )));
+        }
         proportions.push(Proportion {
             kind,
             positive,
             what: text_of(entry, "what", &context)?,
             front: text_of(entry, "front", &context)?,
             three_quarter: text_of(entry, "three_quarter", &context)?,
+            side: match &side_not_taken {
+                Some(why) => format!("Not taken: {why}"),
+                None => text_of(entry, "side", &context)?,
+            },
+            side_not_taken,
             rule,
             name,
         });
@@ -203,6 +220,10 @@ fn parse_list(text: &str) -> Result<List> {
     for entry in tables(&table, "disagreement_rule") {
         disagreement_rules.push(text_of(entry, "rule", "a disagreement rule")?);
     }
+    let mut side_view_rules = Vec::new();
+    for entry in tables(&table, "side_view_rule") {
+        side_view_rules.push(text_of(entry, "rule", "a side view rule")?);
+    }
     let mut constructions = Vec::new();
     for entry in tables(&table, "construction") {
         constructions.push((
@@ -245,6 +266,7 @@ fn parse_list(text: &str) -> Result<List> {
         corrections,
         statements,
         disagreement_rules,
+        side_view_rules,
         constructions,
     })
 }
@@ -269,6 +291,11 @@ impl List {
         &self.disagreement_rules
     }
 
+    /// The rules for a front view read with a side view, as the list states them.
+    pub fn side_view_rules(&self) -> &[String] {
+        &self.side_view_rules
+    }
+
     /// The whole list as plain text for a person.
     pub fn describe(&self) -> String {
         let mut out = String::new();
@@ -282,6 +309,10 @@ impl List {
         }
         out.push_str("Where two views disagree:\n");
         for (index, rule) in self.disagreement_rules.iter().enumerate() {
+            out.push_str(&format!("  {}. {rule}\n", index + 1));
+        }
+        out.push_str("\nWhere a front view is read with a side view:\n");
+        for (index, rule) in self.side_view_rules.iter().enumerate() {
             out.push_str(&format!("  {}. {rule}\n", index + 1));
         }
         out.push_str("\nHow the guides are built in a view:\n");
@@ -329,6 +360,7 @@ impl List {
                 "  Three-quarter view: {}\n",
                 proportion.three_quarter
             ));
+            out.push_str(&format!("  Side view: {}\n", proportion.side));
             if let Some(rule) = &proportion.rule {
                 out.push_str(&format!("  By rule: {rule}\n"));
             }
@@ -360,7 +392,7 @@ impl Set {
         if !missing.is_empty() {
             return Err(Error::new(format!(
                 "the set of proportions lacks {}: {}. `maquette list-proportions` defines each.",
-                count(missing.len(), "proportion"),
+                counted(missing.len(), "proportion"),
                 missing.join(", ")
             )));
         }
@@ -372,7 +404,7 @@ impl Set {
         if !unknown.is_empty() {
             return Err(Error::new(format!(
                 "the set of proportions has {} the list does not: {}",
-                count(unknown.len(), "name"),
+                counted(unknown.len(), "name"),
                 unknown.join(", ")
             )));
         }
@@ -559,13 +591,5 @@ impl Set {
             }
         }
         Ok(out)
-    }
-}
-
-fn count(number: usize, noun: &str) -> String {
-    if number == 1 {
-        format!("1 {noun}")
-    } else {
-        format!("{number} {noun}s")
     }
 }

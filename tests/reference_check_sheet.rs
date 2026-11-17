@@ -256,6 +256,206 @@ fn a_sheet_shows_each_characters_views_with_the_points_read_and_what_was_set_asi
     );
 }
 
+#[test]
+fn a_drawing_published_as_a_jpeg_is_inside_the_sheet_as_the_jpeg_it_is() {
+    let folder = references("reference-check-sheet-jpeg");
+    support::made_up_jpeg(&folder.join("pictures/front.jpg"), 1000, 1000);
+    reading(
+        &folder,
+        MadeUp::front("first", seen(0.0, 500.0)),
+        "pictures/front.jpg",
+        "first/front.toml",
+    );
+    std::fs::write(
+        folder.join("sheet.toml"),
+        r#"# A made-up sheet for a test.
+note = "Made up for a test: the grey picture shows no drawing."
+look = "No look is asked: a made-up sheet"
+
+[[character]]
+label = "Character 1"
+readings = ["first/front.toml"]
+"#,
+    )
+    .expect("the sheet description is written");
+
+    let svg = rendered(&folder);
+    let document = roxmltree::Document::parse(&svg).expect("the sheet is well-formed SVG");
+    let pictures: Vec<roxmltree::Node> = document
+        .descendants()
+        .filter(|node| node.has_tag_name("image"))
+        .collect();
+    assert_eq!(pictures.len(), 1);
+    let embedded = pictures[0]
+        .attribute("href")
+        .expect("an href")
+        .strip_prefix("data:image/jpeg;base64,")
+        .expect("a JPEG is embedded as a JPEG");
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(embedded)
+        .expect("base64");
+    assert_eq!(
+        bytes,
+        std::fs::read(folder.join("pictures/front.jpg")).expect("the picture"),
+        "the sheet holds another picture than the one that was read"
+    );
+}
+
+/// A made-up reference folder with one picture that holds two heads of one character: a
+/// front view on the left, and on the right a side view at half its size. Each is read by
+/// two readers.
+fn folder_with_two_heads_in_one_picture(name: &str) -> PathBuf {
+    let folder = references(name);
+    made_up_image(&folder.join("pictures/two-heads.png"), 1000, 1000);
+    let side: std::collections::BTreeMap<String, [f64; 2]> = seen(90.0, 700.0)
+        .into_iter()
+        .filter(|(name, _)| !name.contains("-left-"))
+        .map(|(name, at)| (name, [350.0 + 0.5 * at[0], 100.0 + 0.5 * at[1]]))
+        .collect();
+    for reader in ["first", "second"] {
+        reading(
+            &folder,
+            MadeUp::front(reader, seen(0.0, 300.0)),
+            "pictures/two-heads.png",
+            &format!("{reader}/left-head.toml"),
+        );
+        let mut made_up = MadeUp::turned(reader, side.clone());
+        made_up.view = "side";
+        made_up.stated_turn = 90.0;
+        reading(
+            &folder,
+            made_up,
+            "pictures/two-heads.png",
+            &format!("{reader}/right-head.toml"),
+        );
+    }
+    folder
+}
+
+#[test]
+fn a_sheet_shows_two_heads_of_one_picture_as_two_drawings_and_says_which_each_is() {
+    let folder = folder_with_two_heads_in_one_picture("reference-check-sheet-two-heads");
+    std::fs::write(
+        folder.join("sheet.toml"),
+        r#"# A made-up sheet for a test.
+note = "Made up for a test: the grey picture shows no drawing."
+look = "No look is asked: a made-up sheet"
+
+[[character]]
+label = "work-1"
+about = "a made-up character of a made-up work"
+
+  [[character.drawing]]
+  picture = "the left head of the made-up picture"
+  readings = ["first/left-head.toml", "second/left-head.toml"]
+
+  [[character.drawing]]
+  picture = "the right head of the made-up picture"
+  readings = ["first/right-head.toml", "second/right-head.toml"]
+"#,
+    )
+    .expect("the sheet description is written");
+    let svg = rendered(&folder);
+    let document = roxmltree::Document::parse(&svg).expect("the sheet is well-formed SVG");
+    let texts = texts(&document);
+    let said = |part: &str| texts.iter().any(|text| text.contains(part));
+    let all = texts.join("\n");
+
+    // Two drawings of one picture: two cards, each holding the picture.
+    assert!(said("1 character, 2 drawings"), "{all}");
+    let pictures = document
+        .descendants()
+        .filter(|node| node.has_tag_name("image"))
+        .count();
+    assert_eq!(pictures, 2);
+
+    // Each card says which character, work and picture it is, in words, and how high the
+    // head is in the picture: 2.4 units of 200 pixels, and of 100 in the side view.
+    assert!(
+        said("work-1 · a made-up character of a made-up work"),
+        "{all}"
+    );
+    assert!(
+        said("the left head of the made-up picture · head 480 px high"),
+        "{all}"
+    );
+    assert!(
+        said("the right head of the made-up picture · head 240 px high"),
+        "{all}"
+    );
+    // What each reader judged stands with its reasons.
+    assert!(said("first judged a front view, level"), "{all}");
+    assert!(
+        said("second judged a side view facing the viewer's right, turned 90°, level"),
+        "{all}"
+    );
+
+    // The header: what the numbers are set against, how far a side view's reading has been
+    // tested, and each head's height.
+    assert!(
+        said("nothing on this sheet is set against a position that is known"),
+        "{all}"
+    );
+    assert!(
+        said("tested once on a drawing whose positions are known")
+            && said("not been tested on a painted side view"),
+        "{all}"
+    );
+    assert!(said("work-1: front 480, side 240"), "{all}");
+    assert!(said("about 480 pixels high"), "{all}");
+
+    // The front and the side view stand beside each other: no three-quarter view was read
+    // for anyone, so the sheet says that once and keeps no empty card for it.
+    assert!(
+        said("No three-quarter view was read for any character on this sheet"),
+        "{all}"
+    );
+    assert!(
+        !said("No three-quarter view of this character was read"),
+        "{all}"
+    );
+    let cards: Vec<&str> = document
+        .descendants()
+        .filter(|node| node.has_tag_name("g"))
+        .filter_map(|node| node.attribute("transform"))
+        .collect();
+    assert_eq!(cards.len(), 2, "{cards:?}");
+    assert!(cards[0].starts_with("translate(80 "), "{cards:?}");
+    assert!(cards[1].starts_with("translate(1100 "), "{cards:?}");
+
+    // They are fitted to one head with no three-quarter view between them.
+    assert!(
+        said("The views fit one head to within 0% of head height"),
+        "{all}"
+    );
+
+    // Named without its drawings, the four readings of one picture are taken as four
+    // readings of one drawing, and the sheet says how to name them apart.
+    std::fs::write(
+        folder.join("sheet.toml"),
+        r#"look = "No look is asked: a made-up sheet"
+
+[[character]]
+label = "work-1"
+readings = ["first/left-head.toml", "second/left-head.toml", "first/right-head.toml", "second/right-head.toml"]
+"#,
+    )
+    .expect("the sheet description is written");
+    let output = maquette_in(
+        Some(&folder),
+        &[
+            "reference-check-sheet",
+            "--sheet",
+            "sheet.toml",
+            "--out",
+            "sheets/refused.svg",
+        ],
+    );
+    let message = failure(&output);
+    assert!(message.contains("[[character.drawing]]"), "{message}");
+    assert!(!folder.join("sheets/refused.svg").exists());
+}
+
 /// The dots of one drawing of a sheet, by class: `picture` counts the drawings from the top.
 fn dots_of(document: &roxmltree::Document, picture: usize, class: &str) -> usize {
     let pictures: Vec<roxmltree::Node> = document

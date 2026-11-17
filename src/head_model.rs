@@ -533,20 +533,75 @@ impl Reading {
     }
 }
 
-/// Reads two views of one head back into proportions.
-struct Views<'a> {
-    front: &'a Reading,
-    turned: &'a Reading,
-    front_frame: Option<Frame>,
-    turned_frame: Frame,
-    /// Where depth zero shows sideways in the turned view.
+/// The view a front view is read with: the one that gives depth.
+#[derive(Debug, Clone, Copy)]
+pub enum Beside<'a> {
+    /// No other view. A front view shows no depth.
+    Nothing,
+    /// A three-quarter view, at the turn its reading states.
+    ThreeQuarter(&'a Reading),
+    /// A side view, as a head that faces the viewer's right.
+    Side(&'a Reading),
+}
+
+/// The view beside the front view, with the frame it is measured in.
+struct Turned<'a> {
+    reading: &'a Reading,
+    view: View,
+    frame: Frame,
+    /// Where depth zero shows sideways in the view.
     zero_x: f64,
+    /// Of the turn: 0 and 1 in a side view, which shows a point at its depth and nothing of
+    /// its offset.
     cos: f64,
     sin: f64,
 }
 
+/// Reads the views of one head back into proportions.
+struct Views<'a> {
+    front: &'a Reading,
+    front_frame: Option<Frame>,
+    turned: Option<Turned<'a>>,
+}
+
 const FRONT: View = View::Front;
 const TURNED: View = View::ThreeQuarter;
+
+/// Why a front view read alone gives no depth.
+const NO_DEPTH: &str = "a front view shows no depth, and no three-quarter view or side view of the character was read with it";
+
+/// The landmarks whose name marks another point of the head in a side view than in a front
+/// view, by the side-view part of the reading instructions. Their heights are the front
+/// view's or not given, and a fit does not set a side view's height of one against another
+/// view's. Their depths are taken from a side view as ever: a depth is the side view's alone.
+///
+/// - An ear's side extents, which in a profile are toward the back and the front of the head.
+/// - `nose-mark-bottom`, which in a side view is under the tip of the nose, where the outline
+///   turns back toward the face, and in a front view the lowest point of the mark as drawn.
+///   In one published work the two stood 8% of head height apart.
+/// - The nose mark's corner, which in a side view is the middle of the nostril or of the
+///   wing's curve, and in a front view the mark's point furthest toward that side.
+///
+/// Every other landmark a side view asks for names one point of the head in both views: a
+/// top, a bottom, an end or a corner that the instructions only say how to find in a profile.
+const ANOTHER_POINT_IN_A_SIDE_VIEW: &[Key] = &[
+    ("ear", "outer-extent"),
+    ("ear", "inner-extent"),
+    ("nose-mark-bottom", ""),
+    ("nose-mark", "corner"),
+];
+
+/// Whether a landmark, by a reading's name, marks another point of the head in a side view
+/// than in a front view: see [`ANOTHER_POINT_IN_A_SIDE_VIEW`].
+pub fn another_point_in_a_side_view(landmark: &str) -> bool {
+    LANDMARKS
+        .iter()
+        .filter(|spec| ANOTHER_POINT_IN_A_SIDE_VIEW.contains(&spec.key()))
+        .any(|spec| match spec.pair {
+            true => spec.left() == landmark || spec.right() == landmark,
+            false => spec.stem == landmark,
+        })
+}
 
 impl Views<'_> {
     fn front_frame(&self) -> Result<Frame> {
@@ -557,6 +612,18 @@ impl Views<'_> {
         })
     }
 
+    fn three_quarter(&self) -> Option<&Turned<'_>> {
+        self.turned.as_ref().filter(|turned| turned.view == TURNED)
+    }
+
+    /// How a message begins that says no view shows something.
+    fn none_has(&self) -> &'static str {
+        match self.turned {
+            Some(_) => "neither view has",
+            None => "the front view does not have",
+        }
+    }
+
     fn members(&self, spec: &Spec) -> Vec<String> {
         if spec.pair {
             vec![spec.left(), spec.right()]
@@ -565,40 +632,57 @@ impl Views<'_> {
         }
     }
 
-    /// Rule 1: a height comes from the three-quarter view, as the mean of the points it
-    /// shows. Rule 4: the front view stands in when it shows none.
+    /// With a three-quarter view, rule 1: a height comes from the three-quarter view, as
+    /// the mean of the points it shows, and rule 4: the front view stands in when it shows
+    /// none. With a side view or alone, a height comes from the front view, and the side
+    /// view stands in.
     fn drop(&self, spec: &Spec) -> Result<f64> {
         let names = self.members(spec);
-        let turned: Vec<f64> = names
-            .iter()
-            .filter_map(|name| self.turned.get(name))
-            .map(|point| (point[1] - self.turned_frame.eye_line_y) / self.turned_frame.unit)
-            .collect();
-        if !turned.is_empty() {
-            return Ok(turned.iter().sum::<f64>() / turned.len() as f64);
-        }
-        let front: Vec<[f64; 2]> = names
-            .iter()
-            .filter_map(|name| self.front.get(name))
-            .collect();
-        if front.is_empty() {
-            return Err(Error::new(format!(
-                "neither view has a position for {}, so its height is unknown",
-                spec.label()
-            )));
-        }
-        let frame = self.front_frame()?;
-        let drops = front
-            .iter()
-            .map(|point| (point[1] - frame.eye_line_y) / frame.unit);
-        Ok(drops.sum::<f64>() / front.len() as f64)
-    }
-
-    fn turned_pair(&self, spec: &Spec) -> (Option<[f64; 2]>, Option<[f64; 2]>) {
-        (
-            self.turned.get(&spec.left()),
-            self.turned.get(&spec.right()),
-        )
+        let mean_in = |reading: &Reading, frame: Frame| -> Option<f64> {
+            let drops: Vec<f64> = names
+                .iter()
+                .filter_map(|name| reading.get(name))
+                .map(|point| (point[1] - frame.eye_line_y) / frame.unit)
+                .collect();
+            (!drops.is_empty()).then(|| drops.iter().sum::<f64>() / drops.len() as f64)
+        };
+        let another_point =
+            self.three_quarter().is_none() && ANOTHER_POINT_IN_A_SIDE_VIEW.contains(&spec.key());
+        let in_turned = match &self.turned {
+            Some(turned) if !another_point => mean_in(turned.reading, turned.frame),
+            _ => None,
+        };
+        let in_front = || -> Result<Option<f64>> {
+            if names.iter().all(|name| self.front.get(name).is_none()) {
+                return Ok(None);
+            }
+            Ok(mean_in(self.front, self.front_frame()?))
+        };
+        let found = if self.three_quarter().is_some() {
+            match in_turned {
+                Some(drop) => Some(drop),
+                None => in_front()?,
+            }
+        } else {
+            match in_front()? {
+                Some(drop) => Some(drop),
+                None => in_turned,
+            }
+        };
+        found.ok_or_else(|| {
+            Error::new(if another_point && self.turned.is_some() {
+                format!(
+                    "the front view has no position for {}, and a side view shows another point of the head under that name, so its height is unknown",
+                    spec.label()
+                )
+            } else {
+                format!(
+                    "{} a position for {}, so its height is unknown",
+                    self.none_has(),
+                    spec.label()
+                )
+            })
+        })
     }
 
     fn front_offset(&self, spec: &Spec) -> Result<Option<f64>> {
@@ -610,10 +694,16 @@ impl Views<'_> {
         }
     }
 
+    /// Only a three-quarter view shows a pair's spacing besides the front view: a side view
+    /// shows nothing of an offset.
     fn turned_offset(&self, spec: &Spec) -> Option<f64> {
-        match self.turned_pair(spec) {
+        let turned = self.three_quarter()?;
+        match (
+            turned.reading.get(&spec.left()),
+            turned.reading.get(&spec.right()),
+        ) {
             (Some(left), Some(right)) => {
-                Some((left[0] - right[0]) / 2.0 / self.cos / self.turned_frame.unit)
+                Some((left[0] - right[0]) / 2.0 / turned.cos / turned.frame.unit)
             }
             _ => None,
         }
@@ -628,37 +718,60 @@ impl Views<'_> {
         };
         first.or(second).ok_or_else(|| {
             Error::new(format!(
-                "neither view has positions for both {}, so their offset is unknown",
+                "{} positions for both {}, so their offset is unknown",
+                self.none_has(),
                 spec.label()
             ))
         })
     }
 
+    /// The view that gives depth, or why there is none.
+    fn turned(&self) -> Result<&Turned<'_>> {
+        self.turned.as_ref().ok_or_else(|| Error::new(NO_DEPTH))
+    }
+
     /// The depth a sideways position in the turned view gives a point of known offset.
-    fn depth_at(&self, x: f64, offset: f64) -> f64 {
-        ((x - self.zero_x) / self.turned_frame.unit - offset * self.cos) / self.sin
+    fn depth_at(&self, x: f64, offset: f64) -> Result<f64> {
+        let turned = self.turned()?;
+        Ok(((x - turned.zero_x) / turned.frame.unit - offset * turned.cos) / turned.sin)
     }
 
     /// Rule 3: a depth comes from the three-quarter view, from the pair's midpoint or from
-    /// the one point it shows and the offset.
+    /// the one point it shows and the offset. A side view shows a depth as it is: the near
+    /// point of a pair gives it, and no offset is needed.
     fn depth(&self, spec: &Spec) -> Result<f64> {
+        let turned = self.turned()?;
         if !spec.pair {
-            let point = self.turned.need(spec.stem, TURNED)?;
-            return Ok(self.depth_at(point[0], 0.0));
+            let point = turned.reading.need(spec.stem, turned.view)?;
+            return self.depth_at(point[0], 0.0);
         }
-        match self.turned_pair(spec) {
-            (Some(left), Some(right)) => Ok(self.depth_at((left[0] + right[0]) / 2.0, 0.0)),
-            (Some(left), None) => Ok(self.depth_at(left[0], self.offset(spec)?)),
-            (None, Some(right)) => Ok(self.depth_at(right[0], -self.offset(spec)?)),
+        // A side view shows nothing of an offset, so none is asked for.
+        let offset = || -> Result<f64> {
+            if turned.view == View::Side {
+                Ok(0.0)
+            } else {
+                self.offset(spec)
+            }
+        };
+        match (
+            turned.reading.get(&spec.left()),
+            turned.reading.get(&spec.right()),
+        ) {
+            (Some(left), Some(right)) => self.depth_at((left[0] + right[0]) / 2.0, 0.0),
+            (Some(left), None) => self.depth_at(left[0], offset()?),
+            (None, Some(right)) => self.depth_at(right[0], -offset()?),
             (None, None) => Err(Error::new(format!(
-                "the three-quarter view has no position for {}, so their depth is unknown",
+                "the {} view has no position for {}, so their depth is unknown",
+                turned.view.name(),
                 spec.label()
             ))),
         }
     }
 
     /// A height span between two view points of the same eye or form, averaged over the
-    /// sides a view shows, in units. The three-quarter view first.
+    /// sides a view shows, in units: or a sideways span, when `sideways`. The three-quarter
+    /// view first, where there is one; otherwise the front view first, and a side view
+    /// stands in for a height only, since it shows no width.
     fn span(&self, stem: &str, low: &str, high: &str, sideways: bool) -> Result<f64> {
         let measure = |reading: &Reading, frame: Frame, shrink: f64| -> Option<f64> {
             let mut spans = Vec::new();
@@ -680,15 +793,39 @@ impl Views<'_> {
                 Some(spans.iter().sum::<f64>() / spans.len() as f64)
             }
         };
-        if let Some(span) = measure(self.turned, self.turned_frame, self.cos) {
-            return Ok(span);
-        }
-        if let Some(span) = measure(self.front, self.front_frame()?, 1.0) {
-            return Ok(span);
-        }
-        Err(Error::new(format!(
-            "neither view has both `{stem}-…-{low}` and `{stem}-…-{high}` of one side"
-        )))
+        let in_turned = || match &self.turned {
+            Some(turned) if !(sideways && turned.view == View::Side) => {
+                measure(turned.reading, turned.frame, turned.cos)
+            }
+            _ => None,
+        };
+        let in_front = || -> Result<Option<f64>> {
+            match self.three_quarter() {
+                // As ever with a three-quarter view: a front view that shows no eye line
+                // is the reason nothing is taken from it.
+                Some(_) => Ok(measure(self.front, self.front_frame()?, 1.0)),
+                None => Ok(self
+                    .front_frame
+                    .and_then(|frame| measure(self.front, frame, 1.0))),
+            }
+        };
+        let found = if self.three_quarter().is_some() {
+            match in_turned() {
+                Some(span) => Some(span),
+                None => in_front()?,
+            }
+        } else {
+            match in_front()? {
+                Some(span) => Some(span),
+                None => in_turned(),
+            }
+        };
+        found.ok_or_else(|| {
+            Error::new(format!(
+                "{} both `{stem}-…-{low}` and `{stem}-…-{high}` of one side",
+                self.none_has()
+            ))
+        })
     }
 }
 
@@ -868,31 +1005,86 @@ pub fn proportions_from_views(front: &Reading, three_quarter: &Reading) -> Resul
 /// An error is something no proportion can be taken without: a turn outside 0 to 90 degrees,
 /// or a three-quarter view with no eye line, chin or eye corners.
 pub fn take_proportions(front: &Reading, three_quarter: &Reading) -> Result<Taken> {
-    let turn = three_quarter.turn_degrees;
-    if !(turn > 0.0 && turn < 90.0) {
-        return Err(Error::new(format!(
-            "the three-quarter view is turned {turn} degrees; depth can be taken only from a turn between 0 and 90"
-        )));
-    }
-    let turned_frame = three_quarter.frame(TURNED)?;
-    let mut corners = Vec::new();
-    for name in [
-        "eye-left-inner-corner",
-        "eye-left-outer-corner",
-        "eye-right-inner-corner",
-        "eye-right-outer-corner",
-    ] {
-        corners.push(three_quarter.need(name, TURNED)?[0]);
-    }
+    take_from(front, Beside::ThreeQuarter(three_quarter))
+}
+
+/// Takes landmark positions read from a front view back into the proportions they give,
+/// with what the view read beside it gives: depth, and what the front view does not show.
+///
+/// - Beside a three-quarter view, by the rules of [`proportions_from_views`].
+/// - Beside a side view, by the side view's rules of `proportions/list.toml`: each view is
+///   measured in its own unit; a height and a width are the front view's; a depth is how
+///   far the side view shows the point in front of depth zero, which there is midway between
+///   the near eye's two corners; and the side view stands in for a height the front view
+///   does not show. The side view is read as a head that faces the viewer's right.
+/// - Alone, the heights and the widths, and no depth.
+///
+/// An error is something no proportion can be taken without: a turn outside 0 to 90
+/// degrees, or a view with no eye line, chin or eye corners.
+pub fn take_from(front: &Reading, beside: Beside) -> Result<Taken> {
+    let (turned, front_frame) = match beside {
+        Beside::Nothing => (None, Some(front.frame(FRONT)?)),
+        Beside::ThreeQuarter(three_quarter) => {
+            let turn = three_quarter.turn_degrees;
+            if !(turn > 0.0 && turn < 90.0) {
+                return Err(Error::new(format!(
+                    "the three-quarter view is turned {turn} degrees; depth can be taken only from a turn between 0 and 90"
+                )));
+            }
+            let frame = three_quarter.frame(TURNED)?;
+            let mut corners = Vec::new();
+            for name in [
+                "eye-left-inner-corner",
+                "eye-left-outer-corner",
+                "eye-right-inner-corner",
+                "eye-right-outer-corner",
+            ] {
+                corners.push(three_quarter.need(name, TURNED)?[0]);
+            }
+            let turned = Turned {
+                reading: three_quarter,
+                view: TURNED,
+                frame,
+                zero_x: corners.iter().sum::<f64>() / 4.0,
+                cos: turn.to_radians().cos(),
+                sin: turn.to_radians().sin(),
+            };
+            (Some(turned), front.frame(FRONT).ok())
+        }
+        Beside::Side(side) => {
+            let frame = side.frame(View::Side)?;
+            // Depth zero is midway between an eye opening's corners, and the head is
+            // symmetric: the near eye's two corners give it.
+            let zero_x = ["right", "left"]
+                .iter()
+                .find_map(|near| {
+                    let inner = side.get(&format!("eye-{near}-inner-corner"))?;
+                    let outer = side.get(&format!("eye-{near}-outer-corner"))?;
+                    Some((inner[0] + outer[0]) / 2.0)
+                })
+                .ok_or_else(|| {
+                    Error::new(
+                        "the side view places no eye opening with both of its corners, so it has no depth zero: depth is counted from midway between the near eye's two corners",
+                    )
+                })?;
+            let turned = Turned {
+                reading: side,
+                view: View::Side,
+                frame,
+                zero_x,
+                cos: 0.0,
+                sin: 1.0,
+            };
+            (Some(turned), Some(front.frame(FRONT)?))
+        }
+    };
     let views = Views {
         front,
-        turned: three_quarter,
-        front_frame: front.frame(FRONT).ok(),
-        turned_frame,
-        zero_x: corners.iter().sum::<f64>() / 4.0,
-        cos: turn.to_radians().cos(),
-        sin: turn.to_radians().sin(),
+        front_frame,
+        turned,
     };
+    let beside_side = matches!(beside, Beside::Side(_));
+    let list = crate::proportions::list()?;
 
     let mut values: BTreeMap<String, f64> = BTreeMap::new();
     let mut not_given: Vec<(String, String)> = Vec::new();
@@ -900,13 +1092,29 @@ pub fn take_proportions(front: &Reading, three_quarter: &Reading) -> Result<Take
         Ok(value) => {
             values.insert(name.to_string(), value);
         }
-        Err(Error(why)) => not_given.push((name.to_string(), why)),
+        Err(Error(why)) => {
+            // Where the list says a side view does not give a proportion, its reason, in the
+            // list's own words, is said beside what was missing.
+            let by_the_list = list
+                .find(name)
+                .filter(|_| beside_side)
+                .and_then(|proportion| proportion.side_not_taken.as_deref());
+            let why = match by_the_list {
+                Some(reason) => format!("{why}; a side view does not give it: {reason}"),
+                None => why,
+            };
+            not_given.push((name.to_string(), why));
+        }
     };
 
     // A view that has any point of a construction circle draws the skull.
+    let beside_reading = views.turned.as_ref().map(|turned| turned.reading);
     let skull_drawn = ["skull-centre", "skull-top", "skull-bottom"]
         .iter()
-        .any(|name| front.get(name).is_some() || three_quarter.get(name).is_some());
+        .any(|name| {
+            front.get(name).is_some()
+                || beside_reading.is_some_and(|reading| reading.get(name).is_some())
+        });
 
     for spec in LANDMARKS {
         if spec.stem == "skull-centre" && !skull_drawn {
@@ -948,82 +1156,134 @@ pub fn take_proportions(front: &Reading, three_quarter: &Reading) -> Result<Take
         views.span("iris", "inner-extent", "outer-extent", true),
     );
 
-    // A drawn skull: half the height of its circle, in the three-quarter view first.
+    // A drawn skull: half the height of its circle, in the view beside the front view first.
     if skull_drawn {
         let skull = |reading: &Reading, frame: Frame| -> Option<f64> {
             let top = reading.get("skull-top")?;
             let bottom = reading.get("skull-bottom")?;
             Some((bottom[1] - top[1]) / 2.0 / frame.unit)
         };
-        let radius = match skull(three_quarter, turned_frame) {
+        let beside = views
+            .turned
+            .as_ref()
+            .and_then(|turned| skull(turned.reading, turned.frame));
+        let radius = match beside {
             Some(radius) => Ok(radius),
             None => views.front_frame().and_then(|frame| {
                 skull(front, frame).ok_or_else(|| {
-                    Error::new(
-                        "neither view has `skull-top` and `skull-bottom`, so the skull's radius is unknown",
-                    )
+                    Error::new(format!(
+                        "{} `skull-top` and `skull-bottom`, so the skull's radius is unknown",
+                        views.none_has()
+                    ))
                 })
             }),
         };
         put("skull_radius", radius);
     }
 
-    // The hair: its half-width from the front view, its depth from how wide the
-    // three-quarter view still shows it.
+    // Two points of the view beside the front view, with that view.
+    let beside_two = |first: &str, second: &str| -> Result<([f64; 2], [f64; 2], &Turned)> {
+        let turned = views.turned()?;
+        Ok((
+            turned.reading.need(first, turned.view)?,
+            turned.reading.need(second, turned.view)?,
+            turned,
+        ))
+    };
+    let midpoint_depth = |first: &str, second: &str| -> Result<f64> {
+        let (first, second, _) = beside_two(first, second)?;
+        views.depth_at((first[0] + second[0]) / 2.0, 0.0)
+    };
+
+    // The hair: its half-width from the front view. Its depth from how wide a three-quarter
+    // view still shows it, or from its back and its front in a side view.
     let half_width = views.front_frame().and_then(|frame| {
         let left = front.need("hair-left-extent", FRONT)?;
         let right = front.need("hair-right-extent", FRONT)?;
         Ok((left[0] - right[0]) / 2.0 / frame.unit)
     });
-    let turned_hair = || -> Result<([f64; 2], [f64; 2])> {
-        Ok((
-            three_quarter.need("hair-left-extent", TURNED)?,
-            three_quarter.need("hair-right-extent", TURNED)?,
-        ))
+    let half_depth = if beside_side {
+        beside_two("hair-back-extent", "hair-front-extent").and_then(|(back, front, side)| {
+            let half_depth = (front[0] - back[0]) / 2.0 / side.frame.unit;
+            if half_depth <= 0.0 {
+                return Err(Error::new(
+                    "the side view puts the hair's front extent behind its back extent, so the hair has no depth to give",
+                ));
+            }
+            Ok(half_depth)
+        })
+    } else {
+        half_width.clone().and_then(|half_width| {
+            let (left, right, turned) = beside_two("hair-left-extent", "hair-right-extent")?;
+            let shown = (left[0] - right[0]) / 2.0 / turned.frame.unit;
+            let flat = half_width * turned.cos;
+            if shown <= flat {
+                return Err(Error::new(
+                    "the hair is no wider in the three-quarter view than a flat shape of its front width would be, so it has no depth to give",
+                ));
+            }
+            Ok((shown * shown - flat * flat).sqrt() / turned.sin)
+        })
     };
-    let half_depth = half_width.clone().and_then(|half_width| {
-        let (left, right) = turned_hair()?;
-        let shown = (left[0] - right[0]) / 2.0 / turned_frame.unit;
-        let flat = half_width * views.cos;
-        if shown <= flat {
-            return Err(Error::new(
-                "the hair is no wider in the three-quarter view than a flat shape of its front width would be, so it has no depth to give",
-            ));
-        }
-        Ok((shown * shown - flat * flat).sqrt() / views.sin)
-    });
     put("hair_half_width", half_width);
     put("hair_half_depth", half_depth);
     put(
         "hair_centre_depth",
-        turned_hair().map(|(left, right)| views.depth_at((left[0] + right[0]) / 2.0, 0.0)),
+        if beside_side {
+            midpoint_depth("hair-back-extent", "hair-front-extent")
+        } else {
+            midpoint_depth("hair-left-extent", "hair-right-extent")
+        },
     );
 
-    // The neck: a column, so its width is the front view's and does not narrow.
-    let turned_neck = || -> Result<([f64; 2], [f64; 2])> {
-        Ok((
-            three_quarter.need("neck-left-base", TURNED)?,
-            three_quarter.need("neck-right-base", TURNED)?,
-        ))
+    // The neck: a column, so its width is the front view's and does not narrow. Beside a
+    // three-quarter view its other two are that view's, as ever. Beside a side view its
+    // depth is midway between its back and its front, and where it ends is the front view's.
+    let front_neck = match (front.get("neck-left-base"), front.get("neck-right-base")) {
+        (Some(left), Some(right)) => Some((left, right)),
+        _ => None,
     };
+    let no_front_neck = || {
+        Error::new(if beside_side {
+            "the front view does not place both of the points where the neck ends, and a side view shows the neck's back and its front, which end at other heights and are not as far apart"
+        } else {
+            "the front view does not place both of the points where the neck ends"
+        })
+    };
+    let turned_neck = || beside_two("neck-left-base", "neck-right-base");
     put(
         "neck_half_width",
-        match (front.get("neck-left-base"), front.get("neck-right-base")) {
-            (Some(left), Some(right)) => views
+        match front_neck {
+            Some((left, right)) => views
                 .front_frame()
                 .map(|frame| (left[0] - right[0]) / 2.0 / frame.unit),
-            _ => turned_neck().map(|(left, right)| (left[0] - right[0]) / 2.0 / turned_frame.unit),
+            None if views.three_quarter().is_some() => turned_neck()
+                .map(|(left, right, turned)| (left[0] - right[0]) / 2.0 / turned.frame.unit),
+            None => Err(no_front_neck()),
         },
     );
     put(
         "neck_depth",
-        turned_neck().map(|(left, right)| views.depth_at((left[0] + right[0]) / 2.0, 0.0)),
+        if beside_side {
+            midpoint_depth("neck-back-base", "neck-front-base")
+        } else {
+            midpoint_depth("neck-left-base", "neck-right-base")
+        },
     );
     put(
         "neck_base_drop",
-        turned_neck().map(|(left, right)| {
-            ((left[1] + right[1]) / 2.0 - turned_frame.eye_line_y) / turned_frame.unit
-        }),
+        if views.three_quarter().is_some() {
+            turned_neck().map(|(left, right, turned)| {
+                ((left[1] + right[1]) / 2.0 - turned.frame.eye_line_y) / turned.frame.unit
+            })
+        } else {
+            match front_neck {
+                Some((left, right)) => views
+                    .front_frame()
+                    .map(|frame| ((left[1] + right[1]) / 2.0 - frame.eye_line_y) / frame.unit),
+                None => Err(no_front_neck()),
+            }
+        },
     );
 
     // No circle is drawn: the skull is built by rule from what was taken above.

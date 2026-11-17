@@ -124,7 +124,7 @@ As one figure, how far a character's views are from being drawings of one level,
 _Avoid_: consistency, match
 
 **Known positions**:
-The positions of a hand-made drawing's landmarks, taken from the drawing's own file by arithmetic. A reading's error is its distance from them.
+The positions of a drawing's landmarks that are known without reading it: those of a hand-made drawing, taken from the drawing's own file by arithmetic, and those of an accepted armature's view, taken from its landmark file. A reading's error is its distance from them. An armature's view is a drawing of guides, so it tests how well guides are read and not a painted head.
 
 **Proportion table**:
 For one group of characters, each proportion's valid range, measured on references from several works by several hands. Measurements from one series or one artist are not a table.
@@ -147,6 +147,14 @@ _Avoid_: round, review
 
 **Review sheet**:
 The layout shown to Jon at a look. An armature review sheet shows generated views; a reference check sheet shows references with the points read from them.
+
+**Record of Jon's check**:
+What Jon decided at a reference check sheet, written down by an agent from his words: a verdict on each character, a ruling where he overrules a drawing's readers, his marks as off, and the readings he checked, each by the digest of its file. It is kept in the reference folder. A measuring command given it measures only what it accepts, and nothing while it is not complete.
+_Avoid_: approval, sign-off
+
+**Mark as off**:
+Jon's word that a landmark is not on the right feature in a drawing. It leaves that landmark out of the drawing, which is still measured. A mark is on every reading of the drawing, or on one reader's alone where he rules that one placed it rightly and the other did not: the landmark is then measured from the other reader's point. A proportion can be marked as off for a character too, and is then not given for that work.
+_Avoid_: reject (that is for a whole character)
 
 **Difference**:
 How far a generated view puts a landmark from where the hand-made view puts it, once the one is laid over the other, as a share of head height. A list of differences judges none of them.

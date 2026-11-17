@@ -277,6 +277,273 @@ fn a_reading_is_started_with_the_pictures_digest_and_every_landmark_of_its_view(
     assert!(side.contains(&"neck-front-base".to_string()));
 }
 
+#[test]
+fn a_reading_is_started_of_a_jpeg_as_it_is_and_checked_against_it() {
+    let folder = references("readings-jpeg");
+    support::made_up_jpeg(&folder.join("picture.jpg"), 248, 240);
+    let as_made = std::fs::read(folder.join("picture.jpg")).expect("read");
+
+    measure_ok(
+        &folder,
+        &[
+            "start-reading",
+            "--image",
+            "picture.jpg",
+            "--view",
+            "front",
+            "--reader",
+            "first made-up reader",
+            "--out",
+            "front.toml",
+        ],
+    );
+    let template = text(&folder.join("front.toml"));
+
+    // The digest is of the file as it is: the picture is not converted to be read.
+    assert_eq!(
+        std::fs::read(folder.join("picture.jpg")).expect("read"),
+        as_made,
+        "the picture was changed"
+    );
+    let digest = support::sha256_hex(&as_made);
+    assert!(
+        template.contains(&format!("sha256 = \"{digest}\"")),
+        "{template}"
+    );
+    assert!(template.contains("file = \"picture.jpg\""), "{template}");
+    assert!(template.contains("width = 248"), "{template}");
+    assert!(template.contains("height = 240"), "{template}");
+
+    // Filled in, the reading passes its check against the JPEG.
+    let filled = filled_in(&template, 0.0, &|name| {
+        Some([124.0, 20.0 + name.len() as f64 * 5.0])
+    });
+    std::fs::write(folder.join("front.toml"), &filled).expect("written");
+    let printed = measure_ok(&folder, &["check-reading", "--reading", "front.toml"]);
+    assert!(printed.contains("60 landmarks placed"), "{printed}");
+
+    // And not once the JPEG has changed.
+    support::made_up_jpeg(&folder.join("picture.jpg"), 249, 240);
+    let output = maquette_in(Some(&folder), &["check-reading", "--reading", "front.toml"]);
+    let said = String::from_utf8_lossy(&output.stdout).into_owned() + &failure(&output);
+    assert!(said.contains("digest"), "{said}");
+}
+
+#[test]
+fn a_jpeg_whose_file_says_it_is_shown_turned_is_refused() {
+    // A browser shows such a picture turned, and maquette reads its pixels as they are
+    // stored: a reader's positions, an enlargement and a sheet would not agree.
+    let folder = references("readings-jpeg-turned");
+    support::made_up_jpeg_with_orientation(&folder.join("turned.jpg"), 248, 240, 6);
+    let starting = |image: &str| {
+        maquette_in(
+            Some(&folder),
+            &[
+                "start-reading",
+                "--image",
+                image,
+                "--view",
+                "front",
+                "--reader",
+                "first made-up reader",
+                "--out",
+                "front.toml",
+            ],
+        )
+    };
+    let message = failure(&starting("turned.jpg"));
+    assert!(
+        message.contains("turned.jpg") && message.contains("shown turned or mirrored"),
+        "{message}"
+    );
+    assert!(!folder.join("front.toml").exists());
+    let output = maquette_in(
+        Some(&folder),
+        &[
+            "enlarge-image",
+            "--image",
+            "turned.jpg",
+            "--left",
+            "0",
+            "--top",
+            "0",
+            "--width",
+            "10",
+            "--height",
+            "10",
+            "--factor",
+            "2",
+            "--out",
+            "part.png",
+        ],
+    );
+    assert!(failure(&output).contains("shown turned or mirrored"));
+
+    // One whose file says it is upright is read as ever.
+    support::made_up_jpeg_with_orientation(&folder.join("upright.jpg"), 248, 240, 1);
+    let output = starting("upright.jpg");
+    assert!(output.status.success(), "{}", failure(&output));
+}
+
+#[test]
+fn a_drawing_whose_set_aside_was_overruled_is_read_and_every_landmark_is_asked_for() {
+    let folder = folder_with_picture("readings-overruled");
+    let template = start(&folder, "front", &[], "front.toml");
+    // The reader would have set it aside, and says so: the judgement stands beside the ruling.
+    let judged = |reading: &str| {
+        reading
+            .replace("set_aside = false", "set_aside = true")
+            .replace(
+                "set_aside_why = \"\"",
+                "set_aside_why = \"made up: the expression\"",
+            )
+    };
+    let overruled = |reading: &str, by: &str| {
+        reading
+            .replace("# set_aside_overruled = true", "set_aside_overruled = true")
+            .replace(
+                "# set_aside_overruled_by = \"made up for a test\"",
+                &format!("set_aside_overruled_by = \"{by}\""),
+            )
+    };
+    let check = |reading: &str| {
+        std::fs::write(folder.join("front.toml"), reading).expect("written");
+        let output = maquette_in(Some(&folder), &["check-reading", "--reading", "front.toml"]);
+        (
+            String::from_utf8_lossy(&output.stdout).into_owned()
+                + &String::from_utf8_lossy(&output.stderr),
+            output.status.success(),
+        )
+    };
+    let measure = || {
+        maquette_in(
+            Some(&folder),
+            &["proportions-from-readings", "--front", "front.toml"],
+        )
+    };
+    let placed_all = filled_in(&template, 0.0, &placed);
+    let placed_none = filled_in(&template, 0.0, &|_| None)
+        .lines()
+        .filter(|line| !line.contains("made up: left out for a test"))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    // Set aside and not overruled: nothing is asked for, and nothing is measured.
+    let (said, complete) = check(&judged(&placed_none));
+    assert!(complete && said.contains("set aside"), "{said}");
+    assert!(failure(&measure()).contains("sets the drawing aside"));
+
+    // Overruled: the drawing is read, so every landmark is asked for.
+    let (said, complete) = check(&overruled(&judged(&placed_none), "made up: the checker"));
+    assert!(
+        !complete && said.contains("60 landmarks are neither placed"),
+        "{said}"
+    );
+    let (said, complete) = check(&overruled(&judged(&placed_all), ""));
+    assert!(
+        !complete && said.contains("does not say who overruled"),
+        "{said}"
+    );
+    let (said, complete) = check(&overruled(&judged(&placed_all), "made up: the checker"));
+    assert!(complete && said.contains("60 landmarks placed"), "{said}");
+    // And it is no longer refused as set aside. These made-up positions are no head, so
+    // measuring stops further on, at the eye line.
+    let message = failure(&measure());
+    assert!(!message.contains("sets the drawing aside"), "{message}");
+    assert!(message.contains("eye line"), "{message}");
+}
+
+#[test]
+fn a_side_reading_is_started_with_what_each_landmark_is_in_a_profile() {
+    let folder = folder_with_picture("readings-side-words");
+    let side = start(&folder, "side", &["--faces", "right"], "side.toml");
+    let front = start(&folder, "front", &[], "front.toml");
+    let said_of = |template: &str, landmark: &str| -> String {
+        let lines: Vec<&str> = template.lines().collect();
+        let at = lines
+            .iter()
+            .position(|line| *line == format!("# {landmark} = {{ x = , y = }}"))
+            .unwrap_or_else(|| panic!("no {landmark}"));
+        lines[at - 1].to_string()
+    };
+    // In a profile the chin is where the front of the face turns under, the nose mark's
+    // bottom is under the tip of the nose, and inner is toward the front of the face.
+    assert!(said_of(&side, "chin").contains("turns to run back under the jaw"));
+    assert!(said_of(&side, "nose-mark-bottom").contains("Under the tip of the nose"));
+    assert!(said_of(&side, "eye-right-inner-corner").contains("front of the face"));
+    assert!(said_of(&side, "ear-right-base-outer").contains("upper end"));
+    // A front view is started with the words it always was.
+    assert_eq!(
+        said_of(&front, "chin"),
+        "# The lowest point of the face outline."
+    );
+    assert_eq!(
+        said_of(&front, "nose-mark-bottom"),
+        "# The lowest point of the drawn nose mark."
+    );
+    assert_eq!(
+        said_of(&front, "eye-right-inner-corner"),
+        "# The point of the eye opening nearest the centre line."
+    );
+}
+
+#[test]
+fn a_file_in_neither_format_is_refused_and_the_message_names_the_two_that_are_read() {
+    let folder = references("readings-neither-format");
+    // The header of a GIF and nothing after it, and a file that is no picture at all.
+    std::fs::write(
+        folder.join("picture.gif"),
+        b"GIF89a\x10\x00\x10\x00\x00\x00\x00;",
+    )
+    .expect("written");
+    std::fs::write(folder.join("notes.jpg"), "made up: not a picture\n").expect("written");
+    for image in ["picture.gif", "notes.jpg"] {
+        let started = maquette_in(
+            Some(&folder),
+            &[
+                "start-reading",
+                "--image",
+                image,
+                "--view",
+                "front",
+                "--reader",
+                "first made-up reader",
+                "--out",
+                "front.toml",
+            ],
+        );
+        let enlarged = maquette_in(
+            Some(&folder),
+            &[
+                "enlarge-image",
+                "--image",
+                image,
+                "--left",
+                "0",
+                "--top",
+                "0",
+                "--width",
+                "8",
+                "--height",
+                "8",
+                "--factor",
+                "2",
+                "--out",
+                "part.png",
+            ],
+        );
+        for (command, output) in [("start-reading", started), ("enlarge-image", enlarged)] {
+            let message = failure(&output);
+            assert!(
+                message.contains("a PNG or a JPEG, the two formats maquette reads"),
+                "{command} of {image}: {message}"
+            );
+        }
+    }
+    assert!(!folder.join("front.toml").exists());
+    assert!(!folder.join("part.png").exists());
+}
+
 fn placed(name: &str) -> Option<[f64; 2]> {
     // Made-up places inside the picture, with the character's left toward the viewer's right.
     let across = if name.contains("-left-") {

@@ -11,12 +11,12 @@
 //! for: the skull, the middle of an eye opening, the centre of an iris, and the jaw line
 //! above the nose level.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest, Sha256};
 
 use crate::head_model;
-use crate::toml_text::quoted;
+use crate::toml_text::{quoted, words};
 use crate::views::View;
 use crate::{Error, Result};
 
@@ -345,6 +345,133 @@ fn asked_of_near_outline(view: View, point: &str) -> bool {
     }
 }
 
+/// What a landmark is in a side view, where a profile shows another point of the drawing
+/// under its name than a face seen from the front does: the one line a side reading is
+/// started with. The reading instructions say more, under "In a side view".
+const IN_A_SIDE_VIEW: &[(&str, &str, &str)] = &[
+    (
+        "chin",
+        "",
+        "The chin's own lowest point: where the outline, coming down the front of the face, turns to run back under the jaw. Not the middle of the jaw's underside.",
+    ),
+    (
+        "nose-mark-bottom",
+        "",
+        "Under the tip of the nose: where the outline, coming round the tip, turns to run back toward the face. Not where the nose meets the upper lip.",
+    ),
+    (
+        "mouth-line-centre",
+        "",
+        "Where the line between the lips reaches the outline of the face: the bottom of the notch between the lips.",
+    ),
+    (
+        "eye",
+        "outer-corner",
+        "The back end of the eye opening: where it closes toward the back of the head.",
+    ),
+    (
+        "eye",
+        "inner-corner",
+        "The front end of the eye opening: its point furthest toward the front of the face.",
+    ),
+    (
+        "eye",
+        "opening-bottom",
+        "The lowest point of the eye opening; where no lower lid is drawn, of the iris or the white as drawn.",
+    ),
+    (
+        "iris",
+        "outer-extent",
+        "The back edge of the iris: its point furthest toward the back of the head.",
+    ),
+    (
+        "iris",
+        "inner-extent",
+        "The front edge of the iris: its point furthest toward the front of the face.",
+    ),
+    (
+        "lid-line",
+        "inner-end",
+        "The middle of the drawn upper lid line's thickness, at its end toward the front of the face.",
+    ),
+    (
+        "lid-line",
+        "outer-end",
+        "The middle of the drawn upper lid line's thickness, at its end toward the back of the head.",
+    ),
+    (
+        "brow-line",
+        "inner-end",
+        "The middle of the drawn brow's thickness, at its end toward the front of the face.",
+    ),
+    (
+        "brow-line",
+        "outer-end",
+        "The middle of the drawn brow's thickness, at its end toward the back of the head.",
+    ),
+    (
+        "nose-mark",
+        "corner",
+        "The middle of the nostril, or of the curve drawn for the wing of the nose. Not seen where neither is drawn.",
+    ),
+    (
+        "mouth-line",
+        "end",
+        "The back end of the drawn mouth line: the corner of the mouth.",
+    ),
+    (
+        "ear",
+        "base-outer",
+        "On an ear at the side of the head, the upper end of the edge it stands on the head by: where its rim meets the head. On an ear on top of the head, the corner of its foot toward the back of the head. Never where hair crosses the ear.",
+    ),
+    (
+        "ear",
+        "base-inner",
+        "On an ear at the side of the head, the lower end of the edge it stands on the head by: where the lobe meets the head. On an ear on top of the head, the corner of its foot toward the front of the head. Never where hair crosses the ear.",
+    ),
+    (
+        "ear",
+        "outer-extent",
+        "The point of the ear furthest toward the back of the head.",
+    ),
+    (
+        "ear",
+        "inner-extent",
+        "The point of the ear furthest toward the front of the face.",
+    ),
+    (
+        "face-outline",
+        "at-nose-level",
+        "Where the back edge of the jaw, which runs from under the chin back and up toward the ear, crosses the nose level.",
+    ),
+    (
+        "face-outline",
+        "at-mouth-level",
+        "Where the back edge of the jaw, which runs from under the chin back and up toward the ear, crosses the mouth level.",
+    ),
+    (
+        "hair-back-extent",
+        "",
+        "The point of the hair furthest toward the back of the head, at or above the height of the chin.",
+    ),
+    (
+        "hair-front-extent",
+        "",
+        "The point of the hair furthest toward the front of the head, at or above the height of the chin.",
+    ),
+];
+
+/// What to place for a landmark, in one line, in a view.
+fn what_in(view: View, ask: &Ask) -> &'static str {
+    if view != View::Side {
+        return ask.what;
+    }
+    IN_A_SIDE_VIEW
+        .iter()
+        .find(|(stem, point, _)| *stem == ask.stem && *point == ask.point)
+        .map_or(ask.what, |(_, _, what)| what)
+}
+
 /// The landmarks a view asks a reader for, in the order of a reading. `faces` is which way a
 /// turned head faces; a front view has none.
 pub fn asked(view: View, faces: Option<Faces>) -> Vec<Asked> {
@@ -354,7 +481,7 @@ pub fn asked(view: View, faces: Option<Faces>) -> Vec<Asked> {
         .map(|ask| Asked {
             name: ask.stem.to_string(),
             kind: ask.kind,
-            what: ask.what,
+            what: what_in(view, ask),
         })
         .collect();
     for side in ["right", "left"] {
@@ -373,7 +500,7 @@ pub fn asked(view: View, faces: Option<Faces>) -> Vec<Asked> {
             out.push(Asked {
                 name: format!("{}-{side}-{}", ask.stem, ask.point),
                 kind: ask.kind,
-                what: ask.what,
+                what: what_in(view, ask),
             });
         }
     }
@@ -381,7 +508,7 @@ pub fn asked(view: View, faces: Option<Faces>) -> Vec<Asked> {
         out.extend(IN_SIDE_VIEW.iter().map(|ask| Asked {
             name: ask.stem.to_string(),
             kind: ask.kind,
-            what: ask.what,
+            what: what_in(view, ask),
         }));
     }
     out
@@ -405,17 +532,56 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
         .collect()
 }
 
-/// How wide and how high a picture is, in pixels.
+/// What is said of a file that is not a picture maquette reads. A picture is read as it was
+/// published, as a PNG or as a JPEG, and is told by its bytes, not by its name.
+pub fn not_a_picture(error: impl std::fmt::Display) -> Error {
+    Error::new(format!(
+        "the picture cannot be read as a PNG or a JPEG, the two formats maquette reads: {error}"
+    ))
+}
+
+/// What a file that holds a picture whole calls its format: `image/png` or `image/jpeg`. A
+/// picture that is not [`upright`] is refused.
+pub fn picture_media_type(bytes: &[u8]) -> Result<&'static str> {
+    let media_type = match image::guess_format(bytes).map_err(not_a_picture)? {
+        image::ImageFormat::Png => "image/png",
+        image::ImageFormat::Jpeg => "image/jpeg",
+        other => return Err(not_a_picture(format!("it is in the format {other:?}"))),
+    };
+    upright(bytes)?;
+    Ok(media_type)
+}
+
+/// How wide and how high a picture is, in pixels. A picture that is not [`upright`] is
+/// refused.
 pub fn picture_size(bytes: &[u8]) -> Result<(u32, u32)> {
+    upright(bytes)?;
     image::ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
-        .map_err(|error| Error::new(format!("the picture cannot be read: {error}")))?
+        .map_err(not_a_picture)?
         .into_dimensions()
-        .map_err(|error| {
-            Error::new(format!(
-                "the picture cannot be read as a PNG, the one format maquette reads: {error}"
-            ))
-        })
+        .map_err(not_a_picture)
+}
+
+/// Refuses a picture whose file says it is to be shown turned or mirrored, as an EXIF
+/// orientation other than upright does. A browser, and so a reference check sheet, shows it
+/// turned; maquette reads and enlarges its pixels as they are stored, and never converts a
+/// picture. A reading of it, its enlargements and its sheet would then not agree.
+pub fn upright(bytes: &[u8]) -> Result<()> {
+    use image::ImageDecoder;
+    let mut decoder = image::ImageReader::new(std::io::Cursor::new(bytes))
+        .with_guessed_format()
+        .map_err(not_a_picture)?
+        .into_decoder()
+        .map_err(not_a_picture)?;
+    let orientation = decoder.orientation().map_err(not_a_picture)?;
+    if orientation == image::metadata::Orientation::NoTransforms {
+        return Ok(());
+    }
+    Err(Error::new(format!(
+        "the picture's file says it is shown turned or mirrored (its EXIF orientation is {}, and upright is 1). A browser shows it so, and maquette reads its pixels as they are stored, so a reading, an enlargement and a sheet of it would not agree. Such a picture is not read",
+        orientation.to_exif()
+    )))
 }
 
 /// What a reference is: said by whoever hands over the drawing, except the manner.
@@ -462,6 +628,12 @@ pub struct Record {
     pub level_why: String,
     pub set_aside: bool,
     pub set_aside_why: String,
+    /// Whether the person who checks the readings overruled a set-aside of this drawing
+    /// before it was read: it is then read, and every landmark drawn is placed, whatever
+    /// the reader's own judgement of it.
+    pub set_aside_overruled: bool,
+    /// Who overruled it, as the reader was told.
+    pub set_aside_overruled_by: String,
     /// Positions in pixels of the picture, under the names the view asks for.
     pub placed: BTreeMap<String, [f64; 2]>,
     /// Landmarks the reader could not place, each with the reason.
@@ -475,15 +647,6 @@ fn table<'a>(file: &'a toml::Table, key: &str) -> Result<&'a toml::Table> {
     file.get(key)
         .and_then(toml::Value::as_table)
         .ok_or_else(|| Error::new(format!("the reading has no [{key}] table")))
-}
-
-fn words(table: &toml::Table, key: &str) -> String {
-    table
-        .get(key)
-        .and_then(toml::Value::as_str)
-        .unwrap_or_default()
-        .trim()
-        .to_string()
 }
 
 fn number(value: Option<&toml::Value>) -> Option<f64> {
@@ -563,6 +726,14 @@ impl Record {
             }
             None => false,
         };
+        let set_aside_overruled = match judgement.get("set_aside_overruled") {
+            Some(toml::Value::Boolean(overruled)) => *overruled,
+            Some(_) => {
+                faults.push("`set_aside_overruled` is neither true nor false".to_string());
+                false
+            }
+            None => false,
+        };
 
         let mut placed = BTreeMap::new();
         if let Some(landmarks) = file.get("landmarks") {
@@ -611,6 +782,8 @@ impl Record {
             level_why: words(judgement, "level_why"),
             set_aside,
             set_aside_why: words(judgement, "set_aside_why"),
+            set_aside_overruled,
+            set_aside_overruled_by: words(judgement, "set_aside_overruled_by"),
             placed,
             not_seen,
             faults,
@@ -738,7 +911,16 @@ impl Record {
                 );
             }
             // A drawing that is set aside is not measured: its landmarks are not asked for.
-            return problems;
+            // One whose set-aside was overruled before it was read is read all the same.
+            if !self.set_aside_overruled {
+                return problems;
+            }
+        }
+        if self.set_aside_overruled && self.set_aside_overruled_by.is_empty() {
+            problems.push(
+                "`set_aside_overruled` is true and `set_aside_overruled_by` does not say who overruled the set-aside"
+                    .to_string(),
+            );
         }
 
         let asked = self.asked();
@@ -830,7 +1012,9 @@ impl Record {
                 &self.reader
             }
         );
-        if self.set_aside {
+        // A set-aside that was overruled before the drawing was read is read as a level head
+        // in the view judged: the ruling is the checker's, and the reading records it.
+        if self.set_aside && !self.set_aside_overruled {
             return Err(Error::new(format!(
                 "{which} sets the drawing aside ({}), so it is not measured",
                 if self.set_aside_why.is_empty() {
@@ -840,7 +1024,7 @@ impl Record {
                 }
             )));
         }
-        if self.level != Some(true) {
+        if self.level != Some(true) && !self.set_aside_overruled {
             return Err(Error::new(format!(
                 "{which} does not say the head is level, so its numbers cannot be taken as a level head's. Measuring a tilted head as tilted is not built"
             )));
@@ -946,6 +1130,20 @@ pub struct Drawing {
     pub placed: BTreeMap<String, [f64; 2]>,
     /// The landmarks only one of two readings places. They are left out.
     pub placed_by_one: Vec<String>,
+    /// The landmarks taken from one of two readings because Jon's mark left the other
+    /// reading's point out.
+    pub left_to_one: Vec<LeftToOne>,
+}
+
+/// A landmark of a drawing read twice that is taken from one reading alone, because Jon's
+/// mark left the other reading's point of it out.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LeftToOne {
+    pub landmark: String,
+    /// The reader whose point is taken.
+    pub kept: String,
+    /// The reader whose point Jon's mark left out.
+    pub left_out: String,
 }
 
 impl Drawing {
@@ -953,6 +1151,15 @@ impl Drawing {
     /// that is not set aside, and two must be the two readings of one drawing, as
     /// [`same_drawing`] says.
     pub fn of(records: &[Record]) -> Result<Drawing> {
+        Drawing::of_marked(records, &[])
+    }
+
+    /// Takes readings together as [`Drawing::of`] does, after Jon's marks: `marked[i]` are
+    /// the landmarks a mark of his left out of `records[i]` alone. A landmark that one
+    /// reading places, and whose point in the other a mark left out, is taken from the one.
+    pub fn of_marked(records: &[Record], marked: &[BTreeSet<String>]) -> Result<Drawing> {
+        let marked_in =
+            |index: usize, name: &str| marked.get(index).is_some_and(|names| names.contains(name));
         let (first, second) = match records {
             [first] => (first, None),
             [first, second] => (first, Some(second)),
@@ -972,6 +1179,7 @@ impl Drawing {
             stated_turns: first.turn_degrees.into_iter().collect(),
             placed: first.placed.clone(),
             placed_by_one: Vec::new(),
+            left_to_one: Vec::new(),
         };
         if let Some(second) = second {
             second.measurable()?;
@@ -987,11 +1195,29 @@ impl Drawing {
                             [(at[0] + other[0]) / 2.0, (at[1] + other[1]) / 2.0],
                         );
                     }
+                    None if marked_in(1, name) => {
+                        drawing.placed.insert(name.clone(), *at);
+                        drawing.left_to_one.push(LeftToOne {
+                            landmark: name.clone(),
+                            kept: first.reader.clone(),
+                            left_out: second.reader.clone(),
+                        });
+                    }
                     None => drawing.placed_by_one.push(name.clone()),
                 }
             }
-            for name in second.placed.keys() {
-                if !first.placed.contains_key(name) {
+            for (name, at) in &second.placed {
+                if first.placed.contains_key(name) {
+                    continue;
+                }
+                if marked_in(0, name) {
+                    drawing.placed.insert(name.clone(), *at);
+                    drawing.left_to_one.push(LeftToOne {
+                        landmark: name.clone(),
+                        kept: second.reader.clone(),
+                        left_out: first.reader.clone(),
+                    });
+                } else {
                     drawing.placed_by_one.push(name.clone());
                 }
             }
@@ -1003,6 +1229,33 @@ impl Drawing {
     /// The positions as the head model reads them. See [`Record::positions`].
     pub fn positions(&self) -> Result<head_model::Reading> {
         positions_of(self.view, self.faces, self.picture.width, &self.placed)
+    }
+
+    /// What was taken from one reading alone because of Jon's marks, in words: a sentence for
+    /// each reading kept. Nothing when nothing was.
+    pub fn left_to_one_words(&self) -> Vec<String> {
+        let mut pairs: Vec<(&str, &str)> = self
+            .left_to_one
+            .iter()
+            .map(|left| (left.kept.as_str(), left.left_out.as_str()))
+            .collect();
+        pairs.sort_unstable();
+        pairs.dedup();
+        pairs
+            .into_iter()
+            .map(|(kept, left_out)| {
+                let names: Vec<&str> = self
+                    .left_to_one
+                    .iter()
+                    .filter(|left| left.kept == kept && left.left_out == left_out)
+                    .map(|left| left.landmark.as_str())
+                    .collect();
+                format!(
+                    "Taken from the reading by {kept} alone, because Jon's mark left out the reading by {left_out}: {}.",
+                    names.join(", ")
+                )
+            })
+            .collect()
     }
 
     /// Who read the drawing, in words.
@@ -1153,6 +1406,7 @@ pub fn template(
     out.push_str("# Whether the head is level: true or false. Level is neither tilted up or down nor leaning to a side.\n# level = \n");
     out.push_str("# What in the drawing shows that it is level, or how it is tilted and by about how much.\nlevel_why = \"\"\n");
     out.push_str("# true when the drawing should not be measured: the head is not level, or it is not in this view.\n# Then say why, and place nothing. Jon can overrule it.\nset_aside = false\nset_aside_why = \"\"\n");
+    out.push_str("# Only where you were told that the person who checks the readings has overruled a set-aside of\n# this drawing: remove the `# ` before the two lines below and say who overruled it. The drawing is\n# then read, and every landmark that is drawn is placed, whatever you judge above.\n# set_aside_overruled = true\n# set_aside_overruled_by = \"\"\n");
 
     out.push_str(
         "\

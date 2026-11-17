@@ -1,6 +1,6 @@
 # Reading a drawing
 
-Revision: 2026-11-17.2
+Revision: 2026-11-17.3
 
 A reading is one reader's placement of the landmarks on one drawing of a head, with the reader's judgement of the view, the turn and whether the head is level. Maquette takes proportions from readings. Every drawing is read twice, by two readers who do not see each other's reading, and Jon checks the result. You are one of the two readers.
 
@@ -100,14 +100,45 @@ Also not read, because maquette builds them: the middle of an eye opening, the c
 
 ### In a side view
 
-- Only the near side is asked for, under that side's name.
-- The inner corner of the eye and the inner extent of the iris are the ones toward the front of the face.
-- `face-outline-<side>-at-nose-level` and `face-outline-<side>-at-mouth-level` are where the back edge of the jaw crosses those levels. The front of the face is read through `nose-mark-bottom`, `mouth-line-centre` and `chin`.
-- `nose-mark-bottom` is where the underside of the nose meets the face, and `mouth-line-centre` is where the lips meet on the outline of the face.
-- `hair-back-extent` and `hair-front-extent` are the points of the hair furthest toward the back and toward the front of the head.
-- `neck-back-base` and `neck-front-base` are where the back and the front of the neck end: where each edge turns into the shoulder or the chest.
+A side view is a profile. Several landmarks are another point of the drawing there than the table above says for a face seen from the front. Where a sentence of this part differs from the table or from "Positions", this part is the one that holds in a side view.
 
-No drawing with known positions exists in a side view, so this part has not been tested.
+**What is asked for.**
+
+- Only the near side is asked for, under that side's name. The reading file lists every landmark a side view asks for.
+- A side view asks for no temple, no jaw point, no crossing of the outline with the eye line, no `hair-<side>-extent` and no `neck-<side>-base`. Do not place them, and do not state them as not seen.
+- Inner and outer: in every name of a side view, inner is toward the front of the face and outer is toward the back of the head. That holds for the eye's corners, the iris's extents, the lid line's and the brow line's ends, and the ear's extents.
+
+**The front of the face.** It is read through three points of the outline: `nose-mark-bottom`, `mouth-line-centre` and `chin`. Each is how far forward the face stands at its height, so each is placed on the turn of the outline and never on a level run behind it.
+
+- `chin` is the chin's own lowest point. Going down the front of the face, it is the point where the outline stops running down and turns to run back under the jaw. Where the underside of the jaw then runs level or almost level toward the neck, the chin is the front end of that run, at the turn, and not its middle: the sentence about the middle of a run does not hold for the chin in a side view. A point on the underside of the jaw is not the chin.
+- `nose-mark-bottom` is under the tip of the nose. The nose mark in a side view is the underside of the nose: the edge that runs from under the tip back to where the nose meets the upper lip. `nose-mark-bottom` is the front end of that edge: going down the bridge of the nose and round its tip, the point where the outline turns to run back toward the face. On a rounded tip it is where the turn is sharpest. It is not where the nose meets the upper lip, which lies as far behind as the nose stands out.
+- `nose-mark-<side>-corner` is the middle of the nostril, or of the curve drawn for the wing of the nose. Where neither is drawn it is not seen. A side view asks for the near corner only.
+- The nose level in a side view is midway in height between that corner and `nose-mark-bottom`. Where the corner is not seen, it is the height of `nose-mark-bottom`.
+- `mouth-line-centre` is where the line between the lips reaches the outline of the face. Where the outline has a notch between the two lips, it is the bottom of that notch, and it stays there where the upper lip overhangs the lower. Where the drawn mouth line stops short of the outline, it is the point of the outline level with the line's front end.
+- `mouth-line-<side>-end` is the back end of the drawn mouth line: the corner of the mouth.
+
+**The eye.** It is seen from its side, usually as a wedge that opens toward the front of the face.
+
+- `eye-<side>-inner-corner` is the front end of the opening: its point furthest toward the front of the face. Where the front of the eye is drawn as a contour of its own, or as the front edge of the iris, that contour is the front of the opening.
+- `eye-<side>-outer-corner` is the back end of the opening: where the upper lid and the lower lid meet. Where no lower lid is drawn and the opening is not closed, it is the back end of what is drawn of the opening: of the white, or of the lower edge of the eye.
+- `eye-<side>-opening-bottom`: where no lower lid is drawn, it is the lowest point of the iris or of the white as drawn.
+- `iris-<side>-inner-extent` is the iris's front edge and `iris-<side>-outer-extent` its back edge. Where the iris itself is the front of the eye, its inner extent and the eye's inner corner are one point: place both there.
+
+**The ear.**
+
+- An ear at the side of the head, as a human ear is, stands on the head along its front edge in a side view. `ear-<side>-base-outer` is the upper end of that edge: where the rim of the ear, coming forward over its top, meets the head. `ear-<side>-base-inner` is the lower end: where the lobe meets the head.
+- On an ear set on top of the head, the two corners of its foot lie one before the other. The one toward the front of the head is `base-inner` and the one toward the back is `base-outer`.
+- `ear-<side>-inner-extent` is the ear's point furthest toward the front of the face, and `ear-<side>-outer-extent` its point furthest toward the back of the head.
+- Hair that runs down in front of the ear covers its base as in any view: a corner the hair covers is not seen.
+
+**The jaw, the hair and the neck.**
+
+- `face-outline-<side>-at-nose-level` and `face-outline-<side>-at-mouth-level` are where the back edge of the jaw crosses those levels: the edge that runs from under the chin back and up toward the ear. Where it is drawn as the edge of the shadow under the jaw and not as a line, that edge is read. Where hair covers it, it is not seen.
+- `hair-back-extent` and `hair-front-extent` are the points of the hair furthest toward the back and toward the front of the head, read at or above the height of the chin. Hair that hangs below the chin is not counted, whatever it is tied into. Where the hair runs out of the picture on that side, the extent is not seen.
+- `neck-back-base` and `neck-front-base` are where the back and the front of the neck end: where each edge turns into the shoulder or the chest.
+- Head height is a difference in height only. In a side view the hair's top and the chin stand on different uprights, and how far apart they are sideways does not count.
+
+This part was revised once, at revision 2026-11-17.3, after the first published side drawings were read. It has not been tested on a painted head whose positions are known: the only side drawing with known positions is a generated armature, which is a drawing of guides.
 
 ## Judging the drawing
 
@@ -134,7 +165,23 @@ A head turned even a little is not a front view. Call it a three-quarter view, o
 
 Signs that it is not: the levels bow upward or downward; the ears stand above the eye line and the top of the head shows (tilted down), or they stand low and the underside of the chin shows (tilted up); one eye stands higher than the other (leaning). Ears set on top of the head, as an animal's are, say nothing about level: use the other signs.
 
+**In a side view.** The signs of level above are written for a face seen from the front. In a side view, use these.
+
+- The lid line and the mouth line run level, or rise a little toward the back of the head.
+- A human ear spans from about the brow to about the base of the nose, as in any view.
+- The underside of the jaw rises from the chin toward the neck.
+- Signs that it is not level: the jaw's underside runs level or falls toward the neck and the ear stands high (tilted down); the jaw's underside rises steeply, the nose points up and the ear stands low (tilted up).
+- A lean toward the viewer or away does not show in a side view. Say so in `level_why` rather than claim it.
+- A side view shows nothing of the far side of the face. Where the far brow, the far eye's lashes or the far cheek shows beyond the front of the face, the head is not in full profile: call it a three-quarter view, or set it aside.
+
 **Set aside.** Set the drawing aside when the head is not level, when it is in none of the three views, when the expression pulls the features out of place, or when too little of the head shows to read. Write `set_aside = true` and the reason, and place nothing. When in doubt, set it aside and say what the doubt is: a tilted head measured as a level one spoils a table, and Jon can overrule a set-aside in a moment.
+
+**A set-aside that was overruled.** The person who checks the readings can overrule a set-aside and have the drawing read. You are then told so with the drawing.
+
+- Write `set_aside_overruled = true` under your judgement, and in `set_aside_overruled_by` who overruled it, as you were told.
+- Judge the drawing as ever. Where you would have set it aside yourself, still write `set_aside = true` and your reason: your judgement stands beside the ruling and does not undo it.
+- Then place every landmark that is drawn, and state the rest as not seen, as for any other drawing. "Place nothing" does not hold for an overruled drawing, and nothing is left unplaced because of the reason the drawing was set aside for.
+- Where a feature is drawn in a way the table does not cover, as an open mouth has no one line, place what the table's words fit best and say in `aids` what you took for it, or state it as not seen with that reason.
 
 ## Enlarging
 

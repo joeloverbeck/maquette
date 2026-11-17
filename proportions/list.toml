@@ -7,8 +7,11 @@
 # It is the first list: what Saffi's front view and three-quarter view need, and how the side
 # view is drawn from the same proportions. A convention states the rule that builds it where
 # nothing is drawn: the skull's three, since a published drawing shows no skull.
-# How a proportion is taken from a side drawing is not stated yet. The reading instructions say
-# what a reader places in a side view; the first side drawing that is read revises this list.
+# Each proportion says how it is taken from a side drawing, by the landmarks the reading
+# instructions ask a side view for as revision 2026-11-17.3 defines them, or why it is not.
+# Reading a side view by those definitions has been tested once on a drawing whose positions
+# are known: Saffi's generated side view, which is a drawing of guides. It has not been tested
+# on a painted side view.
 
 [unit]
 name = "eye line to chin"
@@ -47,7 +50,11 @@ side = """
 The side view is the same turn carried to 90 degrees, so it faces the viewer's right: the cosine is 0 and the sine is 1, \
 and a point shows at its depth and nothing of its offset. The two points of a left and right pair stand at one place. \
 A landmark that a named correction moves shows at its depth less the correction's amount; the corrections are defined at the end of the list. \
-The generator draws the side view this way; taking a depth from a side drawing is not part of this list yet."""
+The generator draws the side view this way. A depth is taken from a side drawing the same way: how far the drawing shows the point \
+toward the front of the face from depth zero, over the side view's own unit. Depth zero shows there midway between the near eye opening's two corners. \
+A drawing that faces the viewer's left is mirrored first. \
+A side drawing may set the mouth and the chin back as the correction at the end of the list does, and nothing in a reading says by how much: \
+a depth taken from it is the depth as that drawing shows it."""
 
 [words]
 offset = "A sideways distance from the centre line, in the front view. The head is symmetric: the left and the right point share it."
@@ -70,6 +77,21 @@ rule = "A depth is taken from the three-quarter view: from the pair's midpoint, 
 rule = "What the three-quarter view does not show is taken from the front view: a point's height, a pair's offset when one of its points is missing, and the half-width of a silhouette."
 [[disagreement_rule]]
 rule = "The neck and the shoulder line take their widths from the front view. A neck is a column, whose width does not narrow as it turns, and the widest span of the figure is read where nothing foreshortens it."
+
+# Where a front view is read with a side view of the same character, which is the first route
+# to depth. These rules are the head model's too.
+[[side_view_rule]]
+rule = "Each view is measured in its own unit, from its own eye line down to its own chin. That span is upright, so a level head shows it at the same length from the front and from the side, and it ties the two drawings' sizes together: the two may be drawn at any two sizes, and nothing is compared in pixels across them."
+[[side_view_rule]]
+rule = "A height is taken from the front view; for a left and right pair it is the mean of the two heights there. An offset and a half-width are taken from the front view: a side view shows none."
+[[side_view_rule]]
+rule = "A depth is taken from the side view: how far it shows the point toward the front of the face from depth zero, in its own units. Depth zero is midway between the near eye opening's two corners. A side view that faces the viewer's left is mirrored first."
+[[side_view_rule]]
+rule = "A height the front view does not show is taken from the side view, on the near side. Left out of that are the landmarks the reading instructions define in a side view as other points of the head than in a front view: an ear's two side extents, which in a profile are toward the back and the front of the head; nose-mark-bottom, which in a side view is under the tip of the nose and in a front view the lowest point of the mark as drawn; and the nose mark's corner, which in a side view is the middle of the nostril or of the wing's curve and in a front view the mark's point furthest toward that side. Their depths are the side view's as ever."
+[[side_view_rule]]
+rule = "The hair's half-depth is half the distance between its back extent and its front extent, and its centre's depth their midpoint. The neck's depth is the midpoint of the two points where its back and its front end; its width and where it ends are the front view's."
+[[side_view_rule]]
+rule = "A side view is asked for no temple, no cheek point and no jaw point, so it gives no depth for the face outline's top end, for the cheek points at the eye line, the nose level and the mouth level, or for the jaw point. The skull's rule needs the temple's depth, so the skull is not built from a front view and a side view."
 
 # Guides that are silhouettes or constructions: how each is built in a view from that view's landmarks.
 #
@@ -123,6 +145,7 @@ sign = "positive"
 what = "How high the hair's top stands above the eye line. With the unit it gives head height."
 front = "The eye line's height minus the height of the highest point of the hair."
 three_quarter = "The same."
+side = "The same."
 
 [[proportion]]
 name = "hair_half_width"
@@ -131,6 +154,7 @@ sign = "positive"
 what = "Half the width of the hair at its widest."
 front = "Half the distance between the hair's two side extents."
 three_quarter = "Not taken: the extents there mix width and depth. See hair_half_depth."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "hair_half_depth"
@@ -139,6 +163,7 @@ sign = "positive"
 what = "Half the depth of the hair from front to back, taking the hair as an ellipse seen from above."
 front = "Not seen."
 three_quarter = "From half the distance h between the hair's two side extents: the root of (h squared minus (hair_half_width times the cosine of the turn) squared), over the sine of the turn."
+side = "Half the distance between the hair's back extent and its front extent, each read at or above the height of the chin."
 
 [[proportion]]
 name = "hair_centre_depth"
@@ -147,6 +172,7 @@ sign = "any"
 what = "The depth of the middle of the hair."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the hair's two side extents."
+side = "The depth of the midpoint of the hair's back extent and its front extent, each read at or above the height of the chin."
 
 [[proportion]]
 name = "skull_radius"
@@ -155,6 +181,7 @@ sign = "positive"
 what = "The radius of the skull. Nothing is drawn behind it in a reference, so it is built by rule; where an underdrawing shows a construction circle, it is that circle's."
 front = "Where a construction circle is drawn: half the height between its top and bottom."
 three_quarter = "The same."
+side = "Where a construction circle is drawn: the same. Where none is drawn, the rule cannot build it from a front view and a side view: it needs face_top_depth, which a side view does not give."
 rule = "The skull reaches the temples, where the face outline begins. The radius is the distance in space from the skull's centre, built first, to the top end of the face outline: the root of face_top_half_width squared plus (face_top_rise minus skull_centre_rise) squared plus (face_top_depth minus skull_centre_depth) squared. It is a distance in space and not within one view, because the temple stands both to the side of the centre and in front of it."
 
 [[proportion]]
@@ -164,6 +191,7 @@ sign = "positive"
 what = "How high the skull's centre stands above the eye line."
 front = "Where a construction circle is drawn: the eye line's height minus the height of its centre."
 three_quarter = "The same."
+side = "Where a construction circle is drawn: the same."
 rule = "The centre stands at the ears: at the height of the middle of the ear's base, the mean of ear_base_outer_rise and ear_base_inner_rise."
 
 [[proportion]]
@@ -173,6 +201,7 @@ sign = "any"
 what = "The depth of the skull's centre, and so of the upright axis the head turns about. It is behind the eyes, so it is negative."
 front = "Not seen."
 three_quarter = "Where a construction circle is drawn: the depth of its centre."
+side = "Where a construction circle is drawn: the depth of its centre."
 rule = "The centre stands at the ears: at the depth of the middle of the ear's base, the mean of ear_base_outer_depth and ear_base_inner_depth. Drawing lessons put the ear at about the middle of the head's depth."
 
 # ---------------------------------------------------------------- Face outline
@@ -184,6 +213,7 @@ sign = "any"
 what = "The depth of the chin, the lowest point of the face outline. Its height is the unit."
 front = "Not seen."
 three_quarter = "The depth of the lowest point of the face outline."
+side = "The depth of the chin's own lowest point: going down the front of the face, where the outline stops running down and turns to run back under the jaw. It is never a point on the underside of the jaw."
 
 [[proportion]]
 name = "face_top_rise"
@@ -192,6 +222,7 @@ sign = "any"
 what = "How high above the eye line the face outline starts, at the temple."
 front = "The eye line's height minus the height of the outline's top end, where the hair leaves it showing."
 three_quarter = "The same, on the far side."
+side_not_taken = "the reading instructions ask a side view for no temple."
 
 [[proportion]]
 name = "face_top_half_width"
@@ -200,6 +231,7 @@ sign = "positive"
 what = "Half the width of the face outline at its top end."
 front = "Half the distance between the outline's two top ends."
 three_quarter = "Not taken: one side only is the same point of the outline."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "face_top_depth"
@@ -208,6 +240,7 @@ sign = "any"
 what = "The depth of the cheek point at the outline's top end: where the front of the face turns into its side."
 front = "Not seen."
 three_quarter = "From the far side's top end and face_top_half_width."
+side_not_taken = "the reading instructions ask a side view for no temple, so a front view and a side view give the temple no depth."
 
 [[proportion]]
 name = "face_half_width_at_eye_level"
@@ -216,6 +249,7 @@ sign = "positive"
 what = "Half the width of the face outline at the eye line."
 front = "Half the distance between the two points where the outline crosses the eye line."
 three_quarter = "Not taken: one side only is the same point of the outline."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "face_depth_at_eye_level"
@@ -224,6 +258,7 @@ sign = "any"
 what = "The depth of the cheek point at the eye line."
 front = "Not seen."
 three_quarter = "From the point where the far side of the outline crosses the eye line, and face_half_width_at_eye_level."
+side_not_taken = "the cheek point is where the front of the face turns into its side. That is the far outline of a three-quarter view and no outline of a profile, so a side view has no point to place there."
 
 [[proportion]]
 name = "face_half_width_at_nose_level"
@@ -232,6 +267,7 @@ sign = "positive"
 what = "Half the width of the face outline at the nose level."
 front = "Half the distance between the two points where the outline crosses the nose level."
 three_quarter = "Not taken: one side only is the same point of the outline."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "face_depth_at_nose_level"
@@ -240,6 +276,7 @@ sign = "any"
 what = "The depth of the cheek point at the nose level."
 front = "Not seen."
 three_quarter = "From the point where the far side of the outline crosses the nose level, and face_half_width_at_nose_level."
+side_not_taken = "the cheek point is where the front of the face turns into its side. That is the far outline of a three-quarter view and no outline of a profile, so a side view has no point to place there."
 
 [[proportion]]
 name = "face_half_width_at_mouth_level"
@@ -248,6 +285,7 @@ sign = "positive"
 what = "Half the width of the face outline at the mouth level."
 front = "Half the distance between the two points where the outline crosses the mouth level."
 three_quarter = "Not taken: one side only is the same point of the outline."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "face_depth_at_mouth_level"
@@ -256,6 +294,7 @@ sign = "any"
 what = "The depth of the cheek point at the mouth level."
 front = "Not seen."
 three_quarter = "From the point where the far side of the outline crosses the mouth level, and face_half_width_at_mouth_level."
+side_not_taken = "the cheek point is where the front of the face turns into its side. That is the far outline of a three-quarter view and no outline of a profile, so a side view has no point to place there."
 
 [[proportion]]
 name = "jaw_drop"
@@ -264,6 +303,7 @@ sign = "positive"
 what = "How far below the eye line the jaw point is: the point between the mouth level and the chin where the jaw turns into the chin."
 front = "The mean height of the two jaw points minus the eye line's height."
 three_quarter = "The same."
+side_not_taken = "the reading instructions ask a side view for no jaw point."
 
 [[proportion]]
 name = "jaw_half_width"
@@ -272,6 +312,7 @@ sign = "positive"
 what = "The jaw point's offset from the centre line."
 front = "Half the spacing of the two jaw points."
 three_quarter = "Half the spacing of the two jaw points, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "jaw_depth"
@@ -280,6 +321,7 @@ sign = "any"
 what = "The depth of the jaw point."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the two jaw points."
+side_not_taken = "the reading instructions ask a side view for no jaw point. It lies beside the chin on the front of the face, which a profile draws as one line."
 
 [[proportion]]
 name = "jaw_line_depth_at_nose_level"
@@ -288,6 +330,7 @@ sign = "any"
 what = "The depth of the jaw-line point at the nose level: the side of the head, which is the outline of the near side in a turned view."
 front = "Not seen."
 three_quarter = "From the point where the near side of the outline crosses the nose level, and face_half_width_at_nose_level."
+side = "The depth of the point where the back edge of the jaw crosses the nose level."
 
 [[proportion]]
 name = "jaw_line_depth_at_mouth_level"
@@ -296,6 +339,7 @@ sign = "any"
 what = "The depth of the jaw-line point at the mouth level."
 front = "Not seen."
 three_quarter = "From the point where the near side of the outline crosses the mouth level, and face_half_width_at_mouth_level."
+side = "The depth of the point where the back edge of the jaw crosses the mouth level."
 
 # ---------------------------------------------------------------- Eyes
 
@@ -306,6 +350,7 @@ sign = "positive"
 what = "The offset of an eye's inner corner: the point of the opening nearest the centre line."
 front = "Half the spacing of the two inner corners."
 three_quarter = "Half the spacing of the two inner corners, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "eye_inner_corner_drop"
@@ -314,6 +359,7 @@ sign = "any"
 what = "How far below the eye line the inner corner is."
 front = "The mean height of the two inner corners minus the eye line's height."
 three_quarter = "The same."
+side = "The same, on the near eye."
 
 [[proportion]]
 name = "eye_outer_corner_offset"
@@ -322,6 +368,7 @@ sign = "positive"
 what = "The offset of an eye's outer corner: the point of the opening furthest from the centre line."
 front = "Half the spacing of the two outer corners."
 three_quarter = "Half the spacing of the two outer corners, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "eye_outer_corner_drop"
@@ -330,6 +377,7 @@ sign = "any"
 what = "How far below the eye line the outer corner is. With the inner corner's drop it gives the opening's tilt."
 front = "The mean height of the two outer corners minus the eye line's height."
 three_quarter = "The same."
+side = "The same, on the near eye."
 
 [[proportion]]
 name = "eye_wrap_depth"
@@ -338,6 +386,7 @@ sign = "any"
 what = "How far the inner corners stand in front of the outer corners: how much the eyes wrap round the face. Depth zero is midway, so an inner corner's depth is half of it and an outer corner's is minus half."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the two inner corners minus that of the two outer corners."
+side = "How far the near eye's inner corner, the one toward the front of the face, stands in front of its outer corner. Depth zero in a side view is midway between the two."
 
 [[proportion]]
 name = "eye_opening_height"
@@ -346,6 +395,7 @@ sign = "positive"
 what = "The height of the eye opening from its top to its bottom. The eye line is midway."
 front = "The mean over both eyes of the opening's bottom height minus its top height."
 three_quarter = "The same."
+side = "The same, on the near eye."
 
 [[proportion]]
 name = "eye_opening_top_offset"
@@ -354,6 +404,7 @@ sign = "positive"
 what = "The offset of the highest point of the eye opening."
 front = "Half the spacing of the two openings' highest points."
 three_quarter = "Half the spacing of the two openings' highest points, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "eye_opening_bottom_offset"
@@ -362,6 +413,7 @@ sign = "positive"
 what = "The offset of the lowest point of the eye opening."
 front = "Half the spacing of the two openings' lowest points."
 three_quarter = "Half the spacing of the two openings' lowest points, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "iris_centre_offset"
@@ -370,6 +422,7 @@ sign = "positive"
 what = "The offset of the iris's centre: midway between the iris's two side extents as drawn."
 front = "Half the spacing of the two iris centres."
 three_quarter = "Half the spacing of the two iris centres, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "iris_centre_drop"
@@ -378,6 +431,7 @@ sign = "any"
 what = "How far below the eye line the iris's centre is: midway between the iris's top and bottom as drawn."
 front = "The mean height of the two iris centres minus the eye line's height."
 three_quarter = "The same."
+side = "The same, on the near eye."
 
 [[proportion]]
 name = "iris_depth"
@@ -386,6 +440,7 @@ sign = "any"
 what = "The depth of the iris's centre."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the two iris centres."
+side = "The depth of the near iris's centre: midway between its front edge and its back edge as drawn, which are its inner and its outer extent in a side view."
 
 [[proportion]]
 name = "iris_width"
@@ -394,6 +449,7 @@ sign = "positive"
 what = "The width of the iris as drawn. Over the opening's width, eye_outer_corner_offset minus eye_inner_corner_offset, it is the iris's share of the eye."
 front = "The mean over both eyes of the distance between the iris's two side extents."
 three_quarter = "The mean over both eyes of that distance, over the cosine of the turn."
+side_not_taken = "a side view shows the iris from its edge."
 
 [[proportion]]
 name = "iris_height"
@@ -402,6 +458,7 @@ sign = "positive"
 what = "The height of the iris as drawn, where the lid may already cut it."
 front = "The mean over both eyes of the iris's bottom height minus its top height."
 three_quarter = "The same."
+side = "The same, on the near eye."
 
 [[proportion]]
 name = "lid_line_inner_end_offset"
@@ -410,6 +467,7 @@ sign = "positive"
 what = "The offset of the lid line's inner end: the middle of the inner end of the drawn lid band."
 front = "Half the spacing of the two inner ends."
 three_quarter = "Half the spacing of the two inner ends, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "lid_line_inner_end_drop"
@@ -418,6 +476,7 @@ sign = "any"
 what = "How far below the eye line the lid line's inner end is."
 front = "The mean height of the two inner ends minus the eye line's height."
 three_quarter = "The same."
+side = "The same, on the near eye."
 
 [[proportion]]
 name = "lid_line_crest_offset"
@@ -426,6 +485,7 @@ sign = "positive"
 what = "The offset of the lid line's crest: the middle of the drawn lid band at its highest."
 front = "Half the spacing of the two crests."
 three_quarter = "Half the spacing of the two crests, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "lid_line_crest_rise"
@@ -434,6 +494,7 @@ sign = "any"
 what = "How high above the eye line the lid line's crest is."
 front = "The eye line's height minus the mean height of the two crests."
 three_quarter = "The same."
+side = "The same, on the near eye."
 
 [[proportion]]
 name = "lid_line_outer_end_offset"
@@ -442,6 +503,7 @@ sign = "positive"
 what = "The offset of the lid line's outer end: the middle of the outer end of the drawn lid band."
 front = "Half the spacing of the two outer ends."
 three_quarter = "Half the spacing of the two outer ends, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "lid_line_outer_end_rise"
@@ -450,6 +512,7 @@ sign = "any"
 what = "How high above the eye line the lid line's outer end is. Against the inner end's drop it gives the lid line's tilt."
 front = "The eye line's height minus the mean height of the two outer ends."
 three_quarter = "The same."
+side = "The same, on the near eye."
 
 # ---------------------------------------------------------------- Brows, nose and mouth
 
@@ -460,6 +523,7 @@ sign = "positive"
 what = "The offset of the brow line's inner end: the middle of the inner end of the drawn brow."
 front = "Half the spacing of the two inner ends."
 three_quarter = "Half the spacing of the two inner ends, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "brow_inner_end_rise"
@@ -468,6 +532,7 @@ sign = "any"
 what = "How high above the eye line the brow line's inner end is."
 front = "The eye line's height minus the mean height of the two inner ends."
 three_quarter = "The same."
+side = "The same, on the near brow."
 
 [[proportion]]
 name = "brow_outer_end_offset"
@@ -476,6 +541,7 @@ sign = "positive"
 what = "The offset of the brow line's outer end: the middle of the outer end of the drawn brow."
 front = "Half the spacing of the two outer ends."
 three_quarter = "Half the spacing of the two outer ends, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "brow_outer_end_rise"
@@ -484,6 +550,7 @@ sign = "any"
 what = "How high above the eye line the brow line's outer end is."
 front = "The eye line's height minus the mean height of the two outer ends."
 three_quarter = "The same."
+side = "The same, on the near brow."
 
 [[proportion]]
 name = "nose_mark_corner_offset"
@@ -492,6 +559,7 @@ sign = "positive"
 what = "The offset of a corner of the nose mark: half the mark's width."
 front = "Half the spacing of the mark's two corners."
 three_quarter = "Half the spacing of the mark's two corners, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "nose_mark_corner_drop"
@@ -500,6 +568,7 @@ sign = "positive"
 what = "How far below the eye line the nose mark's corners are."
 front = "The mean height of the mark's two corners minus the eye line's height."
 three_quarter = "The same."
+side_not_taken = "in a side view the nose mark's corner is the middle of the nostril, or of the curve drawn for the wing of the nose, which is another point of the nose than a front view's point of the mark furthest toward that side. The height is the front view's, or is not given."
 
 [[proportion]]
 name = "nose_mark_corner_depth"
@@ -508,6 +577,7 @@ sign = "any"
 what = "The depth of the nose mark's corners."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the mark's two corners."
+side = "The depth of the mark's near corner: the middle of the nostril, or of the curve drawn for the wing of the nose."
 
 [[proportion]]
 name = "nose_mark_bottom_drop"
@@ -516,6 +586,7 @@ sign = "positive"
 what = "How far below the eye line the nose mark's bottom is, on the centre line. The nose level is midway between it and the corners."
 front = "The height of the mark's bottom minus the eye line's height."
 three_quarter = "The same."
+side_not_taken = "in a side view nose-mark-bottom is under the tip of the nose, where the outline turns back toward the face, which is another point of the nose than a front view's lowest point of the mark as drawn. The height is the front view's, or is not given."
 
 [[proportion]]
 name = "nose_mark_bottom_depth"
@@ -524,6 +595,7 @@ sign = "any"
 what = "The depth of the nose mark's bottom."
 front = "Not seen."
 three_quarter = "The depth of the mark's bottom."
+side = "The depth of the point under the tip of the nose: going down the bridge and round the tip, where the outline turns to run back toward the face, at the sharpest turn of a rounded tip. It is not where the nose meets the upper lip."
 
 [[proportion]]
 name = "mouth_end_offset"
@@ -532,6 +604,7 @@ sign = "positive"
 what = "The offset of an end of the mouth line: half the mouth's width."
 front = "Half the spacing of the line's two ends."
 three_quarter = "Half the spacing of the line's two ends, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "mouth_end_drop"
@@ -540,6 +613,7 @@ sign = "positive"
 what = "How far below the eye line the mouth line's ends are."
 front = "The mean height of the line's two ends minus the eye line's height."
 three_quarter = "The same."
+side = "The same, on the corner of the mouth: the back end of the drawn mouth line."
 
 [[proportion]]
 name = "mouth_end_depth"
@@ -548,6 +622,7 @@ sign = "any"
 what = "The depth of the mouth line's ends."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the line's two ends."
+side = "The depth of the corner of the mouth: the back end of the drawn mouth line."
 
 [[proportion]]
 name = "mouth_centre_drop"
@@ -556,6 +631,7 @@ sign = "positive"
 what = "How far below the eye line the mouth line's centre is, on the centre line. It is the mouth level."
 front = "The height of the line's centre minus the eye line's height."
 three_quarter = "The same."
+side = "The same."
 
 [[proportion]]
 name = "mouth_centre_depth"
@@ -564,6 +640,7 @@ sign = "any"
 what = "The depth of the mouth line's centre."
 front = "Not seen."
 three_quarter = "The depth of the line's centre."
+side = "The depth of the point where the line between the lips reaches the outline of the face: the bottom of the notch between the two lips where the outline has one, even where the upper lip overhangs the lower; where the drawn line stops short of the outline, the point of the outline level with the line's front end."
 
 # ---------------------------------------------------------------- Ears
 
@@ -574,6 +651,7 @@ sign = "positive"
 what = "The offset of the ear's outer base point: where the side of the ear away from the centre line meets the head. The ear's base is the stretch along which it stands on the head, and its two base points are the ends of that stretch. On an ear at the side of the head, as a human ear is, they lie one above the other, and the outer base point is the upper one."
 front = "Half the spacing of the two outer base points."
 three_quarter = "Half the spacing of the two outer base points, over the cosine of the turn. When the head covers the far ear's base, the front view's."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "ear_base_outer_rise"
@@ -582,6 +660,7 @@ sign = "any"
 what = "How high above the eye line the ear's outer base point is."
 front = "The eye line's height minus the mean height of the two outer base points."
 three_quarter = "The same, over the points the head does not cover."
+side = "The same, on the near ear."
 
 [[proportion]]
 name = "ear_base_outer_depth"
@@ -590,6 +669,7 @@ sign = "any"
 what = "The depth of the ear's outer base point."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the two outer base points, or from the near one and ear_base_outer_offset when the head covers the far one."
+side = "The depth of the near ear's outer base point: on an ear at the side of the head, the upper end of the front edge it stands on the head along, where the rim, coming forward over its top, meets the head; on an ear set on top of the head, the corner of its foot toward the back."
 
 [[proportion]]
 name = "ear_base_inner_offset"
@@ -598,6 +678,7 @@ sign = "positive"
 what = "The offset of the ear's inner base point: where the side of the ear toward the centre line meets the head. On an ear at the side of the head it is the lower of the two base points."
 front = "Half the spacing of the two inner base points."
 three_quarter = "Half the spacing of the two inner base points, over the cosine of the turn. When the head covers the far ear's base, the front view's."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "ear_base_inner_rise"
@@ -606,6 +687,7 @@ sign = "any"
 what = "How high above the eye line the ear's inner base point is."
 front = "The eye line's height minus the mean height of the two inner base points."
 three_quarter = "The same, over the points the head does not cover."
+side = "The same, on the near ear."
 
 [[proportion]]
 name = "ear_base_inner_depth"
@@ -614,6 +696,7 @@ sign = "any"
 what = "The depth of the ear's inner base point."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the two inner base points, or from the near one and ear_base_inner_offset when the head covers the far one."
+side = "The depth of the near ear's inner base point: on an ear at the side of the head, the lower end of that edge, where the lobe meets the head; on an ear set on top of the head, the corner of its foot toward the front."
 
 [[proportion]]
 name = "ear_top_offset"
@@ -622,6 +705,7 @@ sign = "positive"
 what = "The offset of the ear's highest point."
 front = "Half the spacing of the two ears' highest points."
 three_quarter = "Half the spacing of the two ears' highest points, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "ear_top_rise"
@@ -630,6 +714,7 @@ sign = "positive"
 what = "How high above the eye line the ear's highest point is."
 front = "The eye line's height minus the mean height of the two ears' highest points."
 three_quarter = "The same."
+side = "The same, on the near ear."
 
 [[proportion]]
 name = "ear_outer_extent_offset"
@@ -638,6 +723,7 @@ sign = "positive"
 what = "The offset of the ear's outer extent: its point furthest from the centre line."
 front = "Half the spacing of the two outer extents."
 three_quarter = "Half the spacing of the two outer extents, over the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "ear_outer_extent_rise"
@@ -646,6 +732,7 @@ sign = "any"
 what = "How high above the eye line the ear's outer extent is."
 front = "The eye line's height minus the mean height of the two outer extents."
 three_quarter = "The same."
+side_not_taken = "in a profile the ear's extents are toward the back and the front of the head, which are other points of the ear than its extents to the sides."
 
 [[proportion]]
 name = "ear_inner_extent_offset"
@@ -654,6 +741,7 @@ sign = "positive"
 what = "The offset of the ear's inner extent: its point nearest the centre line."
 front = "Half the spacing of the two inner extents."
 three_quarter = "Half the spacing of the two inner extents, over the cosine of the turn. When the head covers the far ear's, the front view's."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "ear_inner_extent_rise"
@@ -662,6 +750,7 @@ sign = "any"
 what = "How high above the eye line the ear's inner extent is."
 front = "The eye line's height minus the mean height of the two inner extents."
 three_quarter = "The same, over the points the head does not cover."
+side_not_taken = "in a profile the ear's extents are toward the back and the front of the head, which are other points of the ear than its extents to the sides."
 
 # ---------------------------------------------------------------- Neck and shoulder line
 
@@ -672,6 +761,7 @@ sign = "positive"
 what = "Half the width of the neck."
 front = "Half the spacing of the two points where the neck ends."
 three_quarter = "Not taken: the front view's. A column's width does not narrow as it turns."
+side_not_taken = "the front view's. A drawn neck is not as wide from back to front as from side to side."
 
 [[proportion]]
 name = "neck_depth"
@@ -680,6 +770,7 @@ sign = "any"
 what = "The depth of the neck's middle. It is behind the eyes, so it is negative."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the two points where the neck ends."
+side = "The depth of the midpoint of the two points where the neck's back and its front end."
 
 [[proportion]]
 name = "neck_base_drop"
@@ -688,6 +779,7 @@ sign = "positive"
 what = "How far below the eye line the neck ends."
 front = "The mean height of the two points where the neck ends, minus the eye line's height."
 three_quarter = "The same."
+side_not_taken = "the front view's. The neck's back and its front end at other heights than its sides."
 
 [[proportion]]
 name = "shoulder_half_width"
@@ -696,6 +788,7 @@ sign = "positive"
 what = "The offset of a shoulder point: half the length of the shoulder line."
 front = "Half the spacing of the two shoulder points."
 three_quarter = "Not taken: the front view's. The figure turns whole, so the spacing shown is this times twice the cosine of the turn."
+side = "Not seen: a side view shows no width."
 
 [[proportion]]
 name = "shoulder_drop"
@@ -704,6 +797,7 @@ sign = "positive"
 what = "How far below the eye line the shoulder points are."
 front = "The mean height of the two shoulder points minus the eye line's height."
 three_quarter = "The same."
+side = "The same, on the near shoulder."
 
 [[proportion]]
 name = "shoulder_depth"
@@ -712,6 +806,7 @@ sign = "any"
 what = "The depth of the shoulder points."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the two shoulder points."
+side = "The depth of the near shoulder point."
 
 # ---------------------------------------------------------------- Corrections
 #
