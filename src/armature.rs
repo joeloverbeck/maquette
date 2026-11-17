@@ -215,15 +215,44 @@ fn landmark_file(seen: &Seen, built: &Guides, svg_name: &str) -> String {
     out.push_str("# the midpoint between the two eye openings' centres, as the list of proportions defines it.\n");
     out.push_str("# x is turn_axis_x plus the front view's offset from its axis times the cosine of the turn,\n");
     out.push_str("# plus (depth minus turn_axis_depth) times the sine of the turn.\n");
+    if !seen.set_backs.is_empty() {
+        out.push_str("# A landmark that a correction moves keeps its `depth` in space and gives `drawn_at_depth` beside it:\n");
+        out.push_str("# the depth this view draws it at, which stands in the place of `depth` in its x. [corrections] below\n");
+        out.push_str("# names the correction.\n");
+    }
     out.push_str("[landmarks]\n");
     for landmark in &seen.landmarks {
+        let drawn_at = landmark
+            .drawn_at_depth
+            .map(|depth| format!(", drawn_at_depth = {}", position(depth)))
+            .unwrap_or_default();
         out.push_str(&format!(
-            "{} = {{ x = {}, y = {}, depth = {} }}\n",
+            "{} = {{ x = {}, y = {}, depth = {}{drawn_at} }}\n",
             landmark.name,
             position(landmark.x),
             position(landmark.y),
             position(landmark.depth)
         ));
+    }
+
+    if !seen.set_backs.is_empty() {
+        out.push_str("\n# Corrections: the named departures from flat projection that this view carries. The list of\n");
+        out.push_str("# proportions defines each (`maquette list-proportions`). `amount` is how far behind its depth, toward\n");
+        out.push_str("# the viewer's left, this view draws each landmark named, in the SVG's own units. No other view of\n");
+        out.push_str("# this armature is changed.\n");
+        let mut correction = "";
+        for set_back in &seen.set_backs {
+            if set_back.correction != correction {
+                correction = set_back.correction;
+                out.push_str(&format!("[corrections.{correction}]\n"));
+            }
+            out.push_str(&format!(
+                "{} = {{ amount = {}, landmarks = {} }}\n",
+                set_back.amount,
+                position(set_back.by),
+                quoted_list(&set_back.landmarks)
+            ));
+        }
     }
 
     out.push_str("\n# View points: points of this view only, such as the side of a round form or where two guides cross.\n");

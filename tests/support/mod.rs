@@ -101,6 +101,8 @@ pub struct Point {
     pub y: f64,
     /// Only a landmark, a point in space, has a depth.
     pub depth: Option<f64>,
+    /// Only a landmark that a named correction moves in this view says where it is drawn.
+    pub drawn_at_depth: Option<f64>,
 }
 
 pub struct Guide {
@@ -131,6 +133,7 @@ impl LandmarkFile {
                         x: number(&entry["x"]),
                         y: number(&entry["y"]),
                         depth: entry.get("depth").map(number),
+                        drawn_at_depth: entry.get("drawn_at_depth").map(number),
                     };
                     (name.clone(), point)
                 })

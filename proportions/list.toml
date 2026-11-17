@@ -46,6 +46,7 @@ Depth taken this way at a turn near 30 degrees carries twice the reading error o
 side = """
 The side view is the same turn carried to 90 degrees, so it faces the viewer's right: the cosine is 0 and the sine is 1, \
 and a point shows at its depth and nothing of its offset. The two points of a left and right pair stand at one place. \
+A landmark that a named correction moves shows at its depth less the correction's amount; the corrections are defined at the end of the list. \
 The generator draws the side view this way; taking a depth from a side drawing is not part of this list yet."""
 
 [words]
@@ -72,8 +73,9 @@ rule = "The neck and the shoulder line take their widths from the front view. A 
 
 # Guides that are silhouettes or constructions: how each is built in a view from that view's landmarks.
 #
-# The side view is a plain projection like the others: no landmark is moved in it, and no
-# correction exists. It shows fewer guides. The head hides the eye, the brow and the ear of the
+# The side view is a plain projection like the others, unless the set of proportions carries
+# a named correction: the corrections are defined at the end of this file, and a guide is
+# built on its landmarks where the view draws them. It shows fewer guides. The head hides the eye, the brow and the ear of the
 # character's left there, so only those of her right, the near side, are drawn; the centre line
 # is the front of the face outline and is not drawn a second time; and the neck's two lines
 # are its back and its front. Where a plain projection would draw a guide at no width, the
@@ -710,3 +712,47 @@ sign = "any"
 what = "The depth of the shoulder points."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the two shoulder points."
+
+# ---------------------------------------------------------------- Corrections
+#
+# A correction is a named departure from flat projection, with an amount. A set of proportions
+# carries one in a `[corrections.<name>]` table, with a number for each of its amounts, in
+# units. A set without that table carries none, and every view of it is a flat projection.
+# The landmark file of a view that a correction changes names it, with its amounts and the
+# landmarks it moves, and gives each moved landmark's depth in space beside where it is drawn.
+
+[[correction]]
+name = "lower_face_set_back"
+view = "side"
+what = """
+In the side view only, the mouth and the chin are drawn further back than their depths. \
+A landmark it moves keeps its depth in space and its height, and stands in the side view at its depth less the amount. \
+Nothing above the mouth is moved: the nose mark, the eyes, the brow and the skull stay a flat projection. \
+The front view and the three-quarter view are not changed at all."""
+why = """
+A depth taken from a three-quarter drawing is a point's sideways shift there over the sine of the turn. \
+A three-quarter view drawn by hand commonly puts the mouth almost straight below the nose mark and the chin close behind it, \
+which is not where a rigid head turned that far shows them, and at a turn near 30 degrees the shift arrives in the side view doubled: \
+the face from the nose down stands out like a muzzle. Jon's look of 2026-11-17 found this in Saffi's side view. \
+Her three-quarter view is accepted as it is, so the depths stay as measured and the side view alone departs from them."""
+amounts_from = """
+No drawing lesson gives a distance for a profile, so each amount comes from where the lessons put the chin and the lips \
+(`docs/research/2026-11-16-views-and-measuring/notes/head_construction_in_three_views.md`, section 1, lessons A to H). \
+`maquette proportions-from-hand-made-views --lower-face-set-back <share>` works both out from a set's own depths. \
+How large a share looks right is Jon's to say: no lesson gives it."""
+
+[[correction.amount]]
+name = "chin"
+what = "How far behind its depth the side view draws the chin. The jaw point beside the chin, on each side, is drawn back by the same amount."
+rule = """
+A share, from 0 to 1, of chin_depth minus iris_depth, which is what draws the chin straight below the iris's centre; nothing if the chin is not in front of it. \
+Lesson B puts the chin's tip straight below the pupil, and it is the only lesson that places the chin against a point this list has, so a share of 1 is lesson B's chin and nothing supports more. \
+The pupil is the painter's and not in this list, so the iris's centre stands for it."""
+
+[[correction.amount]]
+name = "mouth"
+what = "How far behind its depth the side view draws the mouth line's centre. The mouth line's two ends are drawn back by the same amount."
+rule = """
+What brings the mouth line's centre onto the straight line from the nose mark's bottom to the chin as the side view draws it; nothing if it is already on that line or behind it. \
+Lessons A, C, F and H put the lips on the line from the nose tip to the chin or just behind it; G draws that line and names a chin that juts as a mistake; B alone lets the lips pass it. \
+It follows from the chin's amount, whatever the share, and is not itself a share of anything."""

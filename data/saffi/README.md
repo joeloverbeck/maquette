@@ -151,13 +151,13 @@ Of 30 landmarks comparable in height, 14 are at exactly one height in both views
 
 ## Her set of proportions
 
-`proportions.toml` holds one value for each proportion of [`proportions/list.toml`](../../proportions/list.toml). It was not typed in by hand. The program wrote it from the two records:
+`proportions.toml` holds one value for each proportion of [`proportions/list.toml`](../../proportions/list.toml), and the two amounts of the named correction `lower_face_set_back`, which "Her side view" below explains. It was not typed in by hand. The program wrote it from the two records:
 
 ```sh
-cargo run -- proportions-from-hand-made-views --record data/saffi/hand-made-views.toml --final-record data/saffi/final-drawings.toml --out data/saffi/proportions.toml
+cargo run -- proportions-from-hand-made-views --record data/saffi/hand-made-views.toml --final-record data/saffi/final-drawings.toml --lower-face-set-back 0.5 --out data/saffi/proportions.toml
 ```
 
-`cargo test` checks that the committed file is what that command writes, and checks twenty-one of its numbers against arithmetic done by hand on the positions the two records give. It also checks that the command without `--final-record` still gives her S2 proportions. None of these checks says her armature looks right.
+`cargo test` checks that the committed file is what that command writes, and checks twenty-one of its numbers against arithmetic done by hand on the positions the two records give. It also checks that the command without `--final-record` still gives her S2 proportions, and the correction's two amounts against arithmetic done by hand at three shares. None of these checks says her armature looks right.
 
 **How it was taken.** The head model has two directions: from proportions to landmarks, which the generator uses, and from landmark positions in a front view and a three-quarter view back to proportions. The second was run on her two views, with the three-quarter view taken as turned 29°. Every proportion is divided by the unit, eye line to chin: 195.107 units in her front view and 194.719 in her three-quarter view. Depth is taken through the turn, from where a pair's midpoint or a point of the centre line stands in the three-quarter view.
 
@@ -188,7 +188,28 @@ cargo run -- differences-from-hand-made-views --front target/saffi/front.landmar
 
 The file it writes states how each generated view is laid over its hand-made view: the unit, the eye line and the upright axis the head turns about are made to coincide, by one scale and one shift for the whole view. It is not committed, because it changes whenever the generator does and nothing in it is accepted.
 
+## Her side view
+
 She has no hand-made side view. The generator draws one from this set, and nothing in this folder says anything about it: Jon's look is its only check.
+
+**Look 2 (2026-11-17): not accepted.** Jon found the face pushed too far forward from the nose down. Every depth of hers is her three-quarter view's sideways shift over the sine of 29°, which is 0.48. That view puts the mouth line's centre 1 unit behind the nose mark's bottom and the chin 15 behind it, which as a rigid head is a mouth at depth 62.9 and a chin at 33.2 where the nose mark is at 65.0 and the forehead at 58.3, in units of a head 494.5 high. A side view drawn flat from that has a muzzle. Her three-quarter view is accepted as it is, so her depths stay as measured.
+
+**The correction.** Her set carries `lower_face_set_back`, which the list of proportions defines: in the side view only, the chin and the mouth are drawn further back than their depths. No drawing lesson gives a distance, so the amounts come from two rules of the lessons in `docs/research/2026-11-16-views-and-measuring/notes/head_construction_in_three_views.md`, section 1:
+
+- **The chin** is drawn a share of the way back to straight below the iris's centre, at depth -8.5. One lesson (B) puts the chin's tip straight below the pupil; her pupil's centre is 0.4 unit from her iris's.
+- **The mouth line's centre** is then drawn on the straight line from the nose mark's bottom to the chin as drawn. Four lessons (A, C, F, H) put the lips on that line or just behind it; one (B) lets them pass it slightly.
+
+| Share | Chin set back | Chin drawn at | Mouth set back | Mouth drawn at |
+|---|---|---|---|---|
+| 0, as at look 2 | 0 | 33.2 | 0 | 62.9 |
+| 0.5, in `proportions.toml`, accepted at look 3 | 20.9 (4.2% of head height) | 12.3 | 18.2 (3.7%) | 44.7 |
+| 1 | 41.7 (8.4%) | -8.5 | 26.2 (5.3%) | 36.7 |
+
+**Look 3 (2026-11-17): accepted.** Jon was shown the share of 0.5 as candidate A beside the share of 1 as candidate B, and chose A. No rule gives the share: his look did. `design/look-3-saffi-side-view/` holds the sheet he saw.
+
+That accepts her armature in three views: the front and three-quarter views, which he had said at look 2 read as one head, and the side view with the correction at the amounts of the 0.5 row. The six files are in [`armatures/saffi/`](../../armatures/saffi/README.md), and `cargo test` checks that `maquette draw` still writes them byte for byte from `proportions.toml`.
+
+It accepts nothing else. Candidate B is not accepted. Her proportions are not made a standard, or good ones for another character. No table is accepted, and her numbers still never enter one.
 
 ## What this is evidence of
 
@@ -225,7 +246,7 @@ Where the drawings are, the command reads each from its folder under the name in
 
 ```sh
 cargo run -- record-hand-made-drawings --underdrawings <the folder of the S2 underdrawings> --final-drawings <the folder of the final drawings> --out data/saffi
-cargo run -- proportions-from-hand-made-views --record data/saffi/hand-made-views.toml --final-record data/saffi/final-drawings.toml --out data/saffi/proportions.toml
+cargo run -- proportions-from-hand-made-views --record data/saffi/hand-made-views.toml --final-record data/saffi/final-drawings.toml --lower-face-set-back 0.5 --out data/saffi/proportions.toml
 ```
 
 Mudsong's study folder holds all four. The private copies of the S2 underdrawings are in the reference folder's `known-positions/`. With both folders named in the environment, a test checks that the three committed records are what the command writes:

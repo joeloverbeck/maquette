@@ -1,12 +1,13 @@
 //! The generator, through the command line: a set of proportions in, armature files out.
 //!
 //! The set of proportions used here is made up (`tests/fixtures/made-up-proportions.toml`).
-//! Nothing here pins the bytes of an armature: none is accepted yet.
+//! Nothing here pins the bytes of an armature: a made-up set has no accepted one.
+//! `tests/saffi.rs` pins Saffi's.
 
 mod support;
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use support::{LandmarkFile, MADE_UP, assert_close, draw, maquette, path_text, scratch, text};
 
@@ -103,6 +104,19 @@ fn sin_cos(turn_degrees: f64) -> (f64, f64) {
 
 fn landmark_file(folder: &Path, view: &str) -> LandmarkFile {
     LandmarkFile::read(&folder.join(format!("{view}.landmarks.toml")))
+}
+
+/// The named correction `lower_face_set_back`, to add after the made-up set: the chin set
+/// back by 0.0625 of a unit and the mouth by 0.0375. Both amounts are made up, like the set.
+const MADE_UP_SET_BACK: &str =
+    "\n[corrections.lower_face_set_back]\nchin = 0.0625\nmouth = 0.0375\n";
+
+/// Writes the made-up set with `more` added after it, and draws it into a folder of its own.
+fn draw_made_up_with(name: &str, more: &str, placement: &[&str]) -> PathBuf {
+    let set = scratch(&format!("{name}-set")).join("proportions.toml");
+    let made_up = text(&support::repository().join(MADE_UP));
+    std::fs::write(&set, format!("{made_up}{more}")).expect("the set is written");
+    draw(name, path_text(&set), placement)
 }
 
 fn svg_text(folder: &Path, view: &str) -> String {
@@ -290,34 +304,196 @@ fn every_landmark_has_the_same_height_in_all_three_views() {
     }
 }
 
+/// The landmarks the named correction `lower_face_set_back` moves in the side view, under the
+/// amount that moves each: the chin with the jaw point beside it, and the mouth line's centre
+/// with its two ends.
+const SET_BACK: [(&str, [&str; 3]); 2] = [
+    (
+        "chin",
+        ["chin", "face-outline-right-jaw", "face-outline-left-jaw"],
+    ),
+    (
+        "mouth",
+        [
+            "mouth-line-centre",
+            "mouth-line-right-end",
+            "mouth-line-left-end",
+        ],
+    ),
+];
+
 #[test]
-fn a_landmarks_sideways_position_in_the_side_view_is_its_depth() {
-    let folder = draw(
-        "side-is-depth",
-        MADE_UP,
-        &["--unit", "173.3", "--side-axis-x", "455.5"],
-    );
-    let side = landmark_file(&folder, "side");
-    let axis = side.frame("turn_axis_x");
-    assert_eq!(axis, 455.5);
-    let axis_depth = side.frame("turn_axis_depth");
-    assert!(side.landmarks.len() > 50, "expected the whole head");
-    for (name, point) in &side.landmarks {
-        let depth = point.depth.unwrap_or_else(|| panic!("{name} has no depth"));
-        // How far the point stands in front of the turn axis, and nothing of its offset.
-        // The three numbers are each rounded to 0.001.
-        assert_close(point.x, axis + (depth - axis_depth), 0.0015, name);
-    }
-    // So the two points of a left and right pair stand at one place.
-    let mut pairs = 0;
-    for (name, point) in &side.landmarks {
-        if name.contains("-left-") {
-            let twin = side.landmarks[&name.replace("-left-", "-right-")];
-            assert_eq!((point.x, point.y), (twin.x, twin.y), "{name} and its twin");
-            pairs += 1;
+fn a_landmarks_sideways_position_in_the_side_view_is_its_depth_less_the_named_correction() {
+    let placement = ["--unit", "173.3", "--side-axis-x", "455.5"];
+    // The made-up set carries no correction, so nothing is set back; with the named
+    // correction added, the chin is set back by 0.0625 of a unit of 173.3 and the mouth by
+    // 0.0375, and the landmarks that go with each by the same.
+    let flat = draw("side-is-depth", MADE_UP, &placement);
+    let corrected = draw_made_up_with("side-is-depth-less", MADE_UP_SET_BACK, &placement);
+    for (folder, amounts) in [
+        (&flat, None),
+        (&corrected, Some([173.3 * 0.0625, 173.3 * 0.0375])),
+    ] {
+        let side = landmark_file(folder, "side");
+        let axis = side.frame("turn_axis_x");
+        assert_eq!(axis, 455.5);
+        let axis_depth = side.frame("turn_axis_depth");
+        assert!(side.landmarks.len() > 50, "expected the whole head");
+        let mut set_back = 0;
+        for (name, point) in &side.landmarks {
+            let depth = point.depth.unwrap_or_else(|| panic!("{name} has no depth"));
+            let amount = amounts.and_then(|amounts| {
+                let index = SET_BACK
+                    .iter()
+                    .position(|(_, moved)| moved.contains(&name.as_str()))?;
+                Some(amounts[index])
+            });
+            // How far the point stands in front of the turn axis, less the correction's
+            // amount where one moves it, and nothing of its offset. Each number is rounded
+            // to 0.001.
+            assert_close(
+                point.x,
+                axis + (depth - axis_depth) - amount.unwrap_or(0.0),
+                0.002,
+                name,
+            );
+            // Only a landmark the correction moves says where it is drawn, and it is drawn
+            // at its depth less the amount.
+            match amount {
+                Some(amount) => {
+                    let drawn_at = point
+                        .drawn_at_depth
+                        .unwrap_or_else(|| panic!("{name} does not say where it is drawn"));
+                    assert_close(drawn_at, depth - amount, 0.0015, name);
+                    set_back += 1;
+                }
+                None => assert_eq!(point.drawn_at_depth, None, "{name} is not moved"),
+            }
         }
+        assert_eq!(set_back, if amounts.is_some() { 6 } else { 0 });
+        // The two points of a left and right pair stand at one place, set back or not.
+        let mut pairs = 0;
+        for (name, point) in &side.landmarks {
+            if name.contains("-left-") {
+                let twin = side.landmarks[&name.replace("-left-", "-right-")];
+                assert_eq!((point.x, point.y), (twin.x, twin.y), "{name} and its twin");
+                pairs += 1;
+            }
+        }
+        assert!(pairs > 20, "expected the head's pairs, found {pairs}");
     }
-    assert!(pairs > 20, "expected the head's pairs, found {pairs}");
+}
+
+#[test]
+fn the_named_correction_changes_the_side_view_and_no_other() {
+    let flat = draw("no-correction", MADE_UP, &[]);
+    let corrected = draw_made_up_with("with-correction", MADE_UP_SET_BACK, &[]);
+    // The front view and the three-quarter view are the same bytes with it and without it.
+    for view in ["front", "three-quarter"] {
+        for name in [format!("{view}.svg"), format!("{view}.landmarks.toml")] {
+            let without = std::fs::read(flat.join(&name)).expect("the file without");
+            let with = std::fs::read(corrected.join(&name)).expect("the file with");
+            assert!(without == with, "the correction changed {name}");
+        }
+        assert!(
+            !landmark_file(&corrected, view)
+                .table
+                .contains_key("corrections"),
+            "the {view} view says it carries a correction"
+        );
+    }
+    // A set that carries no correction says nothing of one in its side view.
+    assert!(
+        !landmark_file(&flat, "side")
+            .table
+            .contains_key("corrections")
+    );
+    // The side view's landmark file names the correction, with each amount in the SVG's own
+    // units, 200 to a unit, and the landmarks it moves.
+    let side = landmark_file(&corrected, "side");
+    let carried = side.table["corrections"]
+        .as_table()
+        .expect("a [corrections] table");
+    assert_eq!(
+        carried.keys().collect::<Vec<_>>(),
+        ["lower_face_set_back"],
+        "the corrections the side view carries"
+    );
+    let amounts = carried["lower_face_set_back"]
+        .as_table()
+        .expect("its amounts");
+    assert_eq!(amounts.len(), SET_BACK.len());
+    for ((amount, moved), expected) in SET_BACK.iter().zip([12.5, 7.5]) {
+        let entry = amounts[*amount].as_table().expect("an amount");
+        assert_eq!(support::number(&entry["amount"]), expected, "{amount}");
+        let landmarks: Vec<&str> = entry["landmarks"]
+            .as_array()
+            .expect("the landmarks it moves")
+            .iter()
+            .map(|name| name.as_str().expect("a name"))
+            .collect();
+        assert_eq!(landmarks, moved, "{amount}");
+    }
+    // Every landmark keeps its height and its depth in space.
+    let flat_side = landmark_file(&flat, "side");
+    for (name, point) in &side.landmarks {
+        let before = flat_side.landmarks[name];
+        assert_eq!((point.y, point.depth), (before.y, before.depth), "{name}");
+    }
+}
+
+#[test]
+fn a_named_correction_sets_the_lower_face_back_in_the_side_view() {
+    // Worked by hand from the made-up set, at the default placement: a point at a depth stands
+    // at x = 500 + 200 * (depth + 0.6375) in the side view. The correction sets the chin back
+    // by 0.0625 and the mouth by 0.0375.
+    let folder = draw_made_up_with("side-set-back", MADE_UP_SET_BACK, &[]);
+    let side = landmark_file(&folder, "side");
+    let at = |depth: f64| 500.0 + 200.0 * (depth + 0.6375);
+    // Each: its depth in space, in units, and the amount it is set back by.
+    for (name, depth, set_back) in [
+        // chin_depth 0.1875, and jaw_depth 0.1621 for the jaw point that goes with the chin.
+        ("chin", 0.1875, 0.0625),
+        ("face-outline-right-jaw", 0.1621, 0.0625),
+        ("face-outline-left-jaw", 0.1621, 0.0625),
+        // mouth_centre_depth 0.2873, and mouth_end_depth 0.2129 for the ends that go with it.
+        ("mouth-line-centre", 0.2873, 0.0375),
+        ("mouth-line-right-end", 0.2129, 0.0375),
+        ("mouth-line-left-end", 0.2129, 0.0375),
+    ] {
+        let point = side.point(name);
+        // The landmark file still gives the point's depth in space,
+        assert_close(
+            point.depth.expect("a depth"),
+            200.0 * depth,
+            0.0011,
+            &format!("the depth of {name}"),
+        );
+        // and beside it the depth the correction draws it at, which is where it stands.
+        assert_close(
+            point
+                .drawn_at_depth
+                .unwrap_or_else(|| panic!("{name} does not say where the correction draws it")),
+            200.0 * (depth - set_back),
+            0.0011,
+            &format!("where {name} is drawn"),
+        );
+        assert_close(
+            point.x,
+            at(depth - set_back),
+            0.0011,
+            &format!("the x of {name}"),
+        );
+    }
+    // The nose mark is above what the correction moves: nose_mark_bottom_depth 0.3377.
+    let nose = side.point("nose-mark-bottom");
+    assert_close(
+        nose.x,
+        at(0.3377),
+        0.0011,
+        "the x of the nose mark's bottom",
+    );
+    assert_eq!(nose.drawn_at_depth, None);
 }
 
 #[test]
@@ -756,11 +932,21 @@ fn every_guide_of_the_inventory_appears_once_under_its_name_in_each_view() {
 
 #[test]
 fn every_guide_passes_through_the_points_the_landmark_file_names() {
-    let folder = draw("guides-match-landmarks", MADE_UP, &["--unit", "173.3"]);
+    let placement = ["--unit", "173.3"];
+    guides_pass_through_their_points(&draw("guides-match-landmarks", MADE_UP, &placement));
+    // With the named correction, a guide is built on its landmarks where the view draws them.
+    guides_pass_through_their_points(&draw_made_up_with(
+        "guides-match-set-back",
+        MADE_UP_SET_BACK,
+        &placement,
+    ));
+}
+
+fn guides_pass_through_their_points(folder: &Path) {
     for view in VIEWS {
-        let svg = svg_text(&folder, view);
+        let svg = svg_text(folder, view);
         let document = roxmltree::Document::parse(&svg).expect("the SVG is XML");
-        let file = landmark_file(&folder, view);
+        let file = landmark_file(folder, view);
         let structure = file.table["structure"].as_table().expect("[structure]");
         for (name, guide) in &file.guides {
             let node = document
@@ -1123,4 +1309,56 @@ fn a_set_that_lacks_a_proportion_or_has_a_stray_one_is_refused_in_plain_words() 
     assert!(!output.status.success());
     let message = String::from_utf8_lossy(&output.stderr);
     assert!(message.contains("skull_radius"), "{message}");
+}
+
+#[test]
+fn a_correction_the_list_does_not_define_or_with_a_wrong_amount_is_refused_in_plain_words() {
+    let folder = scratch("refused-corrections");
+    let whole = text(&support::repository().join(MADE_UP));
+    for (name, corrections, says) in [
+        // A correction is named and defined in the list, like a proportion.
+        (
+            "unknown",
+            "[corrections.longer_nose]\ntip = 0.1\n",
+            vec!["longer_nose", "no such correction"],
+        ),
+        // It gives every one of its amounts,
+        (
+            "lacking",
+            "[corrections.lower_face_set_back]\nchin = 0.0625\n",
+            vec!["lower_face_set_back", "lacks", "mouth"],
+        ),
+        // and no other,
+        (
+            "stray",
+            "[corrections.lower_face_set_back]\nchin = 0.0625\nmouth = 0.0375\nnose = 0.01\n",
+            vec!["lower_face_set_back", "nose"],
+        ),
+        // and a set-back does not push forward.
+        (
+            "forward",
+            "[corrections.lower_face_set_back]\nchin = -0.0625\nmouth = 0.0375\n",
+            vec!["lower_face_set_back", "chin", "below zero"],
+        ),
+    ] {
+        let set = folder.join(format!("{name}.toml"));
+        std::fs::write(&set, format!("{whole}\n{corrections}")).expect("written");
+        let out = folder.join(format!("{name}-out"));
+        let output = maquette(&[
+            "draw",
+            "--proportions",
+            path_text(&set),
+            "--out",
+            path_text(&out),
+        ]);
+        assert!(!output.status.success(), "{name} was drawn");
+        let message = String::from_utf8_lossy(&output.stderr);
+        for word in says {
+            assert!(message.contains(word), "{name}: {message}");
+        }
+        assert!(
+            !out.exists(),
+            "{name}: files were written for a refused set"
+        );
+    }
 }

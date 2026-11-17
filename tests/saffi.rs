@@ -4,7 +4,8 @@
 //! The expected numbers below are worked by hand from the positions that
 //! `data/saffi/README.md`, `data/saffi/hand-made-views.toml` and
 //! `data/saffi/final-drawings.toml` give, not taken from the program.
-//! Nothing here says her armature looks right: that is Jon's look.
+//! Nothing here says her armature looks right: that is Jon's look. One test pins the
+//! bytes of the armature he accepted, and says only that it is still what the program draws.
 
 mod support;
 
@@ -14,6 +15,13 @@ const RECORD: &str = "data/saffi/hand-made-views.toml";
 /// Her final drawings' ears and lids, which replace her record's (Jon, 2026-11-16).
 const FINAL_RECORD: &str = "data/saffi/final-drawings.toml";
 const HER_PROPORTIONS: &str = "data/saffi/proportions.toml";
+/// The armature Jon accepted at look 3 (2026-11-17): the six files `maquette draw` wrote from
+/// her set of proportions at the default placement.
+const HER_ACCEPTED_ARMATURE: &str = "armatures/saffi";
+/// The share of the chin's full amount at which her set carries the named correction
+/// `lower_face_set_back`. It was candidate A of look 3, and Jon accepted her armature with
+/// it. No rule gives the share: his look did.
+const SET_BACK_SHARE: &str = "0.5";
 
 /// The pinned turn of her three-quarter view.
 const TURN_DEGREES: f64 = 29.0;
@@ -40,12 +48,45 @@ fn her_set_of_proportions_is_what_the_command_writes_from_her_records() {
         RECORD,
         "--final-record",
         FINAL_RECORD,
+        "--lower-face-set-back",
+        SET_BACK_SHARE,
     ]);
     let committed = text(&repository().join(HER_PROPORTIONS));
     assert!(
         written == committed,
-        "{HER_PROPORTIONS} is not what `maquette proportions-from-hand-made-views --record {RECORD} --final-record {FINAL_RECORD}` writes. Write it again with `--out {HER_PROPORTIONS}`."
+        "{HER_PROPORTIONS} is not what `maquette proportions-from-hand-made-views --record {RECORD} --final-record {FINAL_RECORD} --lower-face-set-back {SET_BACK_SHARE}` writes. Write it again with `--out {HER_PROPORTIONS}`."
     );
+}
+
+#[test]
+fn her_side_view_draws_the_chin_and_the_mouth_where_her_correction_puts_them() {
+    // Her set carries the named correction at the share her file records. Nothing here says
+    // the amount is right: no drawing of hers has a side view, and that is Jon's look.
+    let folder = draw("saffi-side-set-back", HER_PROPORTIONS, &[]);
+    let side = support::LandmarkFile::read(&folder.join("side.landmarks.toml"));
+    let share: f64 = SET_BACK_SHARE.parse().expect("a number");
+    // At the default placement a unit is 200. Her chin_depth is 0.166046 and her iris_depth
+    // -0.042595: the chin is drawn that share of the way back from the one to the other.
+    let chin = side.point("chin");
+    assert_close(chin.depth.expect("a depth"), 33.209, 0.0011, "chin depth");
+    assert_close(
+        chin.drawn_at_depth.expect("where the chin is drawn"),
+        200.0 * (0.166046 - share * (0.166046 + 0.042595)),
+        0.0015,
+        "where the chin is drawn",
+    );
+    // The mouth line's centre is drawn on the straight line from the nose mark's bottom to
+    // the chin as drawn: the three stand in one line, to the rounding of a position.
+    let (nose, mouth) = (
+        side.point("nose-mark-bottom"),
+        side.point("mouth-line-centre"),
+    );
+    assert_eq!(nose.drawn_at_depth, None, "the nose mark is not moved");
+    let on_the_line = nose.x + (mouth.y - nose.y) / (chin.y - nose.y) * (chin.x - nose.x);
+    assert_close(mouth.x, on_the_line, 0.002, "the mouth on the line");
+    // Without the correction the mouth stood in front of that line, at its depth.
+    let at_its_depth = mouth.x + (mouth.depth.expect("a depth") - mouth.drawn_at_depth.unwrap());
+    assert!(at_its_depth > on_the_line + 5.0);
 }
 
 #[test]
@@ -64,6 +105,9 @@ fn without_her_final_drawings_her_record_gives_her_s2_proportions() {
     let table: toml::Table = text(&out).parse().expect("TOML");
     let source = table["source"].as_table().expect("[source]");
     assert!(source.get("final_drawings").is_none());
+    // No share was given, so the set carries no correction and every view of it is flat.
+    assert!(table.get("corrections").is_none());
+    assert!(source.get("lower_face_set_back_share").is_none());
     let front = source["front"].as_table().expect("[source.front]");
     assert_eq!(support::number(&front["eye_line_y"]), 370.0);
     assert_eq!(support::number(&front["unit"]), 197.0);
@@ -230,6 +274,91 @@ fn her_proportions_follow_from_her_record_by_the_stated_rules() {
     }
 }
 
+/// Her set's named correction as its file gives it: the amounts of `lower_face_set_back`.
+fn set_back(path: &std::path::Path) -> (f64, f64) {
+    let table: toml::Table = text(path).parse().expect("TOML");
+    let amounts = table["corrections"]["lower_face_set_back"]
+        .as_table()
+        .expect("[corrections.lower_face_set_back]");
+    assert_eq!(amounts.len(), 2, "the correction has two amounts");
+    (
+        support::number(&amounts["chin"]),
+        support::number(&amounts["mouth"]),
+    )
+}
+
+#[test]
+fn her_lower_face_set_back_follows_from_her_record_by_the_stated_rule() {
+    // Worked by hand in her three-quarter drawing's own units, where a point of the centre
+    // line stands sideways at its depth times the sine of the turn: the chin is at x = 576,
+    // y = 567; her two iris centres, which stay her S2 underdrawing's, at x = 624.304 and
+    // 488.304, so midway at 556.304; the nose mark's bottom at x = 591, y = 458; and the mouth
+    // line's centre at x = 590, y = 500.
+    let sin = TURN_DEGREES.to_radians().sin();
+    let depth = |sideways: f64| sideways / sin / UNIT;
+    for (name, share) in [("full", 1.0), ("half", 0.5), ("none", 0.0)] {
+        let folder = support::scratch(&format!("saffi-set-back-{name}"));
+        let out = folder.join("proportions.toml");
+        maquette_ok(&[
+            "proportions-from-hand-made-views",
+            "--record",
+            RECORD,
+            "--final-record",
+            FINAL_RECORD,
+            "--lower-face-set-back",
+            &share.to_string(),
+            "--out",
+            path_text(&out),
+        ]);
+        let (chin, mouth) = set_back(&out);
+        // The chin: the share of what draws it straight below the iris's centre.
+        let chin_back = share * (576.0 - 556.304);
+        assert_close(chin, depth(chin_back), 1.2e-6, &format!("{name}: chin"));
+        // The mouth: onto the straight line from the nose mark's bottom to the chin as drawn.
+        let chin_drawn = 576.0 - chin_back;
+        let line_at_mouth = 591.0 + (500.0 - 458.0) / (567.0 - 458.0) * (chin_drawn - 591.0);
+        assert_close(
+            mouth,
+            depth(590.0 - line_at_mouth),
+            1.2e-6,
+            &format!("{name}: mouth"),
+        );
+        // The correction changes none of her proportions.
+        assert_eq!(
+            support::proportions(&out),
+            support::proportions(&repository().join(HER_PROPORTIONS)),
+            "{name}"
+        );
+        // The file says what share it was written at.
+        let table: toml::Table = text(&out).parse().expect("TOML");
+        assert_eq!(
+            support::number(&table["source"]["lower_face_set_back_share"]),
+            share
+        );
+    }
+}
+
+#[test]
+fn a_share_that_is_not_between_nothing_and_the_whole_is_refused() {
+    for share in ["1.5", "-0.5", "half"] {
+        let output = maquette(&[
+            "proportions-from-hand-made-views",
+            "--record",
+            RECORD,
+            "--final-record",
+            FINAL_RECORD,
+            "--lower-face-set-back",
+            share,
+        ]);
+        assert!(!output.status.success(), "a share of {share} was taken");
+        let message = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            message.contains("--lower-face-set-back") && message.contains("from 0 to 1"),
+            "{message}"
+        );
+    }
+}
+
 #[test]
 fn her_proportions_draw_and_come_back() {
     let folder = draw("saffi-drawn", HER_PROPORTIONS, &[]);
@@ -248,6 +377,40 @@ fn her_proportions_draw_and_come_back() {
     assert_eq!(hers.len(), came_back.len());
     for (name, value) in &hers {
         assert_close(came_back[name], *value, 1e-4, name);
+    }
+}
+
+#[test]
+fn her_proportions_draw_the_armature_jon_accepted_byte_for_byte() {
+    // The one reference for an armature's bytes. Jon accepted these six files at look 3
+    // (2026-11-17), and the committed ones have the digests the record of his acceptance
+    // gives (`armatures/saffi/README.md`). This says the program still draws that armature,
+    // and nothing about whether it looks right.
+    let accepted = repository().join(HER_ACCEPTED_ARMATURE);
+    let drawn = draw("saffi-accepted-armature", HER_PROPORTIONS, &[]);
+    let files_in = |folder: &std::path::Path| -> std::collections::BTreeSet<String> {
+        std::fs::read_dir(folder)
+            .unwrap_or_else(|error| panic!("{}: {error}", folder.display()))
+            .map(|entry| entry.expect("a folder entry").file_name())
+            .map(|name| name.into_string().expect("the file name is text"))
+            .filter(|name| name != "README.md")
+            .collect()
+    };
+    assert_eq!(
+        files_in(&drawn),
+        files_in(&accepted),
+        "`maquette draw --proportions {HER_PROPORTIONS}` writes other files than {HER_ACCEPTED_ARMATURE}/ holds"
+    );
+    for file in files_in(&accepted) {
+        let (was_accepted, is_drawn) = (
+            std::fs::read(accepted.join(&file)).expect("the accepted file can be read"),
+            std::fs::read(drawn.join(&file)).expect("the drawn file can be read"),
+        );
+        assert!(
+            was_accepted == is_drawn,
+            "`maquette draw --proportions {HER_PROPORTIONS}` no longer writes {file} as Jon accepted it. Compare {} with {HER_ACCEPTED_ARMATURE}/{file}. If the change is meant, her armature has changed and needs his look again: do not write the accepted file again to make this pass.",
+            drawn.join(&file).display()
+        );
     }
 }
 
