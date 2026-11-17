@@ -61,7 +61,8 @@ fn her_set_of_proportions_is_what_the_command_writes_from_her_records() {
 #[test]
 fn her_side_view_draws_the_chin_and_the_mouth_where_her_correction_puts_them() {
     // Her set carries the named correction at the share her file records. Nothing here says
-    // the amount is right: no drawing of hers has a side view, and that is Jon's look.
+    // the amount is right: no drawing of hers has a side view, so that was Jon's look, and at
+    // look 3 he accepted her armature with this amount.
     let folder = draw("saffi-side-set-back", HER_PROPORTIONS, &[]);
     let side = support::LandmarkFile::read(&folder.join("side.landmarks.toml"));
     let share: f64 = SET_BACK_SHARE.parse().expect("a number");
@@ -360,23 +361,54 @@ fn a_share_that_is_not_between_nothing_and_the_whole_is_refused() {
 }
 
 #[test]
-fn her_proportions_draw_and_come_back() {
-    let folder = draw("saffi-drawn", HER_PROPORTIONS, &[]);
+fn her_accepted_armature_comes_back_as_her_set_with_its_correction() {
+    // The landmark files Jon accepted, taken back: her proportions from the front and the
+    // three-quarter view, and her correction from the side view, which alone states it.
+    let accepted = repository().join(HER_ACCEPTED_ARMATURE);
+    let folder = support::scratch("saffi-taken-back");
     let taken_back = folder.join("taken-back.toml");
     maquette_ok(&[
         "proportions-from-landmarks",
         "--front",
-        path_text(&folder.join("front.landmarks.toml")),
+        path_text(&accepted.join("front.landmarks.toml")),
         "--three-quarter",
-        path_text(&folder.join("three-quarter.landmarks.toml")),
+        path_text(&accepted.join("three-quarter.landmarks.toml")),
+        "--side",
+        path_text(&accepted.join("side.landmarks.toml")),
         "--out",
         path_text(&taken_back),
     ]);
     let hers = support::proportions(&repository().join(HER_PROPORTIONS));
     let came_back = support::proportions(&taken_back);
     assert_eq!(hers.len(), came_back.len());
+    // Positions are written to a thousandth of an SVG unit, which is what a proportion can
+    // be taken back to: 0.0001 of her unit of 200.
     for (name, value) in &hers {
         assert_close(came_back[name], *value, 1e-4, name);
+    }
+    let (her_chin, her_mouth) = set_back(&repository().join(HER_PROPORTIONS));
+    let (chin, mouth) = set_back(&taken_back);
+    assert_close(chin, her_chin, 1e-4, "the chin's amount");
+    assert_close(mouth, her_mouth, 1e-4, "the mouth's amount");
+
+    // Drawn again, the set taken back is the side view Jon accepted and not the one he did
+    // not: every landmark stands within 0.05 SVG unit of its accepted place, because each
+    // proportion came back to 0.0001 of a unit of 200 and a sideways position is the sum of
+    // two. The chin of look 2's side view stood 20.9 units further forward.
+    let again = draw("saffi-taken-back-drawn", path_text(&taken_back), &[]);
+    let side =
+        |folder: &std::path::Path| support::LandmarkFile::read(&folder.join("side.landmarks.toml"));
+    let (accepted_side, drawn_again) = (side(&accepted), side(&again));
+    assert_eq!(accepted_side.landmarks.len(), drawn_again.landmarks.len());
+    for (name, point) in &accepted_side.landmarks {
+        let again = drawn_again.landmarks[name];
+        assert_close(again.x, point.x, 0.05, &format!("the x of {name}"));
+        assert_close(again.y, point.y, 0.05, &format!("the y of {name}"));
+        assert_eq!(
+            again.drawn_at_depth.is_some(),
+            point.drawn_at_depth.is_some(),
+            "whether the correction moves {name}"
+        );
     }
 }
 

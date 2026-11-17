@@ -34,8 +34,12 @@ Usage:
       line, and where the upright axis the head turns about stands in each view. The same
       input gives the same bytes.
 
-  maquette proportions-from-landmarks --front <file> --three-quarter <file> [--out <file>]
-      Take two landmark files back into a set of proportions.
+  maquette proportions-from-landmarks --front <file> --three-quarter <file> [--side <file>]
+                                      [--out <file>]
+      Take the landmark files of an armature back into a set of proportions: the proportions
+      from the front view and the three-quarter view, and with --side any named correction
+      from the side view, whose landmark file is the one that states it. Without --side a
+      correction is not taken back, and the set written says so.
 
   maquette proportions-from-hand-made-views --record <file> [--final-record <file>]
                                             [--lower-face-set-back <share>] [--out <file>]
@@ -74,8 +78,9 @@ Usage:
       List what a hand-made drawing holds: every group, and every shape under its address
       (the id of its group, a slash, and its name), with its nodes numbered in path order
       and how far it reaches. This is what a reading of a new drawing is written from. A
-      drawing is read as written: one that moves its coordinates with a transform, or
-      draws a path with anything but the absolute M, L, C and Z, is refused.
+      drawing is read as written: one that moves its coordinates with a transform, draws
+      a path with anything but the absolute M, L, C and Z, or draws on after Z without a
+      new M, is refused.
 
   maquette record-hand-made-drawings --underdrawings <folder> --final-drawings <folder>
                                      --out <folder>
@@ -451,14 +456,38 @@ fn draw(arguments: &[String]) -> Result<()> {
 }
 
 fn proportions_from_landmarks(arguments: &[String]) -> Result<()> {
-    let found = options(arguments, &["--front", "--three-quarter", "--out"])?;
+    let found = options(
+        arguments,
+        &["--front", "--three-quarter", "--side", "--out"],
+    )?;
     let front = armature::read_landmark_file(&read(required(&found, "--front")?)?)?;
     let three_quarter = armature::read_landmark_file(&read(required(&found, "--three-quarter")?)?)?;
-    let set = head_model::proportions_from_views(&front, &three_quarter)?;
-    let opening = "\
+    let mut set = head_model::proportions_from_views(&front, &three_quarter)?;
+    let opening = match found.get("--side") {
+        Some(side) => {
+            let in_side = |error: Error| Error::new(format!("{side}: {error}"));
+            let carried = armature::read_side_view_corrections(&read(side)?).map_err(in_side)?;
+            for (name, amounts) in carried {
+                set = set.with_correction(&name, amounts).map_err(in_side)?;
+            }
+            "\
+# A set of proportions taken back from the landmark files of an armature's three views,
+# by `maquette proportions-from-landmarks`: the proportions from the front view and the
+# three-quarter view, and any correction from the side view, whose landmark file is the one
+# that states it. `maquette list-proportions` defines each proportion and each correction.
+"
+        }
+        None => {
+            "\
 # A set of proportions taken back from two landmark files, a front view and a three-quarter view,
 # by `maquette proportions-from-landmarks`. `maquette list-proportions` defines each proportion.
-";
+#
+# No side view was given, so a correction was not taken back: the side view's landmark file is
+# the one that states it. If the armature carries a correction, this is not the whole set it
+# was drawn from. Give the side view's landmark file with `--side` to take it back as well.
+"
+        }
+    };
     deliver(&found, &set.write(opening)?)
 }
 
@@ -555,8 +584,9 @@ fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
     let record_path = required(&found, "--record")?;
     let final_record = final_record(&found)?;
     let lower_face_set_back = match found.get(SET_BACK) {
-        Some(value) => match value.parse::<f64>() {
-            Ok(share) if (0.0..=1.0).contains(&share) => Some(share),
+        // The head model says what a share is; a value it refuses is named here by its option.
+        Some(value) => match value.parse::<f64>().map(head_model::set_back_share) {
+            Ok(Ok(share)) => Some(share),
             _ => {
                 return Err(Error::new(format!(
                     "`{SET_BACK}` needs a share from 0 to 1, and `{value}` is not one"
@@ -566,6 +596,7 @@ fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
         None => None,
     };
     let hand_made = hand_made_views::read(
+        record_path,
         &read(record_path)?,
         final_record
             .as_ref()

@@ -1,10 +1,19 @@
 # Look 2: Saffi in three views
 
-The armature review sheet for the second look of #3, made for #6. It started from the sheet of look 1 in `../look-1-saffi-front-three-quarter/`, and follows the second mock-up in `../first-table-sheets/`. Nothing on it is accepted.
+The armature review sheet for the second look of #3, made for #6. It started from the sheet of look 1 in `../look-1-saffi-front-three-quarter/`, and follows the second mock-up in `../first-table-sheets/`. The sheet accepts nothing itself: "The outcome" says what Jon said.
 
 - `armature-review-sheet.figcraft`: the FigCraft source.
 - `armature-review-sheet.png`: its export, 1920 pixels wide.
 - `armature-review-sheet-full-size.png`: the same at full size, 3200 pixels wide, for the small text.
+
+## The outcome
+
+**Jon did not accept the side view** on 2026-11-17. He said that the front and three-quarter views read as one head, and that from the nose down the side view was pushed too far forward. The record is on issue #6.
+
+- **The front and three-quarter views** on this sheet are the files he accepted at look 3, byte for byte: the first four digests under "What it is made from". They are in `armatures/saffi/`.
+- **The side view** on this sheet is not accepted. The one he accepted at look 3 carries the named correction `lower_face_set_back`; `../look-3-saffi-side-view/` holds that sheet.
+
+The sheet, its two exports and the sections below are as they were when Jon looked, and are not brought up to date. They say that no correction exists, which was so then.
 
 ## What it shows
 

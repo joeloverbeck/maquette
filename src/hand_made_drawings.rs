@@ -10,8 +10,9 @@
 //! It began as a throwaway program kept beside the private copies of the underdrawings, which
 //! wrote `hand-made-views.toml` and `views-compared.toml` for ticket #4. It was moved here so
 //! that a drawing is read with a command and not with one-off searches, and the part that
-//! writes those two files is that program's, unchanged: where the drawings are present the
-//! command writes the committed files again byte for byte.
+//! writes those two files is that program's, changed only where it now shares a helper or a
+//! constant with the rest of the package: where the drawings are present the command writes
+//! the committed files again byte for byte, and a test checks that it does.
 //!
 //! A drawing is read only when its SHA-256 digest is the recorded one. The checks inside the
 //! readings (`assert!`) guard against a slip in this module: a drawing with the recorded
@@ -24,8 +25,10 @@ use std::path::Path;
 use sha2::{Digest, Sha256};
 
 use crate::armature::File;
+use crate::differences::THRESHOLD_PERCENT;
 use crate::drawing::{self, Axis, Drawing, Elem, P, Seg, Shape, Sub, covers};
 use crate::number;
+use crate::toml_text::quoted;
 use crate::{Error, Result};
 
 /// One hand-made drawing maquette relies on: its file's name where it is kept, and the
@@ -83,10 +86,6 @@ impl Doc {
             _ => panic!("{addr} is not a path or a line"),
         }
     }
-}
-
-fn axis_of(letter: char) -> Axis {
-    if letter == 'x' { Axis::X } else { Axis::Y }
 }
 
 fn r3(v: f64) -> f64 {
@@ -194,12 +193,11 @@ impl View {
 
     /// The extreme of a whole outline along one axis: the best of its nodes and of the points
     /// where a cubic segment's derivative along that axis is zero.
-    fn extreme(&mut self, name: &str, addr: &str, axis: char, want_max: bool, kind: &'static str) {
+    fn extreme(&mut self, name: &str, addr: &str, axis: Axis, want_max: bool, kind: &'static str) {
         let subs = self.doc.subs(addr);
-        let val = |p: P| if axis == 'x' { p.x } else { p.y };
         let mut best: Option<(f64, P, String)> = None;
         let mut consider = |p: P, how: String| {
-            let v = val(p);
+            let v = axis.of(p);
             let better = match &best {
                 None => true,
                 Some((bv, _, _)) => {
@@ -221,12 +219,13 @@ impl View {
         }
         for (s, sub) in subs.iter().enumerate() {
             for (k, seg) in sub.segs.iter().enumerate() {
-                for t in seg.stationary(axis_of(axis)) {
+                for t in seg.stationary(axis) {
                     consider(
                         seg.at(t),
                         format!(
-                            "{}, where d{axis}/dt = 0 at t = {:.4}",
+                            "{}, where d{}/dt = 0 at t = {:.4}",
                             seg_label(&subs, s, k),
+                            axis.letter(),
                             t
                         ),
                     );
@@ -235,27 +234,28 @@ impl View {
         }
         let (_, p, how) = best.unwrap();
         let word = match (axis, want_max) {
-            ('y', false) => "highest point of the outline",
-            ('y', true) => "lowest point of the outline",
-            ('x', false) => "the outline's furthest point toward the viewer's left",
-            _ => "the outline's furthest point toward the viewer's right",
+            (Axis::Y, false) => "highest point of the outline",
+            (Axis::Y, true) => "lowest point of the outline",
+            (Axis::X, false) => "the outline's furthest point toward the viewer's left",
+            (Axis::X, true) => "the outline's furthest point toward the viewer's right",
         };
         self.add(name, p, kind, addr, format!("{word}: {how}"));
     }
 
     /// One interior stationary point of one segment (a local extreme, not the whole outline's).
-    fn local(&mut self, name: &str, addr: &str, k: usize, axis: char, kind: &'static str) {
+    fn local(&mut self, name: &str, addr: &str, k: usize, axis: Axis, kind: &'static str) {
         let subs = self.doc.subs(addr);
         let seg = subs[0].seg(k);
-        let ts = seg.stationary(axis_of(axis));
+        let ts = seg.stationary(axis);
         assert!(
             ts.len() == 1,
             "{name}: expected one stationary point, found {}",
             ts.len()
         );
         let how = format!(
-            "{}, where d{axis}/dt = 0 at t = {:.4}",
+            "{}, where d{}/dt = 0 at t = {:.4}",
             seg_label(&subs, 0, k),
+            axis.letter(),
             ts[0]
         );
         self.add(name, seg.at(ts[0]), kind, addr, how);
@@ -462,8 +462,9 @@ impl View {
     }
 }
 
-/// The skull's construction circle, under the address every one of the drawings gives it.
-const SKULL: &str = "face/cranium";
+/// The skull's construction circle, under the address every one of the drawings gives it, and
+/// so the name a record gives the shape that covers a position the head hides.
+pub const SKULL: &str = "face/cranium";
 
 // ---------------------------------------------------------------- which node is which
 
@@ -498,9 +499,15 @@ fn eye(v: &mut View, side: &str, g: &str, o: OpeningIdx) {
     opening(v, side, g, o);
 
     let i = |part: &str| format!("iris_{side}_{part}");
-    v.extreme(&i("top"), &iris, 'y', false, "highest");
-    v.extreme(&i("bottom"), &iris, 'y', true, "lowest");
-    v.extreme(&i("outer_extent"), &iris, 'x', outer_is_max, "side_extent");
+    v.extreme(&i("top"), &iris, Axis::Y, false, "highest");
+    v.extreme(&i("bottom"), &iris, Axis::Y, true, "lowest");
+    v.extreme(
+        &i("outer_extent"),
+        &iris,
+        Axis::X,
+        outer_is_max,
+        "side_extent",
+    );
     eye_rest(v, side, &iris, &pupil, &lid, outer_is_max);
 }
 
@@ -512,8 +519,8 @@ fn opening(v: &mut View, side: &str, g: &str, o: OpeningIdx) {
 
     v.node(&n("outer_corner"), &white, o.outer);
     v.node(&n("inner_corner"), &white, o.inner);
-    v.extreme(&n("opening_top"), &white, 'y', false, "highest");
-    v.extreme(&n("opening_bottom"), &white, 'y', true, "lowest");
+    v.extreme(&n("opening_top"), &white, Axis::Y, false, "highest");
+    v.extreme(&n("opening_bottom"), &white, Axis::Y, true, "lowest");
     v.centre(
         &n("opening_centre"),
         &n("outer_corner"),
@@ -556,7 +563,13 @@ fn opening(v: &mut View, side: &str, g: &str, o: OpeningIdx) {
 fn eye_rest(v: &mut View, side: &str, iris: &str, pupil: &str, lid: &str, outer_is_max: bool) {
     let (iris, pupil, lid) = (iris.to_string(), pupil.to_string(), lid.to_string());
     let i = |part: &str| format!("iris_{side}_{part}");
-    v.extreme(&i("inner_extent"), &iris, 'x', !outer_is_max, "side_extent");
+    v.extreme(
+        &i("inner_extent"),
+        &iris,
+        Axis::X,
+        !outer_is_max,
+        "side_extent",
+    );
     v.centre(
         &i("centre"),
         &i("outer_extent"),
@@ -603,7 +616,7 @@ fn brow(v: &mut View, side: &str, g: &str, b: BrowIdx) {
     v.node(&n("inner_top"), &addr, b.inner_top);
     v.node(&n("inner_bottom"), &addr, b.inner_bottom);
     v.node(&n("outer_bottom"), &addr, b.outer_bottom);
-    v.extreme(&n("highest"), &addr, 'y', false, "highest");
+    v.extreme(&n("highest"), &addr, Axis::Y, false, "highest");
     let outer_is_max = side == "left";
     assert!(
         (v.get(&n("outer_top")).x > v.get(&n("inner_top")).x) == outer_is_max,
@@ -634,9 +647,21 @@ fn ear(v: &mut View, side: &str, g: &str, e: EarIdx) {
         "outline_node",
     );
     v.node(&n("base_inner"), &addr, e.base_inner);
-    v.extreme(&n("top"), &addr, 'y', false, "highest");
-    v.extreme(&n("outer_extent"), &addr, 'x', outer_is_max, "side_extent");
-    v.extreme(&n("inner_extent"), &addr, 'x', !outer_is_max, "side_extent");
+    v.extreme(&n("top"), &addr, Axis::Y, false, "highest");
+    v.extreme(
+        &n("outer_extent"),
+        &addr,
+        Axis::X,
+        outer_is_max,
+        "side_extent",
+    );
+    v.extreme(
+        &n("inner_extent"),
+        &addr,
+        Axis::X,
+        !outer_is_max,
+        "side_extent",
+    );
     assert!(
         (v.get(&n("base_outer")).x > v.get(&n("base_inner")).x) == outer_is_max,
         "{side} ear: bases are swapped"
@@ -645,14 +670,14 @@ fn ear(v: &mut View, side: &str, g: &str, e: EarIdx) {
 
 fn common_head(v: &mut View) {
     v.section("Head height runs from hair_top to chin.");
-    v.extreme("hair_top", "head/hair_front", 'y', false, "highest");
-    v.extreme("chin", "face/jaw", 'y', true, "lowest");
+    v.extreme("hair_top", "head/hair_front", Axis::Y, false, "highest");
+    v.extreme("chin", "face/jaw", Axis::Y, true, "lowest");
 
     v.section("Skull: the construction circle. It is drawn twice, as a filled shape and as a line, with the same numbers.");
-    v.circle("skull", "face/cranium");
+    v.circle("skull", SKULL);
     {
         let (Shape::Circle { c: a, r: ra }, Shape::Circle { c: b, r: rb }) = (
-            v.doc.get("face/cranium").shape,
+            v.doc.get(SKULL).shape,
             v.doc.get("construction/cranium_circle").shape,
         ) else {
             panic!("skull circles missing")
@@ -694,7 +719,7 @@ fn common_features(v: &mut View) {
     v.section("Nose mark: the nose shape and the line below it.");
     v.node("nose_mark_right_corner", "nose/leather", 0);
     v.node("nose_mark_left_corner", "nose/leather", 1);
-    v.extreme("nose_mark_top", "nose/leather", 'y', false, "highest");
+    v.extreme("nose_mark_top", "nose/leather", Axis::Y, false, "highest");
     v.node("nose_mark_bottom", "nose/leather", 2);
     v.node("philtrum_bottom", "nose/philtrum", 1);
     {
@@ -720,18 +745,18 @@ fn common_features(v: &mut View) {
     v.extreme(
         "hair_right_extent",
         "head/hair_front",
-        'x',
+        Axis::X,
         false,
         "side_extent",
     );
     v.extreme(
         "hair_left_extent",
         "head/hair_front",
-        'x',
+        Axis::X,
         true,
         "side_extent",
     );
-    v.extreme("hair_bottom", "head/hair_front", 'y', true, "lowest");
+    v.extreme("hair_bottom", "head/hair_front", Axis::Y, true, "lowest");
 }
 
 fn build_front(doc: Doc) -> View {
@@ -759,28 +784,18 @@ fn build_front(doc: Doc) -> View {
         "face_outline_right_widest",
         "face/jaw",
         0,
-        'x',
+        Axis::X,
         "side_extent",
     );
     v.local(
         "face_outline_left_widest",
         "face/jaw",
         5,
-        'x',
+        Axis::X,
         "side_extent",
     );
-    v.cross_circle(
-        "face_outline_right_meets_skull",
-        "face/jaw",
-        0,
-        "face/cranium",
-    );
-    v.cross_circle(
-        "face_outline_left_meets_skull",
-        "face/jaw",
-        5,
-        "face/cranium",
-    );
+    v.cross_circle("face_outline_right_meets_skull", "face/jaw", 0, SKULL);
+    v.cross_circle("face_outline_left_meets_skull", "face/jaw", 5, SKULL);
     v.cross_level(
         "face_outline_right_at_eye_level",
         "face/jaw",
@@ -962,19 +977,15 @@ fn build_three_quarter(doc: Doc) -> View {
             "outline_node",
         );
     }
-    v.local("face_outline_left_cheek", "face/jaw", 1, 'x', "side_extent");
-    v.cross_circle(
-        "face_outline_right_meets_skull",
-        "face/jaw",
-        7,
-        "face/cranium",
-    );
-    v.cross_circle(
-        "face_outline_left_meets_skull",
+    v.local(
+        "face_outline_left_cheek",
         "face/jaw",
         1,
-        "face/cranium",
+        Axis::X,
+        "side_extent",
     );
+    v.cross_circle("face_outline_right_meets_skull", "face/jaw", 7, SKULL);
+    v.cross_circle("face_outline_left_meets_skull", "face/jaw", 1, SKULL);
     v.cross_level(
         "face_outline_left_at_eye_level",
         "face/jaw",
@@ -1128,16 +1139,12 @@ fn build_three_quarter(doc: Doc) -> View {
 
 // ---------------------------------------------------------------- writing the positions
 
-fn q(s: &str) -> String {
-    format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
-}
-
 fn head_height(v: &View) -> f64 {
     r3(v.get("chin").y - v.get("hair_top").y)
 }
 
 fn write_view(out: &mut String, key: &str, title: &str, file: &str, sha: &str, v: &View) {
-    let Shape::Circle { r, .. } = v.doc.get("face/cranium").shape else {
+    let Shape::Circle { r, .. } = v.doc.get(SKULL).shape else {
         unreachable!()
     };
     writeln!(
@@ -1146,8 +1153,8 @@ fn write_view(out: &mut String, key: &str, title: &str, file: &str, sha: &str, v
     )
     .unwrap();
     writeln!(out, "[views.{key}]").unwrap();
-    writeln!(out, "private_copy = {}", q(file)).unwrap();
-    writeln!(out, "sha256 = {}", q(sha)).unwrap();
+    writeln!(out, "private_copy = {}", quoted(file)).unwrap();
+    writeln!(out, "sha256 = {}", quoted(sha)).unwrap();
     writeln!(
         out,
         "head_height = {}  # chin.y minus hair_top.y",
@@ -1168,12 +1175,12 @@ fn write_view(out: &mut String, key: &str, title: &str, file: &str, sha: &str, v
             lm.name,
             num(lm.x, 3),
             num(lm.y, 3),
-            q(lm.kind),
-            q(&lm.element),
-            q(&lm.how)
+            quoted(lm.kind),
+            quoted(&lm.element),
+            quoted(&lm.how)
         );
         if !lm.under.is_empty() {
-            let list: Vec<String> = lm.under.iter().map(|u| q(u)).collect();
+            let list: Vec<String> = lm.under.iter().map(|u| quoted(u)).collect();
             write!(line, ", under = [{}]", list.join(", ")).unwrap();
         }
         line.push_str(" }");
@@ -1300,10 +1307,10 @@ control_points = "Every off-curve control point of every path. No path data is r
             !tq.get("ear_left_base_outer").under.is_empty()
                 && !tq.get("ear_left_base_inner").under.is_empty()
         );
-        let Shape::Circle { r: rf, .. } = front.doc.get("face/cranium").shape else {
+        let Shape::Circle { r: rf, .. } = front.doc.get(SKULL).shape else {
             unreachable!()
         };
-        let Shape::Circle { r: rt, .. } = tq.doc.get("face/cranium").shape else {
+        let Shape::Circle { r: rt, .. } = tq.doc.get(SKULL).shape else {
             unreachable!()
         };
         assert!(rf == rt);
@@ -1504,7 +1511,7 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
     writeln!(out, "pairs_checked = {n_sym}").unwrap();
     writeln!(out, "largest_sideways_offset = {}", num(worst_side, 3)).unwrap();
     writeln!(out, "largest_level_offset = {}", num(worst_level, 3)).unwrap();
-    let list: Vec<String> = uneven.iter().map(|u| q(u)).collect();
+    let list: Vec<String> = uneven.iter().map(|u| quoted(u)).collect();
     writeln!(out, "pairs_not_mirrored = [{}]", list.join(", ")).unwrap();
 
     // The turn.
@@ -1560,7 +1567,7 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
     writeln!(out, "uncovered_degrees = {}", num(deg(cosine_seen), 2)).unwrap();
     writeln!(out, "\n[turn.not_counted]").unwrap();
     for (n, why) in NOT_COUNTED {
-        writeln!(out, "{n} = {}", q(why)).unwrap();
+        writeln!(out, "{n} = {}", quoted(why)).unwrap();
     }
     {
         // direction, checked rather than assumed
@@ -1593,7 +1600,7 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
         let residual = p.tq - p.front * cosine;
         writeln!(out, "\n{header}").unwrap();
         if header.starts_with("[[") {
-            writeln!(out, "name = {}", q(&p.name)).unwrap();
+            writeln!(out, "name = {}", quoted(&p.name)).unwrap();
         }
         writeln!(out, "front_spacing = {}", num(p.front, 3)).unwrap();
         writeln!(out, "three_quarter_spacing = {}", num(p.tq, 3)).unwrap();
@@ -1601,9 +1608,14 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
         writeln!(out, "turn_degrees = {}", num(deg(ratio), 2)).unwrap();
         writeln!(out, "misfit = {}", num(residual, 3)).unwrap();
         writeln!(out, "percent_of_head_height = {}", num(pct(residual), 2)).unwrap();
-        writeln!(out, "above_one_percent = {}", pct(residual) > 1.0).unwrap();
+        writeln!(
+            out,
+            "above_one_percent = {}",
+            pct(residual) > THRESHOLD_PERCENT
+        )
+        .unwrap();
         if !p.covered.is_empty() {
-            let list: Vec<String> = p.covered.iter().map(|c| q(c)).collect();
+            let list: Vec<String> = p.covered.iter().map(|c| quoted(c)).collect();
             writeln!(out, "covered = [{}]", list.join(", ")).unwrap();
         }
         writeln!(
@@ -1616,7 +1628,7 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
             num(deg(ratio), 2),
             num(residual, 3),
             num(pct(residual), 2),
-            if pct(residual) > 1.0 {
+            if pct(residual) > THRESHOLD_PERCENT {
                 "  ABOVE 1%"
             } else {
                 ""
@@ -1676,14 +1688,17 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
     writeln!(
         out,
         "above_one_percent = {}",
-        diffs.iter().filter(|d| pct(d.2 - d.1) > 1.0).count()
+        diffs
+            .iter()
+            .filter(|d| pct(d.2 - d.1) > THRESHOLD_PERCENT)
+            .count()
     )
     .unwrap();
     writeln!(log, "levels: {compared} compared, {} differ", diffs.len()).unwrap();
     for (name, yf, yt) in &diffs {
         let d = r3(yt - yf);
         writeln!(out, "\n[[levels.difference]]").unwrap();
-        writeln!(out, "landmark = {}", q(name)).unwrap();
+        writeln!(out, "landmark = {}", quoted(name)).unwrap();
         writeln!(out, "front_y = {}", num(*yf, 3)).unwrap();
         writeln!(out, "three_quarter_y = {}", num(*yt, 3)).unwrap();
         writeln!(
@@ -1693,7 +1708,7 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
         )
         .unwrap();
         writeln!(out, "percent_of_head_height = {}", num(pct(d), 2)).unwrap();
-        writeln!(out, "above_one_percent = {}", pct(d) > 1.0).unwrap();
+        writeln!(out, "above_one_percent = {}", pct(d) > THRESHOLD_PERCENT).unwrap();
         let mut cov = vec![];
         if !front.get(name).under.is_empty() {
             cov.push("front");
@@ -1702,7 +1717,7 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
             cov.push("three_quarter");
         }
         if !cov.is_empty() {
-            let list: Vec<String> = cov.iter().map(|c| q(c)).collect();
+            let list: Vec<String> = cov.iter().map(|c| quoted(c)).collect();
             writeln!(out, "covered_in = [{}]", list.join(", ")).unwrap();
         }
         writeln!(
@@ -1713,7 +1728,11 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
             num(*yt, 3),
             num(d, 3),
             num(pct(d), 2),
-            if pct(d) > 1.0 { "  ABOVE 1%" } else { "" },
+            if pct(d) > THRESHOLD_PERCENT {
+                "  ABOVE 1%"
+            } else {
+                ""
+            },
             if cov.is_empty() {
                 String::new()
             } else {
@@ -1736,8 +1755,8 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
     let mut entry = |out: &mut String, name: &str, on_line: &str, f: f64, t: f64| {
         let d = r3(t - f);
         writeln!(out, "\n[[centre_line.offset]]").unwrap();
-        writeln!(out, "feature = {}", q(name)).unwrap();
-        writeln!(out, "centre_line_at = {}", q(on_line)).unwrap();
+        writeln!(out, "feature = {}", quoted(name)).unwrap();
+        writeln!(out, "centre_line_at = {}", quoted(on_line)).unwrap();
         writeln!(out, "front_offset = {}", num(f, 3)).unwrap();
         writeln!(
             out,
@@ -1746,7 +1765,7 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
         )
         .unwrap();
         writeln!(out, "percent_of_head_height = {}", num(pct(d), 2)).unwrap();
-        writeln!(out, "above_one_percent = {}", pct(d) > 1.0).unwrap();
+        writeln!(out, "above_one_percent = {}", pct(d) > THRESHOLD_PERCENT).unwrap();
         writeln!(
             log,
             "  {:<28} front {:>6}  three-quarter {:>7} = {:>5}%{}",
@@ -1754,7 +1773,11 @@ fn write_compared(front: &View, tq: &View) -> (String, String) {
             num(f, 3),
             num(t, 3),
             num(pct(d), 2),
-            if pct(d) > 1.0 { "  ABOVE 1%" } else { "" }
+            if pct(d) > THRESHOLD_PERCENT {
+                "  ABOVE 1%"
+            } else {
+                ""
+            }
         )
         .unwrap();
     };
@@ -1937,9 +1960,9 @@ fn write_final_view(
     )
     .unwrap();
     writeln!(out, "[views.{key}]").unwrap();
-    writeln!(out, "file = {}", q(pinned.file)).unwrap();
-    writeln!(out, "sha256 = {}", q(pinned.sha256)).unwrap();
-    writeln!(out, "stage = {}", q(stage)).unwrap();
+    writeln!(out, "file = {}", quoted(pinned.file)).unwrap();
+    writeln!(out, "sha256 = {}", quoted(pinned.sha256)).unwrap();
+    writeln!(out, "stage = {}", quoted(stage)).unwrap();
     writeln!(
         out,
         "# The skull circle and the chin, which are the S2 underdrawing's exactly: the two drawings stand in one frame."
@@ -1973,12 +1996,12 @@ fn write_final_view(
             lm.name,
             num(lm.x, 3),
             num(lm.y, 3),
-            q(lm.kind),
-            q(&lm.element),
-            q(&lm.how)
+            quoted(lm.kind),
+            quoted(&lm.element),
+            quoted(&lm.how)
         );
         if !lm.under.is_empty() {
-            let list: Vec<String> = lm.under.iter().map(|u| q(u)).collect();
+            let list: Vec<String> = lm.under.iter().map(|u| quoted(u)).collect();
             write!(line, ", under = [{}]", list.join(", ")).unwrap();
         }
         line.push_str(" }");
@@ -2122,7 +2145,10 @@ under = "Present when the skull, painted later, covers the point, so it cannot b
     writeln!(
         out,
         "above_one_percent = {}",
-        diffs.iter().filter(|d| pct(d.2 - d.1) > 1.0).count()
+        diffs
+            .iter()
+            .filter(|d| pct(d.2 - d.1) > THRESHOLD_PERCENT)
+            .count()
     )
     .unwrap();
     writeln!(
@@ -2136,7 +2162,7 @@ under = "Present when the skull, painted later, covers the point, so it cannot b
     for (name, yf, yt) in &diffs {
         let d = r3(yt - yf);
         writeln!(out, "\n[[levels.difference]]").unwrap();
-        writeln!(out, "landmark = {}", q(name)).unwrap();
+        writeln!(out, "landmark = {}", quoted(name)).unwrap();
         writeln!(out, "front_y = {}", num(*yf, 3)).unwrap();
         writeln!(out, "three_quarter_y = {}", num(*yt, 3)).unwrap();
         writeln!(
@@ -2146,7 +2172,7 @@ under = "Present when the skull, painted later, covers the point, so it cannot b
         )
         .unwrap();
         writeln!(out, "percent_of_head_height = {}", num(pct(d), 2)).unwrap();
-        writeln!(out, "above_one_percent = {}", pct(d) > 1.0).unwrap();
+        writeln!(out, "above_one_percent = {}", pct(d) > THRESHOLD_PERCENT).unwrap();
         if !tq.get(name).under.is_empty() {
             writeln!(out, "covered_in = [\"three_quarter\"]").unwrap();
         }
@@ -2158,7 +2184,11 @@ under = "Present when the skull, painted later, covers the point, so it cannot b
             num(*yt, 3),
             num(d, 3),
             num(pct(d), 2),
-            if pct(d) > 1.0 { "  ABOVE 1%" } else { "" }
+            if pct(d) > THRESHOLD_PERCENT {
+                "  ABOVE 1%"
+            } else {
+                ""
+            }
         )
         .unwrap();
     }
@@ -2175,13 +2205,13 @@ under = "Present when the skull, painted later, covers the point, so it cannot b
     for p in pairs(front, tq) {
         let ratio = p.tq / p.front;
         writeln!(out, "\n[[spacing.pair]]").unwrap();
-        writeln!(out, "name = {}", q(&p.name)).unwrap();
+        writeln!(out, "name = {}", quoted(&p.name)).unwrap();
         writeln!(out, "front_spacing = {}", num(p.front, 3)).unwrap();
         writeln!(out, "three_quarter_spacing = {}", num(p.tq, 3)).unwrap();
         writeln!(out, "ratio = {}", num(ratio, 4)).unwrap();
         writeln!(out, "turn_degrees = {}", num(deg(ratio), 2)).unwrap();
         if !p.covered.is_empty() {
-            let list: Vec<String> = p.covered.iter().map(|c| q(c)).collect();
+            let list: Vec<String> = p.covered.iter().map(|c| quoted(c)).collect();
             writeln!(out, "covered = [{}]", list.join(", ")).unwrap();
         }
         writeln!(

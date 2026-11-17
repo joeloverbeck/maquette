@@ -727,7 +727,11 @@ view = "side"
 what = """
 In the side view only, the mouth and the chin are drawn further back than their depths. \
 A landmark it moves keeps its depth in space and its height, and stands in the side view at its depth less the amount. \
-Nothing above the mouth is moved: the nose mark, the eyes, the brow and the skull stay a flat projection. \
+No landmark above the mouth is moved: the nose mark, the eyes, the brow and the skull stand where a flat projection puts them. \
+That holds for landmarks and not for every guide. A guide is built on its landmarks where the view draws them, so the mouth line, the mouth level line and the lower face outline go back with the mouth and the chin. \
+The face outline is one smooth curve whose direction at a point follows that point's two neighbours, so it also bends differently on the stretch beyond each moved point, where no landmark moves: \
+in front between the eye line and the nose mark's bottom, and behind between the jaw-line points at the mouth level and at the nose level. \
+Two view points read off the outline there shift with it: where the nose level line meets the outline's front, and where the neck's front line starts. \
 The front view and the three-quarter view are not changed at all."""
 why = """
 A depth taken from a three-quarter drawing is a point's sideways shift there over the sine of the turn. \
@@ -736,10 +740,10 @@ which is not where a rigid head turned that far shows them, and at a turn near 3
 the face from the nose down stands out like a muzzle. Jon's look of 2026-11-17 found this in Saffi's side view. \
 Her three-quarter view is accepted as it is, so the depths stay as measured and the side view alone departs from them."""
 amounts_from = """
-No drawing lesson gives a distance for a profile, so each amount comes from where the lessons put the chin and the lips \
+No drawing lesson gives a distance for a side view, so each amount comes from where the lessons put the chin and the lips \
 (`docs/research/2026-11-16-views-and-measuring/notes/head_construction_in_three_views.md`, section 1, lessons A to H). \
 `maquette proportions-from-hand-made-views --lower-face-set-back <share>` works both out from a set's own depths. \
-How large a share looks right is Jon's to say: no lesson gives it."""
+How large a share looks right is Jon's to say: no lesson gives it. For Saffi's set he accepted a share of 0.5 at look 3, on 2026-11-17."""
 
 [[correction.amount]]
 name = "chin"

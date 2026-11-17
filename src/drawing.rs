@@ -3,8 +3,13 @@
 //!
 //! A drawing is read as written. Its coordinates are the file's own, so a file that moves
 //! them with a transform is refused, and so is a path command other than the absolute `M`,
-//! `L`, `C` and `Z`: a position taken from a curve this module does not follow would be a
-//! guess. Nothing here looks at a rendered picture.
+//! `L`, `C` and `Z`, and a path that draws on after `Z` without a new `M`: a position taken
+//! from a curve this module does not follow would be a guess. Nothing here looks at a
+//! rendered picture.
+//!
+//! Whether a shape is filled is read as SVG has it: from the shape's own `fill`, given in its
+//! `style` or as an attribute, or else from the group it is in. A shape whose `opacity`
+//! attribute is nought is marked as one that cannot be seen.
 //!
 //! [`Drawing::describe`] lists what a drawing holds, for a person or an agent who has to say
 //! which node of which shape is which landmark. [`crate::hand_made_drawings`] is the one place
@@ -322,6 +327,14 @@ fn parse_path(d: &str) -> Result<Vec<Sub>> {
                     "the path command `{c}` is not read: only the absolute `M`, `L`, `C` and `Z` are, so that every position is one the file writes"
                 )));
             }
+            // SVG draws on after `Z` from the subpath's first point, as a new subpath. That is
+            // not followed here, so the stretch would be joined to the closed outline's last
+            // node, on the wrong side of the closing.
+            if cmd == 'Z' && matches!(c, 'L' | 'C') {
+                return Err(Error::new(format!(
+                    "the path goes on with `{c}` after `Z` closed a subpath, and that is not read: after `Z` a path ends or starts a new subpath with `M`"
+                )));
+            }
             cmd = c;
             i += 1;
             if c == 'Z' {
@@ -382,13 +395,38 @@ pub fn read(svg: &str) -> Result<Drawing> {
         entries: Vec::new(),
     };
     let mut groups: Vec<String> = Vec::new();
-    walk(root, &mut groups, &mut drawing)?;
+    walk(root, fill_of(root, None), &mut groups, &mut drawing)?;
     Ok(drawing)
 }
 
-fn walk(parent: roxmltree::Node, groups: &mut Vec<String>, drawing: &mut Drawing) -> Result<()> {
+/// The `fill` in effect on an element: its own, or else the one handed down to it. SVG hands
+/// a fill down from a group to everything inside it, and with none stated a shape is filled.
+/// An element's own fill is the one its `style` gives, or else its `fill` attribute: where it
+/// gives both, the one in `style` is what is drawn.
+fn fill_of<'a>(node: roxmltree::Node<'a, '_>, handed_down: Option<&'a str>) -> Option<&'a str> {
+    let in_style = node.attribute("style").and_then(|style| {
+        style
+            .split(';')
+            .filter_map(|declaration| declaration.split_once(':'))
+            .filter(|(property, _)| property.trim() == "fill")
+            .map(|(_, value)| value.trim())
+            .next_back()
+    });
+    in_style
+        .or_else(|| node.attribute("fill").map(str::trim))
+        .or(handed_down)
+}
+
+/// Reads the elements inside `parent`, which hands the fill `handed_down` to them.
+fn walk<'a>(
+    parent: roxmltree::Node<'a, '_>,
+    handed_down: Option<&'a str>,
+    groups: &mut Vec<String>,
+    drawing: &mut Drawing,
+) -> Result<()> {
     for node in parent.children().filter(roxmltree::Node::is_element) {
         let tag = node.tag_name().name();
+        let fill = fill_of(node, handed_down);
         if node.has_attribute("transform") {
             return Err(Error::new(format!(
                 "the <{tag}> {} carries a transform, so its coordinates are not the ones the file writes. A drawing is read as written, and this one would need mapping first.",
@@ -404,7 +442,7 @@ fn walk(parent: roxmltree::Node, groups: &mut Vec<String>, drawing: &mut Drawing
                     depth: groups.len(),
                 });
                 groups.push(name);
-                walk(node, groups, drawing)?;
+                walk(node, fill, groups, drawing)?;
                 groups.pop();
                 continue;
             }
@@ -473,8 +511,11 @@ fn walk(parent: roxmltree::Node, groups: &mut Vec<String>, drawing: &mut Drawing
             addr: format!("{}/{label}", groups.last().map_or("", String::as_str)),
             element: tag.to_string(),
             shape,
-            filled: tag != "line" && node.attribute("fill") != Some("none"),
-            hidden: node.attribute("opacity") == Some("0"),
+            filled: tag != "line" && fill != Some("none"),
+            hidden: node
+                .attribute("opacity")
+                .and_then(|opacity| opacity.trim().parse::<f64>().ok())
+                == Some(0.0),
             order: index,
             depth: groups.len(),
         });

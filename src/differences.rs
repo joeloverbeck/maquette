@@ -309,8 +309,7 @@ pub fn read_record(record: Input, final_drawings: Option<Input>) -> Result<HandM
         path: given.path,
         text: given.text,
     });
-    hand_made_views::read(record.text, final_record)
-        .map_err(|error| Error::new(format!("{}: {error}", record.path)))
+    hand_made_views::read(record.path, record.text, final_record)
 }
 
 fn position(value: [f64; 2]) -> String {

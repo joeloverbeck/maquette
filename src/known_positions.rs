@@ -150,8 +150,8 @@ struct Known {
 
 impl Known {
     fn read(record_path: &str, record_text: &str, view: View) -> Result<Known> {
-        let hand_made = hand_made_views::read(record_text, None)
-            .map_err(|error| Error::new(format!("{record_path}: {error}")))?;
+        // A fault in the record is reported under the record's own path.
+        let hand_made = hand_made_views::read(record_path, record_text, None)?;
         let table: toml::Table = record_text
             .parse()
             .map_err(|error| Error::new(format!("{record_path}: not valid TOML: {error}")))?;

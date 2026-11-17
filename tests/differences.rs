@@ -560,8 +560,107 @@ fn files_given_for_the_wrong_view_are_refused() {
     );
 }
 
-// Saffi. Nothing below says her list is short, long or empty, and nothing pins its length:
-// what moves after Jon's look moves the list with it.
+#[test]
+fn a_fault_in_a_record_is_reported_under_the_path_of_the_record_it_is_in() {
+    let folder = scratch("differences-fault-in-a-record");
+    let spoiled = |name: &str, from: &str, good: &str, bad: &str| {
+        let original = text(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join(from)
+                .as_path(),
+        );
+        assert!(original.contains(good), "{from} has changed");
+        let path = folder.join(name);
+        std::fs::write(&path, original.replace(good, bad)).expect("written");
+        path
+    };
+    // The final record gives a landmark a word where its x belongs.
+    let final_with_a_word = spoiled(
+        "final-with-a-word.toml",
+        MADE_UP_FINAL_RECORD,
+        "eye_left_outer_corner = { x = 646.0,",
+        "eye_left_outer_corner = { x = \"four\",",
+    );
+    // The final record gives a view no digest.
+    let final_without_a_digest = spoiled(
+        "final-without-a-digest.toml",
+        MADE_UP_FINAL_RECORD,
+        "[views.front]\nsha256 = \"made-up: there is no final drawing\"\n",
+        "[views.front]\n",
+    );
+    // The record itself gives a landmark a word where its x belongs.
+    let record_with_a_word = spoiled(
+        "record-with-a-word.toml",
+        MADE_UP_RECORD,
+        "chin = { x = 500.0,",
+        "chin = { x = \"five hundred\",",
+    );
+
+    let cases = [
+        (
+            MADE_UP_RECORD,
+            path_text(&final_with_a_word),
+            "final-with-a-word.toml",
+            "made-up-hand-made-views.toml",
+            "eye_left_outer_corner",
+        ),
+        (
+            MADE_UP_RECORD,
+            path_text(&final_without_a_digest),
+            "final-without-a-digest.toml",
+            "made-up-hand-made-views.toml",
+            "sha256",
+        ),
+        (
+            path_text(&record_with_a_word),
+            MADE_UP_FINAL_RECORD,
+            "record-with-a-word.toml",
+            "made-up-final-drawings.toml",
+            "chin",
+        ),
+    ];
+    for (record, final_record, at_fault, sound, what) in cases {
+        let commands: [Vec<&str>; 3] = [
+            vec![
+                "differences-from-hand-made-views",
+                "--front",
+                MADE_UP_FRONT,
+                "--three-quarter",
+                MADE_UP_THREE_QUARTER,
+            ],
+            vec![
+                "overlay-hand-made-views",
+                "--front",
+                MADE_UP_FRONT,
+                "--three-quarter",
+                MADE_UP_THREE_QUARTER,
+                "--out",
+                path_text(&folder),
+            ],
+            vec!["proportions-from-hand-made-views"],
+        ];
+        for mut arguments in commands {
+            arguments.extend(["--record", record, "--final-record", final_record]);
+            let output = maquette(&arguments);
+            assert!(!output.status.success(), "{arguments:?} read {at_fault}");
+            let message = String::from_utf8_lossy(&output.stderr);
+            assert!(
+                message.contains(at_fault) && message.contains(what),
+                "{}: the message does not name {at_fault} and `{what}`: {message}",
+                arguments[0]
+            );
+            assert!(
+                !message.contains(sound),
+                "{}: the message names {sound}, which has no fault: {message}",
+                arguments[0]
+            );
+        }
+    }
+}
+
+// Saffi. Nothing below says her list is short, long or empty, and nothing pins its length.
+// Jon accepted her armature at look 3 and `tests/saffi.rs` pins its bytes; the list is not
+// part of what he accepted, and it moves with anything a later look moves.
 
 const HER_RECORD: &str = "data/saffi/hand-made-views.toml";
 /// Her final drawings' ears and lids, which replace her record's (Jon, 2026-11-16).

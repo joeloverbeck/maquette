@@ -11,6 +11,7 @@
 
 use std::collections::BTreeMap;
 
+use crate::hand_made_drawings::SKULL;
 use crate::head_model::{self, Reading};
 use crate::number::toml as toml_number;
 use crate::proportions;
@@ -198,44 +199,70 @@ fn record_key(view: View) -> &'static str {
     }
 }
 
-/// A view's table in a record, with its digest and its landmarks.
-fn view_section<'a>(
-    record: &'a toml::Table,
-    view: &str,
-    what: &str,
-) -> Result<(String, &'a toml::Table)> {
-    let section = record
-        .get("views")
-        .and_then(|views| views.get(view))
-        .and_then(toml::Value::as_table)
-        .ok_or_else(|| Error::new(format!("{what} has no [views.{view}]")))?;
-    let sha256 = section
-        .get("sha256")
-        .and_then(toml::Value::as_str)
-        .ok_or_else(|| Error::new(format!("{what}'s [views.{view}] has no sha256")))?
-        .to_string();
-    let landmarks = section
-        .get("landmarks")
-        .and_then(toml::Value::as_table)
-        .ok_or_else(|| Error::new(format!("{what} has no [views.{view}.landmarks]")))?;
-    Ok((sha256, landmarks))
+/// One of the two files a reading is made from, as it was parsed: the path it was named by,
+/// what a message calls it, and its tables. A fault is reported under the path of the file
+/// it is in.
+struct RecordFile<'a> {
+    path: &'a str,
+    what: &'static str,
+    table: toml::Table,
+}
+
+impl<'a> RecordFile<'a> {
+    fn parse(path: &'a str, what: &'static str, text: &str) -> Result<RecordFile<'a>> {
+        let table = text
+            .parse()
+            .map_err(|error| Error::new(format!("{path}: {what} is not valid TOML: {error}")))?;
+        Ok(RecordFile { path, what, table })
+    }
+
+    /// A fault in this file, in words that follow what a message calls it.
+    fn fault(&self, found: impl std::fmt::Display) -> Error {
+        Error::new(format!("{}: {}{found}", self.path, self.what))
+    }
+
+    /// A text the file gives under a key of one of its tables.
+    fn said(&self, section: &str, key: &str) -> Result<String> {
+        self.table
+            .get(section)
+            .and_then(|section| section.get(key))
+            .and_then(toml::Value::as_str)
+            .map(str::to_string)
+            .ok_or_else(|| self.fault(format!(" has no text `{key}` in [{section}]")))
+    }
+
+    /// A view's table, with its digest and its landmarks.
+    fn view_section(&self, view: &str) -> Result<(String, &toml::Table)> {
+        let section = self
+            .table
+            .get("views")
+            .and_then(|views| views.get(view))
+            .and_then(toml::Value::as_table)
+            .ok_or_else(|| self.fault(format!(" has no [views.{view}]")))?;
+        let sha256 = section
+            .get("sha256")
+            .and_then(toml::Value::as_str)
+            .ok_or_else(|| self.fault(format!(" has no sha256 in [views.{view}]")))?
+            .to_string();
+        let landmarks = section
+            .get("landmarks")
+            .and_then(toml::Value::as_table)
+            .ok_or_else(|| self.fault(format!(" has no [views.{view}.landmarks]")))?;
+        Ok((sha256, landmarks))
+    }
 }
 
 fn read_view(
-    record: &toml::Table,
-    final_drawings: Option<&toml::Table>,
+    record: &RecordFile,
+    final_drawings: Option<&RecordFile>,
     view: View,
 ) -> Result<ViewRead> {
     let (turned, turn_degrees) = (view != View::Front, view.turn_degrees());
     // The messages below name the view as the record does.
     let view = record_key(view);
-    let (sha256, landmarks) = view_section(record, view, "the record")?;
+    let (sha256, landmarks) = record.view_section(view)?;
     let final_landmarks = match final_drawings {
-        Some(final_drawings) => {
-            let (sha256, landmarks) =
-                view_section(final_drawings, view, "the record of the final drawings")?;
-            Some((sha256, landmarks))
-        }
+        Some(final_drawings) => Some(final_drawings.view_section(view)?),
         None => None,
     };
 
@@ -248,23 +275,24 @@ fn read_view(
             .flat_map(|(_, landmarks)| landmarks.iter().map(|entry| (entry, true))),
     );
     for ((name, entry), is_final) in both {
+        // The file the entry stands in: the one a fault in it is reported under.
+        let file = match final_drawings {
+            Some(final_drawings) if is_final => final_drawings,
+            _ => record,
+        };
         let coordinate = |key: &str| -> Result<f64> {
             match entry.get(key) {
                 Some(toml::Value::Float(number)) => Ok(*number),
                 Some(toml::Value::Integer(number)) => Ok(*number as f64),
-                _ => Err(Error::new(format!(
-                    "the record's {view} view gives `{name}` no number `{key}`"
+                _ => Err(file.fault(format!(
+                    " gives `{name}` no number `{key}` in its {view} view"
                 ))),
             }
         };
         let covered_by_head = entry
             .get("under")
             .and_then(toml::Value::as_array)
-            .is_some_and(|shapes| {
-                shapes
-                    .iter()
-                    .any(|shape| shape.as_str() == Some("face/cranium"))
-            });
+            .is_some_and(|shapes| shapes.iter().any(|shape| shape.as_str() == Some(SKULL)));
         if is_final {
             from_final_drawings.push(name.clone());
         }
@@ -418,57 +446,31 @@ pub struct FinalRecord<'a> {
     pub text: &'a str,
 }
 
-/// Reads the text of a record of hand-made views. Given the record of the final drawings as
-/// well, each of its landmarks replaces the record's landmark of the same name in the same
-/// view.
-pub fn read(text: &str, final_record: Option<FinalRecord>) -> Result<HandMade> {
-    let record: toml::Table = text
-        .parse()
-        .map_err(|error| Error::new(format!("the record is not valid TOML: {error}")))?;
-    let what = record
-        .get("source")
-        .and_then(|source| source.get("what"))
-        .and_then(toml::Value::as_str)
-        .ok_or_else(|| Error::new("the record's [source] does not say what the drawings are"))?
-        .to_string();
-    let final_table: Option<toml::Table> = match final_record {
-        Some(given) => Some(given.text.parse().map_err(|error| {
-            Error::new(format!(
-                "{}: the record of the final drawings is not valid TOML: {error}",
-                given.path
-            ))
-        })?),
+/// Reads the text of a record of hand-made views, which `path` names. Given the record of
+/// the final drawings as well, each of its landmarks replaces the record's landmark of the
+/// same name in the same view. A fault is reported under the path of the record it is in.
+pub fn read(path: &str, text: &str, final_record: Option<FinalRecord>) -> Result<HandMade> {
+    let record = RecordFile::parse(path, "the record", text)?;
+    let what = record.said("source", "what")?;
+    let final_file = match final_record {
+        Some(given) => Some(RecordFile::parse(
+            given.path,
+            "the record of the final drawings",
+            given.text,
+        )?),
         None => None,
     };
-    let in_final = |error: Error| match final_record {
-        Some(given) => Error::new(format!("{}: {error}", given.path)),
-        None => error,
-    };
-    let front = read_view(&record, final_table.as_ref(), View::Front)?;
-    let three_quarter = read_view(&record, final_table.as_ref(), View::ThreeQuarter)?;
-    let final_drawings = match (final_record, &final_table) {
-        (Some(given), Some(table)) => {
-            let said = |section: &str, key: &str| -> Result<String> {
-                table
-                    .get(section)
-                    .and_then(|section| section.get(key))
-                    .and_then(toml::Value::as_str)
-                    .map(str::to_string)
-                    .ok_or_else(|| {
-                        in_final(Error::new(format!(
-                            "the record of the final drawings has no text `{key}` in [{section}]"
-                        )))
-                    })
-            };
-            Some(FinalDrawings {
-                path: given.path.to_string(),
-                what: said("source", "what")?,
-                rule: said("supersedes", "rule")?,
-                front_sha256: front.final_sha256.clone().unwrap_or_default(),
-                three_quarter_sha256: three_quarter.final_sha256.clone().unwrap_or_default(),
-            })
-        }
-        _ => None,
+    let front = read_view(&record, final_file.as_ref(), View::Front)?;
+    let three_quarter = read_view(&record, final_file.as_ref(), View::ThreeQuarter)?;
+    let final_drawings = match &final_file {
+        Some(file) => Some(FinalDrawings {
+            path: file.path.to_string(),
+            what: file.said("source", "what")?,
+            rule: file.said("supersedes", "rule")?,
+            front_sha256: front.final_sha256.clone().unwrap_or_default(),
+            three_quarter_sha256: three_quarter.final_sha256.clone().unwrap_or_default(),
+        }),
+        None => None,
     };
     Ok(HandMade {
         front: front.reading,
