@@ -8,7 +8,7 @@ In an animation studio a maquette is the sculpted reference model that keeps a c
 
 Founded on 2026-11-16, and reoriented by Jon the same day toward measured proportions; [`docs/foundation/README.md`](docs/foundation/README.md) records both. Work starts from the issue tracker.
 
-The generator draws a set of proportions as a head in three views: front, three-quarter and side. The program lists how far such a head stands from Saffi's hand-made views, reads an armature back in VectorCraft, and reads her hand-made drawings into numbers. Jon accepted her front and three-quarter views at look 1, and her ears and lids have changed since, by his ruling. At look 2 he found that those two views read as one head and did not accept the side view: from the nose down the face stood too far forward. The first named correction now sets her mouth and chin back in the side view only. Its amount is not accepted, so no armature is pinned yet. The measuring of references and the proportion tables are not built.
+The generator draws a set of proportions as a head in three views: front, three-quarter and side. The program lists how far such a head stands from Saffi's hand-made views, reads an armature back in VectorCraft, and reads her hand-made drawings into numbers. Jon accepted her front and three-quarter views at look 1, and her ears and lids have changed since, by his ruling. At look 2 he found that those two views read as one head and did not accept the side view: from the nose down the face stood too far forward. The first named correction now sets her mouth and chin back in the side view only. At look 3, on 2026-11-17, Jon accepted her armature in three views with that correction at the smaller of the two amounts he was shown. Those six files are in [`armatures/saffi/`](armatures/saffi/README.md), and a test pins their bytes. His acceptance covers her armature and nothing else: it does not make her proportions a standard, and it accepts no table. Nothing is exported to mudsong yet. The measuring of references and the proportion tables are not built.
 
 ## Building, checking and drawing
 
@@ -43,7 +43,7 @@ cargo run -- proportions-from-hand-made-views \
   --out data/saffi/proportions.toml
 ```
 
-The share is how much of the chin's full amount is taken, where the full amount draws the chin straight below the iris's centre; the mouth then goes onto the line from the nose mark's bottom to the chin as drawn. Both rules come from drawing lessons, which give no distances. The share of 0.5 is the candidate recommended to Jon at look 3 and is not accepted; `design/look-3-saffi-side-view/` holds the sheet and the other candidate's input.
+The share is how much of the chin's full amount is taken, where the full amount draws the chin straight below the iris's centre; the mouth then goes onto the line from the nose mark's bottom to the chin as drawn. Both rules come from drawing lessons, which give no distances. No rule gives the share. Jon was shown 0.5 and 1 at look 3 and accepted her armature at 0.5; `design/look-3-saffi-side-view/` holds the sheet he saw, and the other candidate's input as the record of what was shown.
 
 ### The differences from the hand-made views
 
@@ -122,6 +122,7 @@ cargo test --test read_back_in_vectorcraft -- --ignored
 | `design/` | Designs made by hand in those two tools; the only folder their servers may write to |
 | `docs/agents/` | How agents use the issue tracker and the triage labels |
 | `data/saffi/` | The hand-made front and three-quarter views of the comparison case, as landmark positions: her S2 underdrawings, and the ears and lids of her final drawings that replace theirs. Also her set of proportions worked out from them, and the list of her drawings in mudsong that these numbers rest on. Numbers only; they never enter a proportion table |
+| `armatures/saffi/` | Saffi's accepted armature: the six files `maquette draw` writes from her set of proportions, as Jon accepted them at look 3. Generated output, not a design and not a table. A test pins their bytes |
 | `proportions/list.toml` | The list of proportions: the unit, and every proportion's name, definition for each view, and mark as measured or a convention, how each guide is built in each view, and each named correction with the rule of its amounts. The program reads this same file |
 | `Cargo.toml`, `src/` | The Rust package: the list and sets of proportions, the head model, the three views, the guides, the armature writer, the reading of a hand-made drawing, the differences from a hand-made armature and the read-back in VectorCraft, under a thin command line |
 | `tests/` | Tests that drive the command line, files in and files out. `tests/fixtures/` holds made-up proportions, made-up views and a made-up drawing that say so, and recordings of VectorCraft's replies that say so |
