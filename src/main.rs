@@ -26,6 +26,8 @@ Usage:
       Write the front view, the three-quarter view and the side view of a set of
       proportions: for each, an SVG of named guides and a landmark file. The side view is
       the three-quarter view's turn carried to 90 degrees, so it faces the viewer's right.
+      A set that carries a named correction is drawn with it, and the landmark file of the
+      view it changes says so; a set that carries none is drawn as a flat projection.
       The options place the head on the page: the length of one unit, the height of the eye
       line, and where the upright axis the head turns about stands in each view. The same
       input gives the same bytes.
@@ -34,11 +36,15 @@ Usage:
       Take two landmark files back into a set of proportions.
 
   maquette proportions-from-hand-made-views --record <file> [--final-record <file>]
-                                            [--out <file>]
+                                            [--lower-face-set-back <share>] [--out <file>]
       Work out a set of proportions from the record of a hand-made armature's views,
       such as data/saffi/hand-made-views.toml. With --final-record, a record of final
       drawings such as data/saffi/final-drawings.toml, each of its landmarks replaces the
-      record's landmark of the same name in the same view.
+      record's landmark of the same name in the same view. With --lower-face-set-back, the
+      set also carries the named correction lower_face_set_back, which draws the mouth and
+      the chin further back in the side view only: its amounts are worked out from the
+      set's own depths, at that share, from 0 to 1, of what draws the chin straight below
+      the iris's centre. `maquette list-proportions` states the rule of each amount.
 
   maquette differences-from-hand-made-views --front <file> --three-quarter <file>
                                             --record <file> [--final-record <file>]
@@ -435,9 +441,24 @@ fn record_hand_made_drawings(arguments: &[String]) -> Result<()> {
 }
 
 fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
-    let found = options(arguments, &["--record", "--final-record", "--out"])?;
+    const SET_BACK: &str = "--lower-face-set-back";
+    let found = options(
+        arguments,
+        &["--record", "--final-record", SET_BACK, "--out"],
+    )?;
     let record_path = required(&found, "--record")?;
     let final_record = final_record(&found)?;
+    let lower_face_set_back = match found.get(SET_BACK) {
+        Some(value) => match value.parse::<f64>() {
+            Ok(share) if (0.0..=1.0).contains(&share) => Some(share),
+            _ => {
+                return Err(Error::new(format!(
+                    "`{SET_BACK}` needs a share from 0 to 1, and `{value}` is not one"
+                )));
+            }
+        },
+        None => None,
+    };
     let hand_made = hand_made_views::read(
         &read(record_path)?,
         final_record
@@ -447,7 +468,10 @@ fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
                 text: text.as_str(),
             }),
     )?;
-    deliver(&found, &hand_made.proportions_file(record_path)?)
+    deliver(
+        &found,
+        &hand_made.proportions_file(record_path, lower_face_set_back)?,
+    )
 }
 
 /// The record of the final drawings, when `--final-record` names one: its path and its text.

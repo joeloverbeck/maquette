@@ -39,10 +39,31 @@ pub struct Proportion {
     pub three_quarter: String,
 }
 
+/// One amount of a correction: a length in units, with the rule it comes from.
+#[derive(Debug, Clone)]
+pub struct Amount {
+    pub name: String,
+    pub what: String,
+    pub rule: String,
+}
+
+/// A correction of the list: a named departure from flat projection, in one view.
+#[derive(Debug, Clone)]
+pub struct Correction {
+    pub name: String,
+    /// The one view it changes, by the view's name.
+    pub view: String,
+    pub what: String,
+    pub why: String,
+    pub amounts_from: String,
+    pub amounts: Vec<Amount>,
+}
+
 /// The list of proportions with the statements that go with it.
 #[derive(Debug, Clone)]
 pub struct List {
     pub proportions: Vec<Proportion>,
+    pub corrections: Vec<Correction>,
     statements: Vec<(String, Vec<(String, String)>)>,
     disagreement_rules: Vec<String>,
     constructions: Vec<(String, String)>,
@@ -176,8 +197,38 @@ fn parse_list(text: &str) -> Result<List> {
         ));
     }
 
+    let mut corrections = Vec::new();
+    for entry in tables(&table, "correction") {
+        let name = text_of(entry, "name", "a correction")?;
+        let context = format!("the correction `{name}`");
+        let mut amounts = Vec::new();
+        for amount in tables(entry, "amount") {
+            let amount_name = text_of(amount, "name", &context)?;
+            let of = format!("{context}, amount `{amount_name}`");
+            amounts.push(Amount {
+                what: text_of(amount, "what", &of)?,
+                rule: text_of(amount, "rule", &of)?,
+                name: amount_name,
+            });
+        }
+        if amounts.is_empty() {
+            return Err(Error::new(format!(
+                "the list of proportions: {context} has no amount"
+            )));
+        }
+        corrections.push(Correction {
+            view: text_of(entry, "view", &context)?,
+            what: text_of(entry, "what", &context)?,
+            why: text_of(entry, "why", &context)?,
+            amounts_from: text_of(entry, "amounts_from", &context)?,
+            amounts,
+            name,
+        });
+    }
+
     Ok(List {
         proportions,
+        corrections,
         statements,
         disagreement_rules,
         constructions,
@@ -223,6 +274,24 @@ impl List {
         for (guide, rule) in &self.constructions {
             out.push_str(&format!("  {guide}: {rule}\n"));
         }
+        out.push_str("\nCorrections, each a named departure from flat projection that a set of proportions may carry:\n");
+        for correction in &self.corrections {
+            out.push_str(&format!(
+                "  {}, in the {} view: {}\n",
+                correction.name, correction.view, correction.what
+            ));
+            out.push_str(&format!("    Why: {}\n", correction.why));
+            out.push_str(&format!(
+                "    Where the amounts come from: {}\n",
+                correction.amounts_from
+            ));
+            for amount in &correction.amounts {
+                out.push_str(&format!(
+                    "    Amount `{}`: {} {}\n",
+                    amount.name, amount.what, amount.rule
+                ));
+            }
+        }
         let conventions = self
             .proportions
             .iter()
@@ -251,10 +320,13 @@ impl List {
     }
 }
 
-/// A set of proportions: one value for every proportion of the list, and nothing else.
+/// A set of proportions: one value for every proportion of the list, and nothing else. It
+/// may carry corrections of the list, each with a value for every one of its amounts.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Set {
     values: BTreeMap<String, f64>,
+    /// The corrections the set carries, by name: each amount's name and its length in units.
+    corrections: BTreeMap<String, BTreeMap<String, f64>>,
 }
 
 impl Set {
@@ -302,11 +374,70 @@ impl Set {
                 )));
             }
         }
-        Ok(Set { values })
+        Ok(Set {
+            values,
+            corrections: BTreeMap::new(),
+        })
+    }
+
+    /// The set carrying a correction of the list as well, or carrying it with new amounts.
+    /// Checks the amounts against the list: every amount of the correction once, no other
+    /// name, and every number finite and not below zero.
+    pub fn with_correction(mut self, name: &str, amounts: BTreeMap<String, f64>) -> Result<Set> {
+        let list = list()?;
+        let Some(correction) = list
+            .corrections
+            .iter()
+            .find(|correction| correction.name == name)
+        else {
+            return Err(Error::new(format!(
+                "the set of proportions carries a correction `{name}`, and the list defines no such correction. `maquette list-proportions` defines each."
+            )));
+        };
+        for amount in &correction.amounts {
+            let Some(value) = amounts.get(&amount.name) else {
+                return Err(Error::new(format!(
+                    "the correction `{name}` lacks its amount `{}`. `maquette list-proportions` defines each.",
+                    amount.name
+                )));
+            };
+            if !value.is_finite() {
+                return Err(Error::new(format!(
+                    "the correction `{name}` has an amount `{}` that is not a finite number",
+                    amount.name
+                )));
+            }
+            if *value < 0.0 {
+                return Err(Error::new(format!(
+                    "the correction `{name}` has the amount `{}` at {value}, and an amount cannot be below zero",
+                    amount.name
+                )));
+            }
+        }
+        if let Some(stray) = amounts.keys().find(|given| {
+            !correction
+                .amounts
+                .iter()
+                .any(|amount| amount.name == **given)
+        }) {
+            return Err(Error::new(format!(
+                "the correction `{name}` has an amount `{stray}` the list does not"
+            )));
+        }
+        self.corrections.insert(name.to_string(), amounts);
+        Ok(self)
+    }
+
+    /// The amounts of a correction the set carries, in units, or nothing when it does not
+    /// carry that correction.
+    pub fn correction(&self, name: &str) -> Option<&BTreeMap<String, f64>> {
+        self.corrections.get(name)
     }
 
     /// Reads a set of proportions from the text of its file: a `[proportions]` table of
-    /// names and numbers. Other tables, such as a note of where the set came from, are left alone.
+    /// names and numbers, and for each correction the set carries a `[corrections.<name>]`
+    /// table of its amounts. Other tables, such as a note of where the set came from, are
+    /// left alone.
     pub fn read(text: &str) -> Result<Set> {
         let table: toml::Table = text.parse().map_err(|error| {
             Error::new(format!("the set of proportions is not valid TOML: {error}"))
@@ -328,7 +459,34 @@ impl Set {
             };
             values.insert(name.clone(), number);
         }
-        Set::from_values(values)
+        let mut set = Set::from_values(values)?;
+        if let Some(corrections) = table.get("corrections") {
+            let corrections = corrections.as_table().ok_or_else(|| {
+                Error::new("the set of proportions has a `corrections` that is not a table")
+            })?;
+            for (name, amounts) in corrections {
+                let amounts = amounts.as_table().ok_or_else(|| {
+                    Error::new(format!(
+                        "the correction `{name}` is not a table of its amounts"
+                    ))
+                })?;
+                let mut given = BTreeMap::new();
+                for (amount, value) in amounts {
+                    let number = match value {
+                        toml::Value::Float(number) => *number,
+                        toml::Value::Integer(number) => *number as f64,
+                        _ => {
+                            return Err(Error::new(format!(
+                                "the correction `{name}` has an amount `{amount}` that is not a number"
+                            )));
+                        }
+                    };
+                    given.insert(amount.clone(), number);
+                }
+                set = set.with_correction(name, given)?;
+            }
+        }
+        Ok(set)
     }
 
     /// The value of a proportion of the list.
@@ -360,6 +518,28 @@ impl Set {
                 proportion.name,
                 crate::number::toml(self.values[&proportion.name], 6)
             ));
+        }
+        if !self.corrections.is_empty() {
+            out.push_str(
+                "\n# Corrections: named departures from flat projection, each with its amounts in units.\n",
+            );
+            out.push_str(
+                "# `maquette list-proportions` defines each, and says which view it changes.\n",
+            );
+        }
+        // In the list's order, and each correction's amounts in the list's order.
+        for correction in &list()?.corrections {
+            let Some(amounts) = self.corrections.get(&correction.name) else {
+                continue;
+            };
+            out.push_str(&format!("[corrections.{}]\n", correction.name));
+            for amount in &correction.amounts {
+                out.push_str(&format!(
+                    "{} = {}\n",
+                    amount.name,
+                    crate::number::toml(amounts[&amount.name], 6)
+                ));
+            }
         }
         Ok(out)
     }

@@ -8,7 +8,7 @@ In an animation studio a maquette is the sculpted reference model that keeps a c
 
 Founded on 2026-11-16, and reoriented by Jon the same day toward measured proportions; [`docs/foundation/README.md`](docs/foundation/README.md) records both. Work starts from the issue tracker.
 
-The generator draws a set of proportions as a head in three views: front, three-quarter and side. The program lists how far such a head stands from Saffi's hand-made views, reads an armature back in VectorCraft, and reads her hand-made drawings into numbers. Jon accepted her front and three-quarter views at look 1; her ears and lids have changed since, by his ruling, and her side view has not been looked at, so no armature is pinned yet. The measuring of references and the proportion tables are not built.
+The generator draws a set of proportions as a head in three views: front, three-quarter and side. The program lists how far such a head stands from Saffi's hand-made views, reads an armature back in VectorCraft, and reads her hand-made drawings into numbers. Jon accepted her front and three-quarter views at look 1, and her ears and lids have changed since, by his ruling. At look 2 he found that those two views read as one head and did not accept the side view: from the nose down the face stood too far forward. The first named correction now sets her mouth and chin back in the side view only. Its amount is not accepted, so no armature is pinned yet. The measuring of references and the proportion tables are not built.
 
 ## Building, checking and drawing
 
@@ -29,7 +29,21 @@ cargo run -- draw --proportions data/saffi/proportions.toml --out target/saffi
 
 The first prints the list of proportions: the unit, and each proportion's name, whether it is measured or a convention, and how it is taken in each view. The second writes `front.svg`, `three-quarter.svg` and `side.svg`, each with a landmark file beside it, into a folder Git ignores. `cargo run -- help` lists every command. The same input gives the same bytes.
 
-Every landmark is one point in space and each view is a flat projection of the same points, so a landmark has one height in all three views. The side view is the three-quarter view's turn carried to 90°, facing the viewer's right: a landmark's sideways position there is its depth. It shows the near eye, brow and ear only, its face outline runs through the centre-line landmarks, and the list of proportions states how each of its guides is built. No view carries a correction: a departure from flat projection would be named, given an amount and shown on the review sheet.
+Every landmark is one point in space and each view is a flat projection of the same points, so a landmark has one height in all three views. The side view is the three-quarter view's turn carried to 90°, facing the viewer's right: a landmark's sideways position there is its depth. It shows the near eye, brow and ear only, its face outline runs through the centre-line landmarks, and the list of proportions states how each of its guides is built.
+
+A departure from flat projection is a named correction with an amount. The list of proportions defines each, a set of proportions carries it in a `[corrections.<name>]` table, and the review sheet shows it. There is one, `lower_face_set_back`: in the side view only, the mouth and the chin are drawn further back than their depths, and the landmark file gives each moved landmark's depth in space beside the depth it is drawn at. The front and three-quarter views are the same bytes with it and without it, and a set that carries no correction is drawn flat in every view.
+
+Saffi's set carries it because all her depths come from her three-quarter view, which puts the mouth almost straight below the nose mark and the chin close behind, and a side view drawn from that has a muzzle. Her set is written by:
+
+```sh
+cargo run -- proportions-from-hand-made-views \
+  --record data/saffi/hand-made-views.toml \
+  --final-record data/saffi/final-drawings.toml \
+  --lower-face-set-back 0.5 \
+  --out data/saffi/proportions.toml
+```
+
+The share is how much of the chin's full amount is taken, where the full amount draws the chin straight below the iris's centre; the mouth then goes onto the line from the nose mark's bottom to the chin as drawn. Both rules come from drawing lessons, which give no distances. The share of 0.5 is the candidate recommended to Jon at look 3 and is not accepted; `design/look-3-saffi-side-view/` holds the sheet and the other candidate's input.
 
 ### The differences from the hand-made views
 
@@ -57,7 +71,7 @@ cargo run -- overlay-hand-made-views \
   --out target/saffi
 ```
 
-This writes `front.hand-made-overlay.svg` and `three-quarter.hand-made-overlay.svg`: in each view's own units, every position the records give as an orange dot, a dashed ring where the head covers it in her drawing, and every difference above 1% as a line from the generated position to the hand-made one with the number the differences file gives it. Placed over the view's SVG at the same place and size, an overlay lies over it exactly. `design/look-2-saffi-three-views/README.md` says how the review sheet is composed from these files in FigCraft.
+This writes `front.hand-made-overlay.svg` and `three-quarter.hand-made-overlay.svg`: in each view's own units, every position the records give as an orange dot, a dashed ring where the head covers it in her drawing, and every difference above 1% as a line from the generated position to the hand-made one with the number the differences file gives it. Placed over the view's SVG at the same place and size, an overlay lies over it exactly. `design/look-2-saffi-three-views/README.md` says how the review sheet is composed from these files in FigCraft, and `design/look-3-saffi-side-view/README.md` how the sheet with the two candidate side views is.
 
 ### Reading a hand-made drawing
 
@@ -108,7 +122,7 @@ cargo test --test read_back_in_vectorcraft -- --ignored
 | `design/` | Designs made by hand in those two tools; the only folder their servers may write to |
 | `docs/agents/` | How agents use the issue tracker and the triage labels |
 | `data/saffi/` | The hand-made front and three-quarter views of the comparison case, as landmark positions: her S2 underdrawings, and the ears and lids of her final drawings that replace theirs. Also her set of proportions worked out from them, and the list of her drawings in mudsong that these numbers rest on. Numbers only; they never enter a proportion table |
-| `proportions/list.toml` | The list of proportions: the unit, and every proportion's name, definition for each view, and mark as measured or a convention, and how each guide is built in each view. The program reads this same file |
+| `proportions/list.toml` | The list of proportions: the unit, and every proportion's name, definition for each view, and mark as measured or a convention, how each guide is built in each view, and each named correction with the rule of its amounts. The program reads this same file |
 | `Cargo.toml`, `src/` | The Rust package: the list and sets of proportions, the head model, the three views, the guides, the armature writer, the reading of a hand-made drawing, the differences from a hand-made armature and the read-back in VectorCraft, under a thin command line |
 | `tests/` | Tests that drive the command line, files in and files out. `tests/fixtures/` holds made-up proportions, made-up views and a made-up drawing that say so, and recordings of VectorCraft's replies that say so |
 | `.github/workflows/checks.yml` | Formatting, lints and tests on every pull request |

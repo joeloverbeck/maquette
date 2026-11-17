@@ -1,0 +1,139 @@
+# A set of proportions worked out from the record of a hand-made armature's views,
+# by `maquette proportions-from-hand-made-views`. It was not typed in by hand: the tests check
+# that this file is what the command writes from the record.
+#
+# These are the proportions of a comparison case. They never enter a proportion table.
+#
+# `maquette list-proportions` defines each proportion. `maquette draw` reads this file as it
+# reads any set of proportions.
+
+[source]
+record = "data/saffi/hand-made-views.toml"
+what = "Two hand-made grey underdrawings of Saffi's bust, a front view and a three-quarter view, drawn in mudsong's portrait study on 2026-11-15."
+front_sha256 = "34ee7b92a8422031a20f7d2f195d6952d16e1099de3002f5fffcb6697a57f76f"
+three_quarter_sha256 = "c50bb0529f254fe12ac0af7b3f6175ae175df14b61d24f16bfec54afcc2efb02"
+# The record of the final drawings, whose landmarks replace the record's of the same name.
+final_drawings = "data/saffi/final-drawings.toml"
+final_drawings_what = "The front of the S6 model sheet and the S8 final rig, a three-quarter view: two finished drawings of Saffi's bust, made by hand in mudsong's portrait study on 2026-11-16 over the construction of the S2 underdrawings."
+final_drawings_rule = "A landmark of a view here replaces the landmark of the same name in the same view of that record. Each view's ears and lids come from its own drawing, so nothing is worked out through the turn."
+final_front_sha256 = "15d6fe02177427db7b0ae956411b97295f250d3328554f598134bb8e91c8136e"
+final_three_quarter_sha256 = "23251a2e5c196738514f324cec1c25c171fb0785112044d45168541d060d304a"
+turn_degrees = 29.0
+taken_by = "The head model's inverse direction: landmark positions read from the two views, back into proportions."
+# How the record's positions were read as the landmarks the list of proportions asks for.
+reading_rules = [
+  "A landmark the list of proportions asks for under the record's own name is that position, with hyphens for underscores.",
+  "A lid line is the middle of the drawn lid band: its inner end is midway between `inner_lower` and `inner_upper`, its crest midway between `lower_mid` and `upper_mid`, its outer end midway between `outer_lower` and `outer_tip`.",
+  "A brow line is the middle of the drawn brow band: each end is midway between the band's top and bottom corner there.",
+  "The face outline's top end is the record's first node of that side, and its jaw point is the node next to the chin: `node_3` in the front view and, in the three-quarter view, `node_5` on the far side and `node_3` on the near side.",
+  "Where the record gives a crossing of the face outline with a drawn level line, it stands for the crossing at the eye line, the nose level or the mouth level. The drawn lines are 4 units, half a unit and nothing away from those with the S2 underdrawings' lids, and the first is about 6 units away with the final drawings' lids, which lower the eye line. The outline moves sideways by less than half a unit between them.",
+  "In the front view a point of the face outline is both the cheek point and the jaw-line point of its level. In the three-quarter view it is the cheek point on the far side, the character's left, and the jaw-line point on the near side.",
+  "A position that the head itself covers in the three-quarter drawing is left out, because it cannot be seen there: the far ear's two base points and its inner extent. Hair that covers a position is ignored, because an armature has no hair. The skull is kept: it is a construction, drawn under everything.",
+  "The three-quarter view is taken as turned by the pinned turn, toward the viewer's right.",
+  "Not read: pupils, the line under the nose mark, the nose mark's top, the nodes of an outline that mark no landmark of the list, the ends of the drawn level lines and the drawn centre line. The armature builds its level lines and its centre line by rule.",
+]
+# What was done where the two views disagree, or one does not show a point.
+disagreement_rules = [
+  "A height is taken from the three-quarter view. For a left and right pair it is the mean of the two heights there.",
+  "An offset is taken from the three-quarter view when it shows both points of the pair: half their spacing over the cosine of the turn.",
+  "A depth is taken from the three-quarter view: from the pair's midpoint, or, when it shows one point of the pair, from that point and the offset.",
+  "What the three-quarter view does not show is taken from the front view: a point's height, a pair's offset when one of its points is missing, and the half-width of a silhouette.",
+  "The neck and the shoulder line take their widths from the front view. A neck is a column, whose width does not narrow as it turns, and the widest span of the figure is read where nothing foreshortens it.",
+]
+# The share of the chin's full amount at which the named correction `lower_face_set_back`, at the
+# end of this file, was worked out from this set's own depths. The list of proportions states the
+# rule of each amount. The drawings give no side view, so no amount was measured on them.
+lower_face_set_back_share = 1.0
+
+# Where each hand-made view puts the unit, the eye line and the upright axis the head turns about,
+# in the record's own units. `maquette draw` with these lays a generated view over the hand-made one.
+[source.front]
+unit = 195.107
+eye_line_y = 371.893
+turn_axis_x = 500.0
+
+[source.three_quarter]
+unit = 194.719
+eye_line_y = 372.281
+turn_axis_x = 495.0
+
+[proportions]
+hair_top_rise = 1.472281
+hair_half_width = 1.109035
+hair_half_depth = 1.107337
+hair_centre_depth = -0.790924
+skull_radius = 0.983468
+skull_centre_rise = 0.363503
+skull_centre_depth = -0.69199
+chin_depth = 0.166046
+face_top_rise = 0.181189
+face_top_half_width = 0.707302
+face_top_depth = -0.050658
+face_half_width_at_eye_level = 0.708927
+face_depth_at_eye_level = -0.148217
+face_half_width_at_nose_level = 0.649919
+face_depth_at_nose_level = -0.05851
+face_half_width_at_mouth_level = 0.527504
+face_depth_at_mouth_level = -0.035493
+jaw_drop = 0.946076
+jaw_half_width = 0.170283
+jaw_depth = 0.197825
+jaw_line_depth_at_nose_level = -0.589402
+jaw_line_depth_at_mouth_level = -0.431522
+eye_inner_corner_offset = 0.210505
+eye_inner_corner_drop = 0.022437
+eye_outer_corner_offset = 0.595989
+eye_outer_corner_drop = -0.023269
+eye_wrap_depth = 0.123409
+eye_opening_height = 0.182833
+eye_opening_top_offset = 0.494263
+eye_opening_bottom_offset = 0.393967
+iris_centre_offset = 0.399283
+iris_centre_drop = -0.009778
+iris_depth = -0.042595
+iris_width = 0.219559
+iris_height = 0.201552
+lid_line_inner_end_offset = 0.176154
+lid_line_inner_end_drop = 0.031938
+lid_line_crest_offset = 0.504553
+lid_line_crest_rise = 0.093808
+lid_line_outer_end_offset = 0.644432
+lid_line_outer_end_rise = 0.054725
+brow_inner_end_offset = 0.215789
+brow_inner_end_rise = 0.194028
+brow_outer_end_offset = 0.594521
+brow_outer_end_rise = 0.262075
+nose_mark_corner_offset = 0.088077
+nose_mark_corner_drop = 0.352914
+nose_mark_corner_depth = 0.324941
+nose_mark_bottom_drop = 0.440219
+nose_mark_bottom_depth = 0.324941
+mouth_end_offset = 0.140924
+mouth_end_drop = 0.650779
+mouth_end_depth = 0.208418
+mouth_centre_drop = 0.655914
+mouth_centre_depth = 0.314348
+ear_base_outer_offset = 0.855959
+ear_base_outer_rise = 0.926705
+ear_base_outer_depth = -0.78757
+ear_base_inner_offset = 0.435637
+ear_base_inner_rise = 1.130424
+ear_base_inner_depth = -0.63915
+ear_top_offset = 0.782164
+ear_top_rise = 1.558497
+ear_outer_extent_offset = 0.981797
+ear_outer_extent_rise = 1.334135
+ear_inner_extent_offset = 0.434273
+ear_inner_extent_rise = 1.14825
+neck_half_width = 0.461284
+neck_depth = -0.967409
+neck_base_drop = 1.056492
+shoulder_half_width = 1.906641
+shoulder_drop = 1.909002
+shoulder_depth = -0.988595
+
+# Corrections: named departures from flat projection, each with its amounts in units.
+# `maquette list-proportions` defines each, and says which view it changes.
+[corrections.lower_face_set_back]
+chin = 0.20864
+mouth = 0.131026

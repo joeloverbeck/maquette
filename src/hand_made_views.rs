@@ -487,8 +487,18 @@ impl HandMade {
     /// under a `[source]` table that names the record, the rules it was read by, and where
     /// each hand-made view puts the unit, the eye line and the turn axis. `record_path` is the
     /// path the record was named by, which the file gives as it is.
-    pub fn proportions_file(&self, record_path: &str) -> Result<String> {
-        let set = head_model::proportions_from_views(&self.front, &self.three_quarter)?;
+    ///
+    /// Given a share, the set also carries the named correction `lower_face_set_back`, worked
+    /// out from its own depths at that share of the chin's full amount, and the file says so.
+    pub fn proportions_file(
+        &self,
+        record_path: &str,
+        lower_face_set_back: Option<f64>,
+    ) -> Result<String> {
+        let mut set = head_model::proportions_from_views(&self.front, &self.three_quarter)?;
+        if let Some(share) = lower_face_set_back {
+            set = head_model::with_lower_face_set_back(set, share)?;
+        }
         let mut opening = String::from(
             "\
 # A set of proportions worked out from the record of a hand-made armature's views,
@@ -554,6 +564,15 @@ impl HandMade {
             "disagreement_rules = {}\n",
             quoted_lines(proportions::list()?.disagreement_rules())
         ));
+        if let Some(share) = lower_face_set_back {
+            opening.push_str("# The share of the chin's full amount at which the named correction `lower_face_set_back`, at the\n");
+            opening.push_str("# end of this file, was worked out from this set's own depths. The list of proportions states the\n");
+            opening.push_str("# rule of each amount. The drawings give no side view, so no amount was measured on them.\n");
+            opening.push_str(&format!(
+                "lower_face_set_back_share = {}\n",
+                toml_number(share, 6)
+            ));
+        }
         opening.push_str("\n# Where each hand-made view puts the unit, the eye line and the upright axis the head turns about,\n");
         opening.push_str("# in the record's own units. `maquette draw` with these lays a generated view over the hand-made one.\n");
         opening.push_str(&frame_lines(&self.front, View::Front)?);
