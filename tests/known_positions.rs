@@ -258,6 +258,141 @@ fn a_turned_reading_is_scored_in_its_own_view_and_a_covered_point_rightly_left_o
 }
 
 #[test]
+fn a_side_reading_is_scored_against_where_an_armatures_side_view_draws_its_landmarks() {
+    // The record is the landmark file of the side view the generator draws of the made-up
+    // set of proportions: no other side drawing has known positions.
+    let generated = support::draw("known-positions-armature-side", MADE_UP, &[]);
+    let record = generated.join("side.landmarks.toml");
+    let file = support::LandmarkFile::read(&record);
+    let at = |name: &str| {
+        let point = file.point(name);
+        (point.x, point.y)
+    };
+    let folder = references("known-positions-armature-side");
+    let (chin, hair_top, jaw) = (
+        at("chin"),
+        at("hair-top"),
+        at("jaw-line-right-at-nose-level"),
+    );
+    write_reading(
+        &folder,
+        "side.toml",
+        "side",
+        &[
+            // 3 across and 4 down: 5 units of a head height of 462.54, which is 1.081%.
+            ("chin", chin.0 + 3.0, chin.1 + 4.0),
+            // The hair's top is scored in height only.
+            ("hair-top", hair_top.0 + 50.0, hair_top.1),
+            (
+                "nose-mark-bottom",
+                at("nose-mark-bottom").0,
+                at("nose-mark-bottom").1,
+            ),
+            // The back edge of the jaw at the nose level, which the list calls the jaw line,
+            // is scored sideways only: 2 units, 0.432%.
+            (
+                "face-outline-right-at-nose-level",
+                jaw.0 - 2.0,
+                jaw.1 + 30.0,
+            ),
+            // What only a side view asks for is a view point of the armature.
+            (
+                "hair-back-extent",
+                at("hair-back-extent").0,
+                at("hair-back-extent").1 + 40.0,
+            ),
+            (
+                "neck-front-base",
+                at("neck-front-base").0,
+                at("neck-front-base").1,
+            ),
+            // The generator draws the iris from its edge: it has no side extents.
+            ("iris-right-outer-extent", 600.0, 400.0),
+        ],
+        &["shoulder-right-point"],
+    );
+    measure_ok(
+        &folder,
+        &[
+            "score-reading",
+            "--reading",
+            "side.toml",
+            "--known-positions",
+            support::path_text(&record),
+            "--out",
+            "score.toml",
+        ],
+    );
+    let found: toml::Table = text(&folder.join("score.toml")).parse().expect("TOML");
+    assert!(
+        found["known_positions"]["what"]
+            .as_str()
+            .expect("what the record is")
+            .contains("the side view of a generated armature"),
+        "{found:?}"
+    );
+    assert_close(
+        number(&found["yardstick"]["head_height"]),
+        462.54,
+        1e-9,
+        "head height",
+    );
+    assert_eq!(found["summary"]["scored"].as_integer(), Some(6));
+    assert_eq!(found["summary"]["worst"].as_str(), Some("chin"));
+    assert_close(
+        number(&found["summary"]["worst_percent_of_head_height"]),
+        5.0 / 462.54 * 100.0,
+        0.0005,
+        "the chin",
+    );
+    assert_eq!(found["summary"]["above_1_percent"].as_integer(), Some(1));
+    let scored = entries(&found, "landmark");
+    assert_eq!(
+        scored[1]["landmark"].as_str(),
+        Some("face-outline-right-at-nose-level")
+    );
+    assert_close(
+        number(&scored[1]["percent_of_head_height"]),
+        2.0 / 462.54 * 100.0,
+        0.0005,
+        "the jaw's back edge",
+    );
+    assert_eq!(number(&scored[2]["percent_of_head_height"]), 0.0);
+    assert_eq!(
+        texts(&found["not_scored"]["no_known_position"]),
+        ["iris-right-outer-extent"]
+    );
+    assert!(
+        text(&folder.join("score.toml")).contains("a drawing of guides"),
+        "the score does not say what an armature is"
+    );
+
+    // A reading of another view is not scored against it.
+    write_reading(
+        &folder,
+        "front.toml",
+        "front",
+        &[("chin", 500.0, 600.0)],
+        &[],
+    );
+    let output = maquette_in(
+        Some(&folder),
+        &[
+            "score-reading",
+            "--reading",
+            "front.toml",
+            "--known-positions",
+            support::path_text(&record),
+        ],
+    );
+    let message = support::failure(&output);
+    assert!(
+        message.contains("the landmark file of a side view"),
+        "{message}"
+    );
+}
+
+#[test]
 fn two_sets_of_proportions_are_set_against_each_other() {
     // The made-up set against itself with three values changed. Head height is
     // 1.3127 + 1 = 2.3127 units.

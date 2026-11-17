@@ -5,7 +5,8 @@
 //! matched drawings whose positions are known. This module hides how a reading and such a
 //! record meet: which recorded position answers to which landmark of a reading, what a
 //! reading's error is measured in, and which positions are kept apart because they cannot be
-//! seen in the picture. The record is one of hand-made views, such as
+//! seen in the picture. The record is the landmark file of one view of a generated armature,
+//! known where that view draws each landmark, or one of hand-made views, such as
 //! `data/saffi/hand-made-views.toml`, read as [`hand_made_views`] reads it.
 //!
 //! It reports and judges nothing. What a score shows holds for the drawings scored and the
@@ -45,6 +46,10 @@ pub const RULES: &[(&str, &str)] = &[
     (
         "covered",
         "A position that a filled shape covers in the drawing cannot be seen in a picture of it: the record says so with `under`. Such a position scores nothing. Where the reader placed it all the same, the distance is listed apart; where the reader stated it as not seen, that is listed as rightly left out.",
+    ),
+    (
+        "armature",
+        "Where the record is the landmark file of one view of a generated armature, a known position is where that view draws the landmark or the view point: for a landmark a named correction moves, the place it is drawn at. An armature is a drawing of guides, so nothing in it is covered, and a score against it says how well guides are read and not how well a painted head is.",
     ),
     (
         "kinds",
@@ -145,7 +150,64 @@ struct Known {
 }
 
 impl Known {
+    /// The landmark file of one view of a generated armature, as a record of known
+    /// positions: where that view draws each landmark and each view point. A landmark a
+    /// named correction moves is known where it is drawn, which is what a picture of the
+    /// view shows. An armature is a drawing of guides and nothing in it is covered.
+    fn of_armature(record_path: &str, record_text: &str, view: View) -> Result<Known> {
+        let of_record = |error: Error| Error::new(format!("{record_path}: {error}"));
+        let table: toml::Table = record_text
+            .parse()
+            .map_err(|error| Error::new(format!("{record_path}: not valid TOML: {error}")))?;
+        let said = |key: &str| {
+            table
+                .get(key)
+                .and_then(toml::Value::as_str)
+                .unwrap_or_default()
+        };
+        let of = crate::readings::view_named(said("view")).map_err(of_record)?;
+        if of != view {
+            return Err(Error::new(format!(
+                "{record_path} is the landmark file of a {} view, and the reading is of a {} view",
+                of.name(),
+                view.name()
+            )));
+        }
+        let points = crate::armature::read_landmark_file(record_text)
+            .map_err(of_record)?
+            .points;
+        let head_height = match (points.get("chin"), points.get("hair-top")) {
+            (Some(chin), Some(hair_top)) if chin[1] > hair_top[1] => chin[1] - hair_top[1],
+            _ => {
+                return Err(Error::new(format!(
+                    "{record_path}: the landmark file has no hair top above a chin, so there is no head height"
+                )));
+            }
+        };
+        Ok(Known {
+            view,
+            what: format!(
+                "the {} view of a generated armature, `{}`, as its landmark file draws it: a drawing of guides and not a painted head. The digest given for the drawing is the landmark file's",
+                view.name(),
+                said("svg")
+            ),
+            sha256: crate::readings::sha256_hex(record_text.as_bytes()),
+            head_height,
+            points,
+            provenance: Provenance::default(),
+            covers: BTreeMap::new(),
+        })
+    }
+
     fn read(record_path: &str, record_text: &str, view: View) -> Result<Known> {
+        // The landmark file of an armature's view says which view it is, and a record of
+        // hand-made views holds its views in a table.
+        let is_landmark_file = record_text
+            .parse::<toml::Table>()
+            .is_ok_and(|table| table.get("view").is_some_and(toml::Value::is_str));
+        if is_landmark_file {
+            return Known::of_armature(record_path, record_text, view);
+        }
         // A fault in the record is reported under the record's own path.
         let hand_made = hand_made_views::read(record_path, record_text, None)?;
         let table: toml::Table = record_text
@@ -302,7 +364,7 @@ pub fn score(
 ) -> Result<Score> {
     if reading.faces == Some(Faces::ViewersLeft) {
         return Err(Error::new(
-            "the reading is of a head that faces the viewer's left, and a record of hand-made views is of a head that faces the viewer's right",
+            "the reading is of a head that faces the viewer's left, and a record of known positions, of hand-made views or of an armature's view, is of a head that faces the viewer's right",
         ));
     }
     let known = Known::read(record_path, record_text, reading.view)?;

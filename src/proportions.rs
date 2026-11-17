@@ -37,6 +37,9 @@ pub struct Proportion {
     pub what: String,
     pub front: String,
     pub three_quarter: String,
+    /// How it is taken from a side view, or why it is not: "Not seen" where a side view
+    /// shows none of it, "Not taken" where it shows something that is not read as it.
+    pub side: String,
     /// How a convention is built where nothing is drawn behind it. A measured proportion
     /// has none.
     pub rule: Option<String>,
@@ -69,6 +72,7 @@ pub struct List {
     pub corrections: Vec<Correction>,
     statements: Vec<(String, Vec<(String, String)>)>,
     disagreement_rules: Vec<String>,
+    side_view_rules: Vec<String>,
     constructions: Vec<(String, String)>,
 }
 
@@ -145,6 +149,7 @@ fn parse_list(text: &str) -> Result<List> {
             what: text_of(entry, "what", &context)?,
             front: text_of(entry, "front", &context)?,
             three_quarter: text_of(entry, "three_quarter", &context)?,
+            side: text_of(entry, "side", &context)?,
             rule,
             name,
         });
@@ -203,6 +208,10 @@ fn parse_list(text: &str) -> Result<List> {
     for entry in tables(&table, "disagreement_rule") {
         disagreement_rules.push(text_of(entry, "rule", "a disagreement rule")?);
     }
+    let mut side_view_rules = Vec::new();
+    for entry in tables(&table, "side_view_rule") {
+        side_view_rules.push(text_of(entry, "rule", "a side view rule")?);
+    }
     let mut constructions = Vec::new();
     for entry in tables(&table, "construction") {
         constructions.push((
@@ -245,6 +254,7 @@ fn parse_list(text: &str) -> Result<List> {
         corrections,
         statements,
         disagreement_rules,
+        side_view_rules,
         constructions,
     })
 }
@@ -269,6 +279,11 @@ impl List {
         &self.disagreement_rules
     }
 
+    /// The rules for a front view read with a side view, as the list states them.
+    pub fn side_view_rules(&self) -> &[String] {
+        &self.side_view_rules
+    }
+
     /// The whole list as plain text for a person.
     pub fn describe(&self) -> String {
         let mut out = String::new();
@@ -282,6 +297,10 @@ impl List {
         }
         out.push_str("Where two views disagree:\n");
         for (index, rule) in self.disagreement_rules.iter().enumerate() {
+            out.push_str(&format!("  {}. {rule}\n", index + 1));
+        }
+        out.push_str("\nWhere a front view is read with a side view:\n");
+        for (index, rule) in self.side_view_rules.iter().enumerate() {
             out.push_str(&format!("  {}. {rule}\n", index + 1));
         }
         out.push_str("\nHow the guides are built in a view:\n");
@@ -329,6 +348,7 @@ impl List {
                 "  Three-quarter view: {}\n",
                 proportion.three_quarter
             ));
+            out.push_str(&format!("  Side view: {}\n", proportion.side));
             if let Some(rule) = &proportion.rule {
                 out.push_str(&format!("  By rule: {rule}\n"));
             }

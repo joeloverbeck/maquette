@@ -345,6 +345,133 @@ fn asked_of_near_outline(view: View, point: &str) -> bool {
     }
 }
 
+/// What a landmark is in a side view, where a profile shows another point of the drawing
+/// under its name than a face seen from the front does: the one line a side reading is
+/// started with. The reading instructions say more, under "In a side view".
+const IN_A_SIDE_VIEW: &[(&str, &str, &str)] = &[
+    (
+        "chin",
+        "",
+        "The chin's own lowest point: where the outline, coming down the front of the face, turns to run back under the jaw. Not the middle of the jaw's underside.",
+    ),
+    (
+        "nose-mark-bottom",
+        "",
+        "Under the tip of the nose: where the outline, coming round the tip, turns to run back toward the face. Not where the nose meets the upper lip.",
+    ),
+    (
+        "mouth-line-centre",
+        "",
+        "Where the line between the lips reaches the outline of the face: the bottom of the notch between the lips.",
+    ),
+    (
+        "eye",
+        "outer-corner",
+        "The back end of the eye opening: where it closes toward the back of the head.",
+    ),
+    (
+        "eye",
+        "inner-corner",
+        "The front end of the eye opening: its point furthest toward the front of the face.",
+    ),
+    (
+        "eye",
+        "opening-bottom",
+        "The lowest point of the eye opening; where no lower lid is drawn, of the iris or the white as drawn.",
+    ),
+    (
+        "iris",
+        "outer-extent",
+        "The back edge of the iris: its point furthest toward the back of the head.",
+    ),
+    (
+        "iris",
+        "inner-extent",
+        "The front edge of the iris: its point furthest toward the front of the face.",
+    ),
+    (
+        "lid-line",
+        "inner-end",
+        "The middle of the drawn upper lid line's thickness, at its end toward the front of the face.",
+    ),
+    (
+        "lid-line",
+        "outer-end",
+        "The middle of the drawn upper lid line's thickness, at its end toward the back of the head.",
+    ),
+    (
+        "brow-line",
+        "inner-end",
+        "The middle of the drawn brow's thickness, at its end toward the front of the face.",
+    ),
+    (
+        "brow-line",
+        "outer-end",
+        "The middle of the drawn brow's thickness, at its end toward the back of the head.",
+    ),
+    (
+        "nose-mark",
+        "corner",
+        "The middle of the nostril, or of the curve drawn for the wing of the nose. Not seen where neither is drawn.",
+    ),
+    (
+        "mouth-line",
+        "end",
+        "The back end of the drawn mouth line: the corner of the mouth.",
+    ),
+    (
+        "ear",
+        "base-outer",
+        "On an ear at the side of the head, the upper end of the edge it stands on the head by: where its rim meets the head. On an ear on top of the head, the corner of its foot toward the back of the head. Never where hair crosses the ear.",
+    ),
+    (
+        "ear",
+        "base-inner",
+        "On an ear at the side of the head, the lower end of the edge it stands on the head by: where the lobe meets the head. On an ear on top of the head, the corner of its foot toward the front of the head. Never where hair crosses the ear.",
+    ),
+    (
+        "ear",
+        "outer-extent",
+        "The point of the ear furthest toward the back of the head.",
+    ),
+    (
+        "ear",
+        "inner-extent",
+        "The point of the ear furthest toward the front of the face.",
+    ),
+    (
+        "face-outline",
+        "at-nose-level",
+        "Where the back edge of the jaw, which runs from under the chin back and up toward the ear, crosses the nose level.",
+    ),
+    (
+        "face-outline",
+        "at-mouth-level",
+        "Where the back edge of the jaw, which runs from under the chin back and up toward the ear, crosses the mouth level.",
+    ),
+    (
+        "hair-back-extent",
+        "",
+        "The point of the hair furthest toward the back of the head, at or above the height of the chin.",
+    ),
+    (
+        "hair-front-extent",
+        "",
+        "The point of the hair furthest toward the front of the head, at or above the height of the chin.",
+    ),
+];
+
+/// What to place for a landmark, in one line, in a view.
+fn what_in(view: View, ask: &Ask) -> &'static str {
+    if view != View::Side {
+        return ask.what;
+    }
+    IN_A_SIDE_VIEW
+        .iter()
+        .find(|(stem, point, _)| *stem == ask.stem && *point == ask.point)
+        .map_or(ask.what, |(_, _, what)| what)
+}
+
 /// The landmarks a view asks a reader for, in the order of a reading. `faces` is which way a
 /// turned head faces; a front view has none.
 pub fn asked(view: View, faces: Option<Faces>) -> Vec<Asked> {
@@ -354,7 +481,7 @@ pub fn asked(view: View, faces: Option<Faces>) -> Vec<Asked> {
         .map(|ask| Asked {
             name: ask.stem.to_string(),
             kind: ask.kind,
-            what: ask.what,
+            what: what_in(view, ask),
         })
         .collect();
     for side in ["right", "left"] {
@@ -373,7 +500,7 @@ pub fn asked(view: View, faces: Option<Faces>) -> Vec<Asked> {
             out.push(Asked {
                 name: format!("{}-{side}-{}", ask.stem, ask.point),
                 kind: ask.kind,
-                what: ask.what,
+                what: what_in(view, ask),
             });
         }
     }
@@ -381,7 +508,7 @@ pub fn asked(view: View, faces: Option<Faces>) -> Vec<Asked> {
         out.extend(IN_SIDE_VIEW.iter().map(|ask| Asked {
             name: ask.stem.to_string(),
             kind: ask.kind,
-            what: ask.what,
+            what: what_in(view, ask),
         }));
     }
     out
@@ -405,17 +532,30 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
         .collect()
 }
 
+/// What is said of a file that is not a picture maquette reads. A picture is read as it was
+/// published, as a PNG or as a JPEG, and is told by its bytes, not by its name.
+pub fn not_a_picture(error: impl std::fmt::Display) -> Error {
+    Error::new(format!(
+        "the picture cannot be read as a PNG or a JPEG, the two formats maquette reads: {error}"
+    ))
+}
+
+/// What a file that holds a picture whole calls its format: `image/png` or `image/jpeg`.
+pub fn picture_media_type(bytes: &[u8]) -> Result<&'static str> {
+    match image::guess_format(bytes).map_err(not_a_picture)? {
+        image::ImageFormat::Png => Ok("image/png"),
+        image::ImageFormat::Jpeg => Ok("image/jpeg"),
+        other => Err(not_a_picture(format!("it is in the format {other:?}"))),
+    }
+}
+
 /// How wide and how high a picture is, in pixels.
 pub fn picture_size(bytes: &[u8]) -> Result<(u32, u32)> {
     image::ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
-        .map_err(|error| Error::new(format!("the picture cannot be read: {error}")))?
+        .map_err(not_a_picture)?
         .into_dimensions()
-        .map_err(|error| {
-            Error::new(format!(
-                "the picture cannot be read as a PNG, the one format maquette reads: {error}"
-            ))
-        })
+        .map_err(not_a_picture)
 }
 
 /// What a reference is: said by whoever hands over the drawing, except the manner.
@@ -462,6 +602,12 @@ pub struct Record {
     pub level_why: String,
     pub set_aside: bool,
     pub set_aside_why: String,
+    /// Whether the person who checks the readings overruled a set-aside of this drawing
+    /// before it was read: it is then read, and every landmark drawn is placed, whatever
+    /// the reader's own judgement of it.
+    pub set_aside_overruled: bool,
+    /// Who overruled it, as the reader was told.
+    pub set_aside_overruled_by: String,
     /// Positions in pixels of the picture, under the names the view asks for.
     pub placed: BTreeMap<String, [f64; 2]>,
     /// Landmarks the reader could not place, each with the reason.
@@ -563,6 +709,14 @@ impl Record {
             }
             None => false,
         };
+        let set_aside_overruled = match judgement.get("set_aside_overruled") {
+            Some(toml::Value::Boolean(overruled)) => *overruled,
+            Some(_) => {
+                faults.push("`set_aside_overruled` is neither true nor false".to_string());
+                false
+            }
+            None => false,
+        };
 
         let mut placed = BTreeMap::new();
         if let Some(landmarks) = file.get("landmarks") {
@@ -611,6 +765,8 @@ impl Record {
             level_why: words(judgement, "level_why"),
             set_aside,
             set_aside_why: words(judgement, "set_aside_why"),
+            set_aside_overruled,
+            set_aside_overruled_by: words(judgement, "set_aside_overruled_by"),
             placed,
             not_seen,
             faults,
@@ -738,7 +894,16 @@ impl Record {
                 );
             }
             // A drawing that is set aside is not measured: its landmarks are not asked for.
-            return problems;
+            // One whose set-aside was overruled before it was read is read all the same.
+            if !self.set_aside_overruled {
+                return problems;
+            }
+        }
+        if self.set_aside_overruled && self.set_aside_overruled_by.is_empty() {
+            problems.push(
+                "`set_aside_overruled` is true and `set_aside_overruled_by` does not say who overruled the set-aside"
+                    .to_string(),
+            );
         }
 
         let asked = self.asked();
@@ -830,7 +995,9 @@ impl Record {
                 &self.reader
             }
         );
-        if self.set_aside {
+        // A set-aside that was overruled before the drawing was read is read as a level head
+        // in the view judged: the ruling is the checker's, and the reading records it.
+        if self.set_aside && !self.set_aside_overruled {
             return Err(Error::new(format!(
                 "{which} sets the drawing aside ({}), so it is not measured",
                 if self.set_aside_why.is_empty() {
@@ -840,7 +1007,7 @@ impl Record {
                 }
             )));
         }
-        if self.level != Some(true) {
+        if self.level != Some(true) && !self.set_aside_overruled {
             return Err(Error::new(format!(
                 "{which} does not say the head is level, so its numbers cannot be taken as a level head's. Measuring a tilted head as tilted is not built"
             )));
@@ -1153,6 +1320,7 @@ pub fn template(
     out.push_str("# Whether the head is level: true or false. Level is neither tilted up or down nor leaning to a side.\n# level = \n");
     out.push_str("# What in the drawing shows that it is level, or how it is tilted and by about how much.\nlevel_why = \"\"\n");
     out.push_str("# true when the drawing should not be measured: the head is not level, or it is not in this view.\n# Then say why, and place nothing. Jon can overrule it.\nset_aside = false\nset_aside_why = \"\"\n");
+    out.push_str("# Only where you were told that the person who checks the readings has overruled a set-aside of\n# this drawing: remove the `# ` before the two lines below and say who overruled it. The drawing is\n# then read, and every landmark that is drawn is placed, whatever you judge above.\n# set_aside_overruled = true\n# set_aside_overruled_by = \"\"\n");
 
     out.push_str(
         "\

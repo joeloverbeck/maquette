@@ -45,7 +45,7 @@ pub const RULES: &[(&str, &str)] = &[
     ),
     (
         "yardstick_of_views",
-        "Head height is the front view's, hair top to chin, in units. Where the front view places no hair top it is the three-quarter view's.",
+        "Head height is the front view's, hair top to chin, in units. Where the front view places no hair top it is the three-quarter view's, and with no three-quarter view the side view's.",
     ),
     (
         "turn",
@@ -57,7 +57,7 @@ pub const RULES: &[(&str, &str)] = &[
     ),
     (
         "fit",
-        "The fit of a character's views to one head is the largest misfit, as a share of head height. One level, symmetric head turned about an upright axis shows three things alike, and each is a kind of misfit. Level: a landmark stands at one height in every view, so its misfit is the difference between its highest and its lowest height over the views that place it, in units. Spacing: a counted pair's misfit against the turn, as above. Centre: in the front view the centre-line landmarks and the midpoints of the counted pairs stand on one upright line, which is taken as the mean of their sideways positions; the misfit is how far one stands from it. A misfit is the whole disagreement between two views. A spacing's belongs to the pair: each of its points is off by half of it. The fit is zero when the views are projections of one such head.",
+        "The fit of a character's views to one head is the largest misfit, as a share of head height. One level, symmetric head turned about an upright axis shows three things alike, and each is a kind of misfit. Level: a landmark stands at one height in every view, so its misfit is the difference between its highest and its lowest height over the views that place it, in units. Spacing: a counted pair's misfit against the turn, as above. Centre: in the front view the centre-line landmarks and the midpoints of the counted pairs stand on one upright line, which is taken as the mean of their sideways positions; the misfit is how far one stands from it. A misfit is the whole disagreement between two views. A spacing's belongs to the pair: each of its points is off by half of it. The fit is zero when the views are projections of one such head. With no three-quarter view there is no turn, and no spacing is compared: a front view and a side view are set against each other in height, each in its own unit, and the front view against its own centre line.",
     ),
     (
         "fit_left_out",
@@ -646,7 +646,13 @@ pub struct ReadFrom {
     /// One line for each view that was read under a revision of the reading instructions
     /// that is not the program's own.
     pub other_instructions: Vec<String>,
+    /// What Jon's check says of these readings: that he accepted the character, with what
+    /// his marks leave out, or that no record of his check was given.
+    pub checked: String,
 }
+
+/// What is said of readings that are measured with no record of Jon's check.
+pub const NOT_CHECKED: &str = "No record of Jon's check was given: these readings are measured as their readers judged them, and nothing taken from them counts until he has accepted the character.";
 
 impl ReadFrom {
     fn of(views: &[(&str, &Given)]) -> ReadFrom {
@@ -676,23 +682,26 @@ impl ReadFrom {
         ReadFrom {
             lines,
             other_instructions,
+            checked: NOT_CHECKED.to_string(),
         }
     }
 
     /// The lines of a file's `[readings]` or `[source]`.
     fn file(&self) -> String {
         format!(
-            "read = {}\n{}",
+            "read = {}\n{}jons_check = {}\n",
             quoted_lines(&self.lines),
-            other_instructions(&self.other_instructions)
+            other_instructions(&self.other_instructions),
+            quoted(&self.checked)
         )
     }
 
-    /// What a person is told beside the result: only what was not read by the instructions
-    /// as they stand.
+    /// What a person is told beside the result: what was not read by the instructions as
+    /// they stand, and what Jon's check says of the readings.
     fn summary(&self) -> String {
         self.other_instructions
             .iter()
+            .chain([&self.checked])
             .map(|note| format!("{note}\n"))
             .collect()
     }
@@ -847,7 +856,10 @@ pub struct Fit {
     pub percent_of_head_height: f64,
     /// Largest first.
     pub misfits: Vec<Misfit>,
-    pub turn: Turn,
+    /// The turn the three-quarter view shows. None when no three-quarter view was read.
+    pub turn: Option<Turn>,
+    /// Head height in units: the yardstick of every misfit.
+    pub head_height: f64,
     pub views: Vec<String>,
     pub read: ReadFrom,
 }
@@ -860,24 +872,52 @@ fn level_comparable(name: &str) -> bool {
     !of_the_body && !named_twice && compared_in(name) != Marks::Sideways
 }
 
-/// Works out the fit of a character's views to one head. A side view is compared in height.
-pub fn fit(front: &Given, three_quarter: &Given, side: Option<&Given>) -> Result<Fit> {
+/// Works out the fit of a character's views to one head: its front view with a
+/// three-quarter view, a side view or both. A side view is compared in height.
+pub fn fit(front: &Given, three_quarter: Option<&Given>, side: Option<&Given>) -> Result<Fit> {
+    if three_quarter.is_none() && side.is_none() {
+        return Err(Error::new(
+            "a fit sets a character's views against each other, so it needs a three-quarter view or a side view beside the front view",
+        ));
+    }
     let seen_front = Seen::of(front.drawing, View::Front)?;
-    let seen_turned = Seen::of(three_quarter.drawing, View::ThreeQuarter)?;
+    let seen_turned = match three_quarter {
+        Some(three_quarter) => Some(Seen::of(three_quarter.drawing, View::ThreeQuarter)?),
+        None => None,
+    };
     let seen_side = match side {
         Some(side) => Some(Seen::of(side.drawing, View::Side)?),
         None => None,
     };
-    let mut turn = turn_of(&seen_front, &seen_turned, three_quarter.drawing)?;
-    turn.front = front.named.to_string();
-    turn.three_quarter = three_quarter.named.to_string();
-    let head_height = turn.head_height;
+    let mut turn = match (three_quarter, &seen_turned) {
+        (Some(three_quarter), Some(seen_turned)) => {
+            let mut turn = turn_of(&seen_front, seen_turned, three_quarter.drawing)?;
+            turn.front = front.named.to_string();
+            turn.three_quarter = three_quarter.named.to_string();
+            Some(turn)
+        }
+        _ => None,
+    };
+    let head_height = match &turn {
+        Some(turn) => turn.head_height,
+        None => [Some(&seen_front), seen_side.as_ref()]
+            .into_iter()
+            .flatten()
+            .find_map(Seen::head_height)
+            .filter(|height| *height > 0.0)
+            .ok_or_else(|| {
+                Error::new(
+                    "neither view places the hair's top, so there is no head height to state a share of",
+                )
+            })?,
+    };
     let share = |units: f64| round3(units / head_height * 100.0);
     let plain = crate::number::plain;
     let mut misfits = Vec::new();
 
     // Level: one height in every view.
-    let mut views: Vec<&Seen> = vec![&seen_front, &seen_turned];
+    let mut views: Vec<&Seen> = vec![&seen_front];
+    views.extend(seen_turned.as_ref());
     views.extend(seen_side.as_ref());
     let mut names: Vec<&String> = views
         .iter()
@@ -916,8 +956,11 @@ pub fn fit(front: &Given, three_quarter: &Given, side: Option<&Given>) -> Result
         });
     }
 
-    // Spacing: each counted pair against the turn.
-    for pair in &turn.pairs {
+    // Spacing: each counted pair against the turn, where a three-quarter view shows one.
+    for (pair, turn) in turn
+        .iter()
+        .flat_map(|turn| turn.pairs.iter().map(move |pair| (pair, turn)))
+    {
         misfits.push(Misfit {
             kind: "spacing",
             landmark: pair.name.clone(),
@@ -968,11 +1011,16 @@ pub fn fit(front: &Given, three_quarter: &Given, side: Option<&Given>) -> Result
             .then_with(|| a.kind.cmp(b.kind))
             .then_with(|| a.landmark.cmp(&b.landmark))
     });
-    let mut given = vec![("front", front), ("three-quarter", three_quarter)];
+    let mut given = vec![("front", front)];
+    if let Some(three_quarter) = three_quarter {
+        given.push(("three-quarter", three_quarter));
+        if let Some(turn) = &mut turn {
+            turn.read = ReadFrom::of(&given);
+        }
+    }
     if let Some(side) = side {
         given.push(("side", side));
     }
-    turn.read = ReadFrom::of(&given[..2]);
     Ok(Fit {
         percent_of_head_height: misfits
             .first()
@@ -980,6 +1028,7 @@ pub fn fit(front: &Given, three_quarter: &Given, side: Option<&Given>) -> Result
             .unwrap_or(0.0),
         misfits,
         turn,
+        head_height,
         views: given
             .iter()
             .map(|(view, given)| format!("{view}: {}", given.named))
@@ -1025,17 +1074,20 @@ impl Fit {
                 ));
             }
         }
-        out.push_str("\n# The turn the spacings were set against.\n[turn]\n");
         out.push_str(&format!(
-            "degrees = {}\n",
-            toml_number(self.turn.degrees, 3)
+            "head_height = {}  # in units: what a misfit is a share of\n",
+            toml_number(self.head_height, 5)
         ));
-        out.push_str(&format!("cosine = {}\n", toml_number(self.turn.cosine, 5)));
-        out.push_str(&format!("faces = {}\n", quoted(self.turn.faces.words())));
-        out.push_str(&format!(
-            "head_height = {}  # in units\n",
-            toml_number(self.turn.head_height, 5)
-        ));
+        if let Some(turn) = &self.turn {
+            out.push_str("\n# The turn the spacings were set against.\n[turn]\n");
+            out.push_str(&format!("degrees = {}\n", toml_number(turn.degrees, 3)));
+            out.push_str(&format!("cosine = {}\n", toml_number(turn.cosine, 5)));
+            out.push_str(&format!("faces = {}\n", quoted(turn.faces.words())));
+            out.push_str(&format!(
+                "head_height = {}  # in units\n",
+                toml_number(turn.head_height, 5)
+            ));
+        }
         out.push_str("\n# Every misfit, largest first.\n");
         for misfit in &self.misfits {
             out.push_str("[[misfit]]\n");
@@ -1080,11 +1132,16 @@ impl Fit {
                 misfit.what
             ));
         }
-        out.push_str(&format!(
-            "The three-quarter view is turned {} degrees toward {}.\n",
-            plain(self.turn.degrees, 2),
-            self.turn.faces.words()
-        ));
+        match &self.turn {
+            Some(turn) => out.push_str(&format!(
+                "The three-quarter view is turned {} degrees toward {}.\n",
+                plain(turn.degrees, 2),
+                turn.faces.words()
+            )),
+            None => out.push_str(
+                "No three-quarter view was read: the front view and the side view are set against each other in height, and the front view against its own centre line.\n",
+            ),
+        }
         out.push_str(&self.read.summary());
         out
     }
@@ -1177,25 +1234,99 @@ pub fn skull_rule_on(set: &crate::proportions::Set, named: &str) -> Result<Strin
 
 // ---------------------------------------------------------------- proportions
 
+/// Where a character's depth is taken from: the view read beside the front view.
+#[derive(Debug, Clone)]
+pub enum DepthFrom {
+    /// No view: a front view read alone shows no depth.
+    NoView,
+    /// A three-quarter view, at the turn the readings show.
+    ThreeQuarter(Box<Turn>),
+    /// A side view, which faces this way.
+    Side(Faces),
+}
+
+impl DepthFrom {
+    fn words(&self) -> &'static str {
+        match self {
+            DepthFrom::NoView => {
+                "no view: a front view was read alone, and it shows heights and widths and no depth"
+            }
+            DepthFrom::ThreeQuarter(_) => {
+                "the three-quarter view, at the turn the readings themselves show"
+            }
+            DepthFrom::Side(_) => {
+                "the side view, which shows a point at its depth; each view is measured in its own unit"
+            }
+        }
+    }
+}
+
 /// The proportions a character's readings give.
 #[derive(Debug, Clone)]
 pub struct Proportions {
     pub taken: Taken,
-    pub turn: Turn,
+    pub depth_from: DepthFrom,
     pub views: Vec<String>,
     pub read: ReadFrom,
     pub digests: BTreeMap<String, String>,
 }
 
-/// Takes the readings of a character's front view and three-quarter view back into
-/// proportions, at the turn the readings themselves show.
-pub fn proportions(front: &Given, three_quarter: &Given) -> Result<Proportions> {
-    let turn = turn(front, three_quarter)?;
+/// Refuses a drawing that is named where another view belongs.
+fn of_view(given: &Given, view: View) -> Result<()> {
+    if given.drawing.view == view {
+        return Ok(());
+    }
+    Err(Error::new(format!(
+        "the reading of `{}` is of a {} view, and it is named where a {} view belongs",
+        given.drawing.picture.file,
+        given.drawing.view.name(),
+        view.name()
+    )))
+}
+
+/// Takes the readings of a character back into proportions: of its front view alone, which
+/// gives heights and widths; with a three-quarter view, at the turn the readings themselves
+/// show; or with a side view, which shows depth as it is.
+pub fn proportions(
+    front: &Given,
+    three_quarter: Option<&Given>,
+    side: Option<&Given>,
+) -> Result<Proportions> {
+    of_view(front, View::Front)?;
     let front_positions = front.drawing.positions()?;
-    let mut turned_positions = three_quarter.drawing.positions()?;
-    turned_positions.turn_degrees = turn.degrees;
-    let taken = head_model::take_proportions(&front_positions, &turned_positions)?;
-    let given = [("front", front), ("three-quarter", three_quarter)];
+    let mut given = vec![("front", front)];
+    let (taken, depth_from) = match (three_quarter, side) {
+        (Some(_), Some(_)) => {
+            return Err(Error::new(
+                "depth is taken from a three-quarter view or from a side view, not both: taking a character's three views together is not built. Name the side view where the character has one, which is the first route to depth",
+            ));
+        }
+        (Some(three_quarter), None) => {
+            let turn = turn(front, three_quarter)?;
+            let mut turned_positions = three_quarter.drawing.positions()?;
+            turned_positions.turn_degrees = turn.degrees;
+            given.push(("three-quarter", three_quarter));
+            (
+                head_model::take_proportions(&front_positions, &turned_positions)?,
+                DepthFrom::ThreeQuarter(Box::new(turn)),
+            )
+        }
+        (None, Some(side)) => {
+            of_view(side, View::Side)?;
+            given.push(("side", side));
+            (
+                head_model::take_from(
+                    &front_positions,
+                    head_model::Beside::Side(&side.drawing.positions()?),
+                )?,
+                DepthFrom::Side(side.drawing.faces.unwrap_or(Faces::ViewersRight)),
+            )
+        }
+        (None, None) => (
+            head_model::take_from(&front_positions, head_model::Beside::Nothing)?,
+            DepthFrom::NoView,
+        ),
+    };
     Ok(Proportions {
         taken,
         views: given
@@ -1207,20 +1338,34 @@ pub fn proportions(front: &Given, three_quarter: &Given) -> Result<Proportions> 
             .iter()
             .map(|(view, given)| (view.replace('-', "_"), given.drawing.picture.sha256.clone()))
             .collect(),
-        turn,
+        depth_from,
     })
 }
 
 impl Proportions {
+    /// Leaves out the proportions Jon marked as off for the character: each is not given,
+    /// and says so.
+    pub fn leave_out(&mut self, marked: &[String]) {
+        for name in marked {
+            self.taken.values.remove(name);
+            self.taken.not_given.retain(|(given, _)| given != name);
+            self.taken.not_given.push((
+                name.clone(),
+                "marked as off by Jon for this character, so it is not given for this work"
+                    .to_string(),
+            ));
+        }
+    }
+
     /// The proportions as the text of a file: a set of proportions when the readings give
     /// every one, and otherwise the ones they give with the rest listed and why.
     pub fn file(&self) -> Result<String> {
         let list = crate::proportions::list()?;
         let mut out = String::from(
             "\
-# The proportions two readings give, by `maquette proportions-from-readings`: the readings of
-# a front view and a three-quarter view of one character, taken back into proportions by the
-# head model at the turn the readings themselves show.
+# The proportions a character's readings give, by `maquette proportions-from-readings`: the
+# readings of its front view, alone or with a three-quarter view or a side view, taken back
+# into proportions by the head model. [source] says which views were read and where depth is from.
 # It is worked out from readings of one reference and is never committed.
 #
 # `maquette list-proportions` defines each proportion. When every proportion is given, this
@@ -1234,16 +1379,35 @@ impl Proportions {
             out.push_str(&format!("{view}_sha256 = {}\n", quoted(digest)));
         }
         out.push_str(&format!(
-            "turn_degrees = {}  # worked out from the readings, over {} pairs\n",
-            toml_number(self.turn.degrees, 3),
-            self.turn.pairs.len()
+            "depth_from = {}\n",
+            quoted(self.depth_from.words())
         ));
-        out.push_str(&format!("faces = {}\n", quoted(self.turn.faces.words())));
+        match &self.depth_from {
+            DepthFrom::ThreeQuarter(turn) => {
+                out.push_str(&format!(
+                    "turn_degrees = {}  # worked out from the readings, over {} pairs\n",
+                    toml_number(turn.degrees, 3),
+                    turn.pairs.len()
+                ));
+                out.push_str(&format!("faces = {}\n", quoted(turn.faces.words())));
+            }
+            DepthFrom::Side(faces) => {
+                out.push_str(&format!("faces = {}\n", quoted(faces.words())));
+            }
+            DepthFrom::NoView => {}
+        }
         out.push_str(&format!("skull = {}\n", quoted(self.taken.skull.words())));
-        out.push_str(&format!(
-            "disagreement_rules = {}\n",
-            quoted_lines(list.disagreement_rules())
-        ));
+        match &self.depth_from {
+            DepthFrom::ThreeQuarter(_) => out.push_str(&format!(
+                "disagreement_rules = {}\n",
+                quoted_lines(list.disagreement_rules())
+            )),
+            DepthFrom::Side(_) => out.push_str(&format!(
+                "side_view_rules = {}\n",
+                quoted_lines(list.side_view_rules())
+            )),
+            DepthFrom::NoView => {}
+        }
         out.push_str(&format!("given = {}\n", self.taken.values.len()));
         out.push_str(&format!("not_given = {}\n", self.taken.not_given.len()));
         if !self.taken.not_given.is_empty() {
@@ -1268,10 +1432,22 @@ impl Proportions {
     /// What was taken, in a few lines, for a person.
     pub fn summary(&self) -> String {
         let mut out = format!(
-            "The readings give {} of {} proportions, at a turn of {} degrees.\n",
+            "The readings give {} of {} proportions, {}.\n",
             self.taken.values.len(),
             self.taken.values.len() + self.taken.not_given.len(),
-            crate::number::plain(self.turn.degrees, 2)
+            match &self.depth_from {
+                DepthFrom::ThreeQuarter(turn) => format!(
+                    "at a turn of {} degrees",
+                    crate::number::plain(turn.degrees, 2)
+                ),
+                DepthFrom::Side(faces) => format!(
+                    "with depth from the side view, which faces {}",
+                    faces.words()
+                ),
+                DepthFrom::NoView => {
+                    "from the front view alone: heights and widths, and no depth".to_string()
+                }
+            }
         );
         out.push_str(&format!("The skull: {}.\n", self.taken.skull.words()));
         for (name, why) in &self.taken.not_given {
