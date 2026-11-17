@@ -61,7 +61,7 @@ pub const RULES: &[(&str, &str)] = &[
     ),
     (
         "fit_left_out",
-        "Left out of the fit by what they are: the neck and the shoulders, which belong to the body; in height, the side extents and the face outline's crossings with a level, whose height is the level's own; and a side view's depths, which no command compares with a three-quarter view's yet.",
+        "Left out of the fit by what they are: the neck and the shoulders, which belong to the body; in height, the side extents and the face outline's crossings with a level, whose height is the level's own; a side view's depths, which no command compares with a three-quarter view's yet; and a side view's heights of the landmarks the reading instructions define there as other points of the head than in a front view, which the head model takes no height from: nose-mark-bottom, which in a side view is under the tip of the nose and in a front view the lowest point of the mark as drawn, and the nose mark's corner, which in a side view is the middle of the nostril or of the wing's curve and in a front view the mark's point furthest toward that side. A side view's every other height names the point a front view's does, and is compared.",
     ),
 ];
 
@@ -864,8 +864,14 @@ pub struct Fit {
     /// Head height in units: the yardstick of every misfit.
     pub head_height: f64,
     pub views: Vec<String>,
+    /// Whether a side view was fitted: what its heights are not compared in is then said.
+    pub with_side: bool,
     pub read: ReadFrom,
 }
+
+/// What a fit with a side view says of the side view's heights it does not compare: the rule
+/// `fit_left_out` in short.
+const SIDE_HEIGHTS_NOT_COMPARED: &str = "The side view's heights of nose-mark-bottom and the nose mark's corner are not compared: the reading instructions put them under the tip of the nose and at the middle of the nostril in a side view, other points of the nose than a front view's.\n";
 
 /// Whether a landmark's height says where a feature of the head is.
 fn level_comparable(name: &str) -> bool {
@@ -930,8 +936,12 @@ pub fn fit(front: &Given, three_quarter: Option<&Given>, side: Option<&Given>) -
     names.sort();
     names.dedup();
     for name in names {
+        // A side view's height of a point it names differently is not compared: `fit_left_out`.
         let drops: Vec<(View, f64)> = views
             .iter()
+            .filter(|seen| {
+                !(seen.view == View::Side && head_model::another_point_in_a_side_view(name))
+            })
             .filter_map(|seen| Some((seen.view, seen.drop(name)?)))
             .collect();
         if drops.len() < 2 {
@@ -1036,6 +1046,7 @@ pub fn fit(front: &Given, three_quarter: Option<&Given>, side: Option<&Given>) -
             .iter()
             .map(|(view, given)| format!("{view}: {}", given.named))
             .collect(),
+        with_side: side.is_some(),
         read: ReadFrom::of(&given),
     })
 }
@@ -1144,6 +1155,9 @@ impl Fit {
             None => out.push_str(
                 "No three-quarter view was read: the front view and the side view are set against each other in height, and the front view against its own centre line.\n",
             ),
+        }
+        if self.with_side {
+            out.push_str(SIDE_HEIGHTS_NOT_COMPARED);
         }
         out.push_str(&self.read.summary());
         out
@@ -1316,13 +1330,21 @@ pub fn proportions(
         }
         (None, Some(side)) => {
             of_view(side, View::Side)?;
+            // A side view's reading says which way the head faces, or is refused as not
+            // measurable before it gets here.
+            let faces = side.drawing.faces.ok_or_else(|| {
+                Error::new(format!(
+                    "the reading of `{}` does not say which way the head faces",
+                    side.drawing.picture.file
+                ))
+            })?;
             given.push(("side", side));
             (
                 head_model::take_from(
                     &front_positions,
                     head_model::Beside::Side(&side.drawing.positions()?),
                 )?,
-                DepthFrom::Side(side.drawing.faces.unwrap_or(Faces::ViewersRight)),
+                DepthFrom::Side(faces),
             )
         }
         (None, None) => (

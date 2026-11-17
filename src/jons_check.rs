@@ -438,7 +438,7 @@ impl Check {
 pub enum Outcome {
     /// It is measured: its readings taken together, as changed by the rulings and the marks.
     Measured {
-        drawing: Drawing,
+        drawing: Box<Drawing>,
         /// How, in words.
         said: String,
     },
@@ -563,7 +563,10 @@ impl DrawingChecked {
                 for words in drawing.left_to_one_words() {
                     said.push_str(&format!(". {}", words.trim_end_matches('.')));
                 }
-                Outcome::Measured { drawing, said }
+                Outcome::Measured {
+                    drawing: Box::new(drawing),
+                    said,
+                }
             }
             Err(error) => Outcome::NotMeasured(error.to_string()),
         }
@@ -937,7 +940,7 @@ impl Review<'_> {
         match &self.outcomes[at][drawing_at] {
             Outcome::Measured { drawing, said } => Ok(Measured {
                 character,
-                drawing,
+                drawing: drawing.as_ref(),
                 said,
             }),
             Outcome::NotMeasured(why) => Err(Error::new(format!("{of} is not measured: {why}"))),

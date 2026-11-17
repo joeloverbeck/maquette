@@ -457,9 +457,10 @@ fn measuring_takes_only_what_jon_accepted_and_leaves_out_what_he_marked() {
         taken(&folder, &arguments, out)
     };
 
-    // Accepted, with marks: the nose mark is left out of the front view, so its width is
-    // not given and its height comes from the side view; the opening's height is not
-    // given, and the eye line it gives still is.
+    // Accepted, with marks: the nose mark is left out of the front view, so neither its width
+    // nor its height is given, since a side view puts the nose mark's bottom and corner on
+    // other points of the nose; its depth is the side view's as ever. The opening's height is
+    // not given, and the eye line it gives still is.
     let output = with_check(
         &[
             "--front",
@@ -474,7 +475,7 @@ fn measuring_takes_only_what_jon_accepted_and_leaves_out_what_he_marked() {
     let given = found["proportions"].as_table().expect("[proportions]");
     let not_given = found["not_given"].as_table().expect("[not_given]");
     assert!(not_given.contains_key("nose_mark_corner_offset"));
-    assert!(given.contains_key("nose_mark_bottom_drop"));
+    assert!(not_given.contains_key("nose_mark_bottom_drop"));
     assert!(given.contains_key("nose_mark_bottom_depth"));
     assert!(
         not_given["eye_opening_height"]

@@ -39,9 +39,13 @@ pub struct Proportion {
     pub what: String,
     pub front: String,
     pub three_quarter: String,
-    /// How it is taken from a side view, or why it is not: "Not seen" where a side view
-    /// shows none of it, "Not taken" where it shows something that is not read as it.
+    /// How it is taken from a side view, or why it is not, in words: "Not seen" where a side
+    /// view shows none of it, "Not taken" where it shows something that is not read as it.
     pub side: String,
+    /// Why a side view does not give it, where the list says it shows something that is not
+    /// read as it: the list's `side_not_taken`. The program gives this reason where a depth
+    /// is not given beside a side view.
+    pub side_not_taken: Option<String>,
     /// How a convention is built where nothing is drawn behind it. A measured proportion
     /// has none.
     pub rule: Option<String>,
@@ -137,13 +141,27 @@ fn parse_list(text: &str) -> Result<List> {
                 )));
             }
         };
+        // A side view gives it as `side` says, or does not, for the reason `side_not_taken` gives.
+        let side_not_taken = entry
+            .get("side_not_taken")
+            .map(|_| text_of(entry, "side_not_taken", &context))
+            .transpose()?;
+        if side_not_taken.is_some() && entry.contains_key("side") {
+            return Err(Error::new(format!(
+                "the list of proportions: {context} says both how a side view gives it and why a side view does not"
+            )));
+        }
         proportions.push(Proportion {
             kind,
             positive,
             what: text_of(entry, "what", &context)?,
             front: text_of(entry, "front", &context)?,
             three_quarter: text_of(entry, "three_quarter", &context)?,
-            side: text_of(entry, "side", &context)?,
+            side: match &side_not_taken {
+                Some(why) => format!("Not taken: {why}"),
+                None => text_of(entry, "side", &context)?,
+            },
+            side_not_taken,
             rule,
             name,
         });
