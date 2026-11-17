@@ -5,8 +5,8 @@
 //! Every reading here is made up: a view of the head invented in
 //! `tests/support/made_up_head.rs`, whose numbers are chosen so that the sums can be done by
 //! hand. Its unit is 200 pixels and its head height 2.4 units, so 480 pixels: 1% of head
-//! height is 4.8 pixels. No reading was read from a drawing, and no picture exists behind
-//! the digests.
+//! height is 4.8 pixels. No reading was read from a drawing: the pictures behind the
+//! readings are plain grey.
 
 mod support;
 
@@ -328,6 +328,92 @@ fn a_drawing_set_aside_or_not_level_is_not_measured() {
     assert!(failure(&output).contains("front view"));
 }
 
+#[test]
+fn a_turn_that_cannot_be_worked_out_is_a_failure_and_nothing_is_written() {
+    let folder = folder("measuring-no-turn");
+    let refused = |front: &str, turned: &str| -> Vec<String> {
+        [
+            "turn-from-readings",
+            "fit-of-views",
+            "proportions-from-readings",
+        ]
+        .iter()
+        .map(|command| {
+            let output = maquette_in(
+                Some(&folder),
+                &[
+                    command,
+                    "--front",
+                    front,
+                    "--three-quarter",
+                    turned,
+                    "--out",
+                    "refused.toml",
+                ],
+            );
+            let message = failure(&output);
+            assert!(
+                !folder.join("refused.toml").exists(),
+                "{command} wrote a file"
+            );
+            message
+        })
+        .collect()
+    };
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front.toml");
+    MadeUp::turned("first", seen(29.0, 470.0)).write(&folder, "turned.toml");
+
+    // A front reading that puts both points of every pair at one place sideways: there is
+    // no spacing for the three-quarter view's to have narrowed from.
+    let mut no_spacing = seen(0.0, 500.0);
+    for (name, at) in no_spacing.iter_mut() {
+        if name.contains("-left-") || name.contains("-right-") {
+            at[0] = 500.0;
+        }
+    }
+    MadeUp::front("first", no_spacing).write(&folder, "no-spacing.toml");
+    for message in refused("no-spacing.toml", "turned.toml") {
+        assert!(
+            message.contains("no spacing")
+                && message.contains("eye-outer-corner")
+                && message.contains("mouth-line-end"),
+            "{message}"
+        );
+        assert!(!message.contains("NaN"), "{message}");
+    }
+
+    // One such pair is enough: its own turn would be no number.
+    let mut one_pair = seen(0.0, 500.0);
+    for side in ["left", "right"] {
+        one_pair
+            .get_mut(&format!("nose-mark-{side}-corner"))
+            .expect("in the head")[0] = 500.0;
+    }
+    MadeUp::front("first", one_pair).write(&folder, "one-pair.toml");
+    for message in refused("one-pair.toml", "turned.toml") {
+        assert!(
+            message.contains("no spacing")
+                && message.contains("nose-mark-corner")
+                && !message.contains("eye-outer-corner"),
+            "{message}"
+        );
+    }
+
+    // A three-quarter drawing whose pairs stand wider apart than the front view's, here by
+    // a quarter: a turn narrows a spacing, so no turn gives this, and 0 degrees is not it.
+    let wider = seen(0.0, 470.0)
+        .into_iter()
+        .map(|(name, at)| (name, [470.0 + (at[0] - 470.0) * 1.25, at[1]]))
+        .collect();
+    MadeUp::turned("first", wider).write(&folder, "wider.toml");
+    for message in refused("front.toml", "wider.toml") {
+        assert!(
+            message.contains("wider apart") && message.contains("1.25"),
+            "{message}"
+        );
+    }
+}
+
 // ---------------------------------------------------------------- fit
 
 fn fit_of(folder: &Path, front: &str, turned: &str, out: &str) -> toml::Table {
@@ -430,7 +516,6 @@ fn a_side_view_counts_in_the_fit_by_its_heights() {
     let side_view = |points: std::collections::BTreeMap<String, [f64; 2]>| {
         let mut side = MadeUp::turned("first", points);
         side.picture = "made-up-side.png".to_string();
-        side.sha256 = "made-up-side-digest".to_string();
         side.view = "side";
         side.stated_turn = 90.0;
         side.points.retain(|name, _| !name.contains("-left-"));
@@ -479,4 +564,251 @@ fn a_side_view_counts_in_the_fit_by_its_heights() {
         worst["what"].as_str().expect("words").contains("side view"),
         "{worst:?}"
     );
+}
+
+// ---------------------------------------------------------------- what is measured
+
+/// The four commands that work something out from readings, on the readings named.
+fn measuring_commands<'a>(front: &'a str, turned: &'a str, second: &'a str) -> [Vec<&'a str>; 4] {
+    [
+        vec![
+            "agreement-of-readings",
+            "--first",
+            front,
+            "--second",
+            second,
+        ],
+        vec![
+            "turn-from-readings",
+            "--front",
+            front,
+            "--three-quarter",
+            turned,
+        ],
+        vec!["fit-of-views", "--front", front, "--three-quarter", turned],
+        vec![
+            "proportions-from-readings",
+            "--front",
+            front,
+            "--three-quarter",
+            turned,
+        ],
+    ]
+}
+
+/// The three of them that take a view as one reading or two, with the agreement of the two
+/// readings named beside them.
+fn commands_on_two_readings<'a>(
+    first: &'a str,
+    second: &'a str,
+    both: &'a str,
+    turned: &'a str,
+) -> Vec<Vec<&'a str>> {
+    let mut commands = measuring_commands(both, turned, second).to_vec();
+    commands[0] = vec![
+        "agreement-of-readings",
+        "--first",
+        first,
+        "--second",
+        second,
+    ];
+    commands
+}
+
+#[test]
+fn a_reading_that_does_not_pass_its_check_is_not_measured() {
+    let folder = folder("measuring-unchecked");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front.toml");
+    MadeUp::front("second", seen(0.0, 500.0)).write(&folder, "front-second.toml");
+    MadeUp::turned("first", seen(29.0, 470.0)).write(&folder, "turned.toml");
+
+    // One landmark the view asks for is neither placed nor stated as not seen.
+    let whole = text(&folder.join("front.toml"));
+    let unfinished = whole.replace(
+        "ear-left-base-outer = \"made up: not in the made-up head\"\n",
+        "",
+    );
+    assert_ne!(unfinished, whole);
+    std::fs::write(folder.join("unfinished.toml"), unfinished).expect("written");
+    for arguments in measuring_commands("unfinished.toml", "turned.toml", "front-second.toml") {
+        let message = failure(&maquette_in(Some(&folder), &arguments));
+        let command = arguments[0];
+        assert!(
+            message.contains("unfinished.toml")
+                && message.contains("ear-left-base-outer")
+                && message.contains("check-reading"),
+            "{command}: {message}"
+        );
+    }
+    // The second of two readings is held to the same.
+    let message = failure(&maquette_in(
+        Some(&folder),
+        &[
+            "turn-from-readings",
+            "--front",
+            "front-second.toml,unfinished.toml",
+            "--three-quarter",
+            "turned.toml",
+        ],
+    ));
+    assert!(message.contains("unfinished.toml"), "{message}");
+
+    // The picture is no longer the one that was read.
+    support::made_up_image(&folder.join("made-up-front.png"), 990, 1000);
+    for arguments in measuring_commands("front.toml", "turned.toml", "front-second.toml") {
+        let message = failure(&maquette_in(Some(&folder), &arguments));
+        let command = arguments[0];
+        assert!(
+            message.contains("front.toml")
+                && message.contains("made-up-front.png")
+                && message.contains("not the picture that was read"),
+            "{command}: {message}"
+        );
+    }
+
+    // The picture is gone: nothing says the reading is of it.
+    std::fs::remove_file(folder.join("made-up-three-quarter.png")).expect("removed");
+    std::fs::remove_file(folder.join("made-up-front.png")).expect("removed");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front-again.toml");
+    for command in [
+        "turn-from-readings",
+        "fit-of-views",
+        "proportions-from-readings",
+    ] {
+        let message = failure(&maquette_in(
+            Some(&folder),
+            &[
+                command,
+                "--front",
+                "front-again.toml",
+                "--three-quarter",
+                "turned.toml",
+            ],
+        ));
+        assert!(
+            message.contains("turned.toml")
+                && message.contains("made-up-three-quarter.png")
+                && message.contains("not in the reference folder"),
+            "{command}: {message}"
+        );
+    }
+}
+
+#[test]
+fn readings_under_another_revision_of_the_instructions_are_measured_and_the_output_says_so() {
+    let folder = folder("measuring-other-revision");
+    let own = support::instructions_revision();
+    let earlier = |mut reading: MadeUp| {
+        reading.instructions = Some("made-up earlier revision".to_string());
+        reading
+    };
+    earlier(MadeUp::front("first", seen(0.0, 500.0))).write(&folder, "front-first.toml");
+    earlier(MadeUp::front("second", seen(0.0, 500.0))).write(&folder, "front-second.toml");
+    MadeUp::front("third", seen(0.0, 500.0)).write(&folder, "front-third.toml");
+    MadeUp::front("fourth", seen(0.0, 500.0)).write(&folder, "front-fourth.toml");
+    MadeUp::turned("first", seen(29.0, 470.0)).write(&folder, "turned.toml");
+    // Where a file says which readings it is worked out from.
+    let said = |found: &toml::Table| -> Vec<String> {
+        found
+            .get("readings")
+            .or(found.get("source"))
+            .and_then(|table| table.get("other_instructions"))
+            .map(texts)
+            .unwrap_or_default()
+    };
+    let names_both = |line: &str| line.contains("made-up earlier revision") && line.contains(&own);
+
+    // Two readings of one drawing under one earlier revision are measured, and it is said:
+    // in the file, and in what is printed for a person.
+    for arguments in commands_on_two_readings(
+        "front-first.toml",
+        "front-second.toml",
+        "front-first.toml,front-second.toml",
+        "turned.toml",
+    ) {
+        let command = arguments[0];
+        let notes = said(&measured(&folder, &arguments, "found.toml"));
+        assert_eq!(notes.len(), 1, "{command}: {notes:?}");
+        assert!(names_both(&notes[0]), "{command}: {notes:?}");
+        if command != "agreement-of-readings" {
+            // The view that was read under it is named; the other is not.
+            assert!(
+                notes[0].contains("front view") && !notes[0].contains("three-quarter"),
+                "{command}: {notes:?}"
+            );
+        }
+        let mut with_out = arguments.clone();
+        with_out.extend(["--out", "found-again.toml"]);
+        let printed = measure_ok(&folder, &with_out);
+        assert!(names_both(&printed), "{command}: {printed}");
+    }
+
+    // Readings under the program's own revision carry no such note.
+    for arguments in commands_on_two_readings(
+        "front-third.toml",
+        "front-fourth.toml",
+        "front-third.toml,front-fourth.toml",
+        "turned.toml",
+    ) {
+        let found = measured(&folder, &arguments, "found-own.toml");
+        assert!(said(&found).is_empty(), "{}: {found:?}", arguments[0]);
+    }
+
+    // Two readings of one drawing under two revisions are not two readings of it alike.
+    for arguments in commands_on_two_readings(
+        "front-first.toml",
+        "front-third.toml",
+        "front-first.toml,front-third.toml",
+        "turned.toml",
+    ) {
+        let message = failure(&maquette_in(Some(&folder), &arguments));
+        let command = arguments[0];
+        assert!(
+            message.contains("made-up earlier revision")
+                && message.contains(&own)
+                && message.contains("one revision"),
+            "{command}: {message}"
+        );
+    }
+}
+
+#[test]
+fn one_reading_named_twice_or_two_by_one_reader_are_not_the_two_readings_of_a_drawing() {
+    let folder = folder("measuring-not-two-readings");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front.toml");
+    MadeUp::turned("first", seen(29.0, 470.0)).write(&folder, "turned.toml");
+    std::fs::create_dir(folder.join("copies")).expect("made");
+    std::fs::copy(folder.join("front.toml"), folder.join("copies/front.toml")).expect("copied");
+
+    // The same file, under one spelling of its path or two.
+    for (second, both) in [
+        ("front.toml", "front.toml,front.toml"),
+        ("./front.toml", "front.toml,./front.toml"),
+    ] {
+        for arguments in commands_on_two_readings("front.toml", second, both, "turned.toml") {
+            let message = failure(&maquette_in(Some(&folder), &arguments));
+            assert!(
+                message.contains("front.toml") && message.contains("twice"),
+                "{} {both}: {message}",
+                arguments[0]
+            );
+        }
+    }
+
+    // Another file that carries the same reader's label.
+    for arguments in commands_on_two_readings(
+        "front.toml",
+        "copies/front.toml",
+        "front.toml,copies/front.toml",
+        "turned.toml",
+    ) {
+        let message = failure(&maquette_in(Some(&folder), &arguments));
+        assert!(
+            message.contains("made-up-front.png")
+                && message.contains("\"first\"")
+                && message.contains("separate readers"),
+            "{}: {message}",
+            arguments[0]
+        );
+    }
 }

@@ -627,12 +627,42 @@ fn reading(folder: &Folder, path: &str) -> Result<readings::Record> {
         .map_err(|error| Error::new(format!("{path}: {error}")))
 }
 
+/// A reading that is to be measured, with the bytes of its picture: read as [`reading`]
+/// reads it, and held to what `maquette check-reading` checks, against the picture as it is
+/// now. A reading that does not pass is not measured.
+fn checked_reading(folder: &Folder, path: &str) -> Result<(readings::Record, Option<Vec<u8>>)> {
+    let record = reading(folder, path)?;
+    let picture = folder.read(&record.picture.file).ok();
+    record
+        .checked(picture.as_deref())
+        .map_err(|error| Error::new(format!("{path}: {error}")))?;
+    Ok((record, picture))
+}
+
+/// Refuses one file named twice where the readings of a drawing are named, under one
+/// spelling of its path or two: a drawing's two readings are two readers' files.
+fn separate_files(folder: &Folder, paths: &[&str]) -> Result<()> {
+    let mut whole = Vec::new();
+    for path in paths {
+        let resolved = folder.path(path)?;
+        if whole.contains(&resolved) {
+            return Err(Error::new(format!(
+                "`{path}` is named twice: a drawing is read twice, by two readers, and one reading named twice is not its two readings"
+            )));
+        }
+        whole.push(resolved);
+    }
+    Ok(())
+}
+
 /// A view as a measuring command is given it: one reading, or the two readings of the
 /// drawing with a comma between them.
 fn drawing(folder: &Folder, named: &str) -> Result<readings::Drawing> {
-    let records = named
-        .split(',')
-        .map(|path| reading(folder, path.trim()))
+    let paths: Vec<&str> = named.split(',').map(str::trim).collect();
+    separate_files(folder, &paths)?;
+    let records = paths
+        .iter()
+        .map(|path| Ok(checked_reading(folder, path)?.0))
         .collect::<Result<Vec<_>>>()?;
     readings::Drawing::of(&records)
 }
@@ -659,11 +689,12 @@ fn agreement_of_readings(arguments: &[String]) -> Result<()> {
     let (folder, found) = measuring(arguments, &["--first", "--second", "--out"])?;
     let first = required(&found, "--first")?;
     let second = required(&found, "--second")?;
+    separate_files(&folder, &[first, second])?;
     let agreement = measuring::agreement(
         first,
-        &reading(&folder, first)?,
+        &checked_reading(&folder, first)?.0,
         second,
-        &reading(&folder, second)?,
+        &checked_reading(&folder, second)?.0,
     )?;
     deliver_measured(&folder, &found, &agreement.file(), &agreement.summary())
 }
@@ -788,19 +819,16 @@ fn reference_check_sheet(arguments: &[String]) -> Result<()> {
     let mut pictures = BTreeMap::new();
     let mut characters = Vec::new();
     for (label, named) in &description.characters {
+        let of_character = |error: Error| Error::new(format!("the character `{label}`: {error}"));
+        let paths: Vec<&str> = named.iter().map(String::as_str).collect();
+        separate_files(&folder, &paths).map_err(of_character)?;
         let mut reads = Vec::new();
         for path in named {
-            let record = reading(&folder, path)?;
-            // A sheet shows the picture that was read, and no other.
-            let bytes = folder.read(&record.picture.file)?;
-            let digest = readings::sha256_hex(&bytes);
-            if digest != record.picture.sha256 {
-                return Err(Error::new(format!(
-                    "{path}: the picture `{}` now has the digest {digest}, and the reading was started from {}: it is not the picture that was read",
-                    record.picture.file, record.picture.sha256
-                )));
+            // A sheet shows the picture that was read, and no other: the check says so.
+            let (record, picture) = checked_reading(&folder, path).map_err(of_character)?;
+            if let Some(bytes) = picture {
+                pictures.insert(record.picture.sha256.clone(), bytes);
             }
-            pictures.insert(digest, bytes);
             reads.push(reference_check_sheet::Read {
                 path: path.clone(),
                 record,

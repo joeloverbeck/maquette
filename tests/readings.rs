@@ -180,14 +180,7 @@ fn start(folder: &Path, view: &str, more: &[&str], out: &str) -> String {
 
 /// The landmarks a template asks for, in its order.
 fn asked(template: &str) -> Vec<String> {
-    template
-        .lines()
-        .filter_map(|line| {
-            line.strip_prefix("# ")
-                .and_then(|rest| rest.strip_suffix(" = { x = , y = }"))
-                .map(str::to_string)
-        })
-        .collect()
+    support::asked_by(template)
 }
 
 #[test]
@@ -195,13 +188,15 @@ fn a_reading_is_started_with_the_pictures_digest_and_every_landmark_of_its_view(
     let folder = folder_with_picture("readings-start");
     let template = start(&folder, "front", &[], "readings/front.toml");
 
-    // The digest is the picture's own, worked out here by another program.
-    let digest = std::process::Command::new("sha256sum")
-        .arg(folder.join("picture.png"))
-        .output()
-        .expect("sha256sum runs");
-    let digest = String::from_utf8(digest.stdout).expect("text");
-    let digest = digest.split_whitespace().next().expect("a digest");
+    // The digest is the picture's own, worked out here by the test. The test's own sum is
+    // first held to the answer the standard publishes for "abc" (FIPS 180-2, appendix B.1),
+    // so that what the reading is held to is SHA-256 in lower-case hex and not merely
+    // whatever the program writes.
+    assert_eq!(
+        support::sha256_hex(b"abc"),
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    );
+    let digest = support::sha256_of(&folder.join("picture.png"));
     assert!(
         template.contains(&format!("sha256 = \"{digest}\"")),
         "{template}"

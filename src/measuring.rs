@@ -16,7 +16,7 @@ use crate::differences::THRESHOLD_PERCENT;
 use crate::hand_made_views::{Marks, marks};
 use crate::head_model::{self, Reading as Positions, Taken};
 use crate::number::{round3, toml as toml_number};
-use crate::readings::{Drawing, Faces, Record};
+use crate::readings::{Drawing, Faces, Record, other_revision, two_readings};
 use crate::toml_text::{quoted, quoted_lines, quoted_list};
 use crate::views::View;
 use crate::{Error, Result};
@@ -79,6 +79,16 @@ fn rules_table(names: &[&str]) -> String {
         out.push_str(&format!("{name} = {}\n", quoted(rule(name))));
     }
     out
+}
+
+/// The line of a file's `[readings]` or `[source]` that says which of the readings follow a
+/// revision of the reading instructions that is not the program's. Nothing when none does.
+fn other_instructions(notes: &[String]) -> String {
+    if notes.is_empty() {
+        String::new()
+    } else {
+        format!("other_instructions = {}\n", quoted_lines(notes))
+    }
 }
 
 fn above_threshold(distance: f64, head_height: f64) -> bool {
@@ -162,12 +172,9 @@ pub fn agreement(
     second_path: &str,
     second: &Record,
 ) -> Result<Agreement> {
-    if first.picture.sha256 != second.picture.sha256 {
-        return Err(Error::new(format!(
-            "the two readings are not of one picture: `{}` has the digest {} and `{}` has {}. The agreement is between two readings of the same drawing",
-            first.picture.file, first.picture.sha256, second.picture.file, second.picture.sha256
-        )));
-    }
+    // Not `same_drawing`: two readers who judge the view differently are still set against
+    // each other, and what they judge differently is listed.
+    two_readings(first, second)?;
     let mut judged_differently = Vec::new();
     let mut judged = |what: &str, first: String, second: String| {
         if first != second {
@@ -313,6 +320,7 @@ impl Agreement {
             "second_reader = {}\n",
             quoted(&self.second.reader)
         ));
+        out.push_str(&other_instructions(&self.other_instructions()));
         if let Some(head_height) = self.head_height {
             out.push_str("\n[yardstick]\n");
             out.push_str(&format!(
@@ -432,7 +440,18 @@ impl Agreement {
                 self.first.reader, self.second.reader
             ));
         }
+        for note in self.other_instructions() {
+            out.push_str(&format!("{note}\n"));
+        }
         out
+    }
+
+    /// What is said when the two readings follow a revision of the reading instructions
+    /// that is not the program's: they follow one, or they are not compared.
+    fn other_instructions(&self) -> Vec<String> {
+        other_revision("The drawing", &self.first.instructions)
+            .into_iter()
+            .collect()
     }
 }
 
@@ -547,7 +566,7 @@ pub struct Turn {
     pub head_height: f64,
     pub front: String,
     pub three_quarter: String,
-    pub read: Vec<String>,
+    pub read: ReadFrom,
 }
 
 fn turn_of(front: &Seen, turned: &Seen, drawing: &Drawing) -> Result<Turn> {
@@ -566,15 +585,32 @@ fn turn_of(front: &Seen, turned: &Seen, drawing: &Drawing) -> Result<Turn> {
             "no left and right pair is placed whole in both views, so the turn cannot be worked out. The eye corners, the brow ends, the mouth ends and the others are listed by `maquette help`",
         ));
     }
-    let cosine = spacings
+    // A pair is two places. One that the front view shows with no spacing has nothing for
+    // the three-quarter view's spacing to have narrowed from, and would give no number.
+    let no_spacing: Vec<&str> = spacings
         .iter()
-        .map(|(_, front, turned)| front * turned)
-        .sum::<f64>()
-        / spacings
+        .filter(|(_, front, _)| *front <= 0.0)
+        .map(|(name, _, _)| name.as_str())
+        .collect();
+    if !no_spacing.is_empty() {
+        return Err(Error::new(format!(
+            "the front view shows no spacing between the two points of {}: it puts both at one place sideways, or the character's left toward the viewer's left of the right. A turn is worked out from how far a spacing narrows, so none can be worked out from these readings",
+            no_spacing.join(", ")
+        )));
+    }
+    let cosine = head_model::turn_cosine(
+        &spacings
             .iter()
-            .map(|(_, front, _)| front * front)
-            .sum::<f64>();
-    let degrees = |cosine: f64| cosine.clamp(-1.0, 1.0).acos().to_degrees();
+            .map(|(_, front, turned)| (*front, *turned))
+            .collect::<Vec<_>>(),
+    );
+    if cosine > 1.0 {
+        return Err(Error::new(format!(
+            "the three-quarter view shows its left and right pairs wider apart than the front view does, {} times as far, each view in its own unit. A turned head shows them closer together, so no turn gives this and none is reported: the drawings are not two views of one head, or a view is misjudged or misread",
+            crate::number::plain(cosine, 4)
+        )));
+    }
+    let degrees = head_model::turn_degrees;
     let mut pairs: Vec<Pair> = spacings
         .into_iter()
         .map(|(name, front_spacing, three_quarter_spacing)| {
@@ -604,7 +640,7 @@ fn turn_of(front: &Seen, turned: &Seen, drawing: &Drawing) -> Result<Turn> {
         head_height,
         front: String::new(),
         three_quarter: String::new(),
-        read: Vec::new(),
+        read: ReadFrom::default(),
     })
 }
 
@@ -615,24 +651,64 @@ pub struct Given<'a> {
     pub drawing: &'a Drawing,
 }
 
-fn read_lines(views: &[(&str, &Given)]) -> Vec<String> {
-    views
-        .iter()
-        .map(|(view, given)| {
-            let mut line = format!(
-                "The {view} view, `{}`: {}.",
-                given.drawing.picture.file,
-                given.drawing.read_by()
-            );
-            if !given.drawing.placed_by_one.is_empty() {
-                line.push_str(&format!(
-                    " Placed by one reading only and left out: {}.",
-                    given.drawing.placed_by_one.join(", ")
-                ));
-            }
-            line
-        })
-        .collect()
+/// Which readings something was worked out from, as its file says it.
+#[derive(Debug, Clone, Default)]
+pub struct ReadFrom {
+    /// One line for each view: its picture, and who read it.
+    pub lines: Vec<String>,
+    /// One line for each view that was read under a revision of the reading instructions
+    /// that is not the program's own.
+    pub other_instructions: Vec<String>,
+}
+
+impl ReadFrom {
+    fn of(views: &[(&str, &Given)]) -> ReadFrom {
+        let lines = views
+            .iter()
+            .map(|(view, given)| {
+                let mut line = format!(
+                    "The {view} view, `{}`: {}.",
+                    given.drawing.picture.file,
+                    given.drawing.read_by()
+                );
+                if !given.drawing.placed_by_one.is_empty() {
+                    line.push_str(&format!(
+                        " Placed by one reading only and left out: {}.",
+                        given.drawing.placed_by_one.join(", ")
+                    ));
+                }
+                line
+            })
+            .collect();
+        let other_instructions = views
+            .iter()
+            .filter_map(|(view, given)| {
+                other_revision(&format!("The {view} view"), &given.drawing.instructions)
+            })
+            .collect();
+        ReadFrom {
+            lines,
+            other_instructions,
+        }
+    }
+
+    /// The lines of a file's `[readings]` or `[source]`.
+    fn file(&self) -> String {
+        format!(
+            "read = {}\n{}",
+            quoted_lines(&self.lines),
+            other_instructions(&self.other_instructions)
+        )
+    }
+
+    /// What a person is told beside the result: only what was not read by the instructions
+    /// as they stand.
+    fn summary(&self) -> String {
+        self.other_instructions
+            .iter()
+            .map(|note| format!("{note}\n"))
+            .collect()
+    }
 }
 
 /// Works out the turn a three-quarter drawing shows from the front view of the same
@@ -643,7 +719,7 @@ pub fn turn(front: &Given, three_quarter: &Given) -> Result<Turn> {
     let mut turn = turn_of(&seen_front, &seen_turned, three_quarter.drawing)?;
     turn.front = front.named.to_string();
     turn.three_quarter = three_quarter.named.to_string();
-    turn.read = read_lines(&[("front", front), ("three-quarter", three_quarter)]);
+    turn.read = ReadFrom::of(&[("front", front), ("three-quarter", three_quarter)]);
     Ok(turn)
 }
 
@@ -664,7 +740,7 @@ impl Turn {
             "three_quarter = {}\n",
             quoted(&self.three_quarter)
         ));
-        out.push_str(&format!("read = {}\n", quoted_lines(&self.read)));
+        out.push_str(&self.read.file());
         out.push_str("\n[turn]\n");
         out.push_str(&format!("degrees = {}\n", toml_number(self.degrees, 3)));
         out.push_str(&format!("cosine = {}\n", toml_number(self.cosine, 5)));
@@ -759,6 +835,7 @@ impl Turn {
             plain(worst.misfit_percent_of_head_height.abs(), 3),
             worst.name
         ));
+        out.push_str(&self.read.summary());
         out
     }
 }
@@ -785,7 +862,7 @@ pub struct Fit {
     pub misfits: Vec<Misfit>,
     pub turn: Turn,
     pub views: Vec<String>,
-    pub read: Vec<String>,
+    pub read: ReadFrom,
 }
 
 /// Whether a landmark's height says where a feature of the head is.
@@ -908,7 +985,7 @@ pub fn fit(front: &Given, three_quarter: &Given, side: Option<&Given>) -> Result
     if let Some(side) = side {
         given.push(("side", side));
     }
-    turn.read = read_lines(&given[..2]);
+    turn.read = ReadFrom::of(&given[..2]);
     Ok(Fit {
         percent_of_head_height: misfits
             .first()
@@ -920,7 +997,7 @@ pub fn fit(front: &Given, three_quarter: &Given, side: Option<&Given>) -> Result
             .iter()
             .map(|(view, given)| format!("{view}: {}", given.named))
             .collect(),
-        read: read_lines(&given),
+        read: ReadFrom::of(&given),
     })
 }
 
@@ -937,7 +1014,7 @@ impl Fit {
         );
         out.push_str("\n[readings]\n");
         out.push_str(&format!("views = {}\n", quoted_lines(&self.views)));
-        out.push_str(&format!("read = {}\n", quoted_lines(&self.read)));
+        out.push_str(&self.read.file());
         out.push_str("\n[fit]\n");
         out.push_str(&format!(
             "percent_of_head_height = {}\n",
@@ -1021,6 +1098,7 @@ impl Fit {
             plain(self.turn.degrees, 2),
             self.turn.faces.words()
         ));
+        out.push_str(&self.read.summary());
         out
     }
 }
@@ -1119,7 +1197,7 @@ pub struct Proportions {
     pub taken: Taken,
     pub turn: Turn,
     pub views: Vec<String>,
-    pub read: Vec<String>,
+    pub read: ReadFrom,
     pub digests: BTreeMap<String, String>,
 }
 
@@ -1138,7 +1216,7 @@ pub fn proportions(front: &Given, three_quarter: &Given) -> Result<Proportions> 
             .iter()
             .map(|(view, given)| format!("{view}: {}", given.named))
             .collect(),
-        read: read_lines(&given),
+        read: ReadFrom::of(&given),
         digests: given
             .iter()
             .map(|(view, given)| (view.replace('-', "_"), given.drawing.picture.sha256.clone()))
@@ -1165,7 +1243,7 @@ impl Proportions {
         );
         out.push_str("\n[source]\n");
         out.push_str(&format!("views = {}\n", quoted_lines(&self.views)));
-        out.push_str(&format!("read = {}\n", quoted_lines(&self.read)));
+        out.push_str(&self.read.file());
         for (view, digest) in &self.digests {
             out.push_str(&format!("{view}_sha256 = {}\n", quoted(digest)));
         }
@@ -1213,6 +1291,7 @@ impl Proportions {
         for (name, why) in &self.taken.not_given {
             out.push_str(&format!("  not given: {name}: {why}\n"));
         }
+        out.push_str(&self.read.summary());
         out
     }
 }

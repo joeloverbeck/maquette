@@ -699,6 +699,31 @@ fn spec(stem: &str, point: &str) -> &'static Spec {
         .unwrap_or_else(|| panic!("the head model has no landmark {stem} {point}"))
 }
 
+/// The cosine of the turn a three-quarter view shows, from its left and right pairs: for
+/// each, how far apart the front view shows it and how far apart the three-quarter view
+/// does, each in its own view's unit.
+///
+/// A level head turned about an upright axis, drawn flat, shows two landmarks that mirror
+/// each other across the centre line cos(turn) times as far apart as the front view does,
+/// whatever their depth. The one turn for the head is the one that leaves the least squared
+/// misfit in spacing over the pairs: the sum of front times three-quarter over the sum of
+/// front squared.
+///
+/// This is the arithmetic only. Which pairs count is each caller's to state, on its own
+/// evidence. The result is not a number when no pair has a spacing in the front view, and
+/// above 1 when the three-quarter view shows the pairs wider apart: neither is a turn.
+pub fn turn_cosine(pairs: &[(f64, f64)]) -> f64 {
+    let front_by_turned: f64 = pairs.iter().map(|(front, turned)| front * turned).sum();
+    let front_squared: f64 = pairs.iter().map(|(front, _)| front * front).sum();
+    front_by_turned / front_squared
+}
+
+/// The turn, in degrees, that narrows a spacing to `cosine` of what the front view shows.
+/// A ratio outside -1 to 1 is no turn's, and is taken at the nearest end.
+pub fn turn_degrees(cosine: f64) -> f64 {
+    cosine.clamp(-1.0, 1.0).acos().to_degrees()
+}
+
 /// Where the skull of a head taken back from views came from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Skull {

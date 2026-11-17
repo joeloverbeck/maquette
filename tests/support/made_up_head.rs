@@ -67,13 +67,15 @@ pub fn flipped(points: &BTreeMap<String, [f64; 2]>) -> BTreeMap<String, [f64; 2]
         .collect()
 }
 
-/// A made-up reading, written as a reader's file is.
+/// A made-up reading, written as a reader's file is: of a made-up picture that is in the
+/// folder, and complete, so that it passes `maquette check-reading` unless a test spoils it.
 pub struct MadeUp {
     pub reader: String,
-    /// The picture's file in the reference folder.
+    /// The picture's file in the reference folder. One that is not there is made: plain grey.
     pub picture: String,
-    /// The picture's digest. Where no picture stands behind the reading it is made up too.
-    pub sha256: String,
+    /// The revision of the reading instructions the reading says it follows, where it is not
+    /// the program's own.
+    pub instructions: Option<String>,
     pub view: &'static str,
     pub faces: Option<&'static str>,
     pub stated_turn: f64,
@@ -87,7 +89,7 @@ impl MadeUp {
         MadeUp {
             reader: reader.to_string(),
             picture: "made-up-front.png".to_string(),
-            sha256: "made-up-front-digest".to_string(),
+            instructions: None,
             view: "front",
             faces: None,
             stated_turn: 0.0,
@@ -101,7 +103,7 @@ impl MadeUp {
         MadeUp {
             reader: reader.to_string(),
             picture: "made-up-three-quarter.png".to_string(),
-            sha256: "made-up-three-quarter-digest".to_string(),
+            instructions: None,
             view: "three-quarter",
             faces: Some("the viewer's right"),
             stated_turn: 30.0,
@@ -111,16 +113,60 @@ impl MadeUp {
         }
     }
 
-    /// Writes the reading into a made-up reference folder.
+    /// Writes the reading into a made-up reference folder, and its picture where the folder
+    /// has none under that name.
+    ///
+    /// The program starts the reading, as it does for a reader: that gives the picture's
+    /// digest, the revision of the instructions and the landmarks the view asks for. Each of
+    /// those the made-up head has is placed, and the rest are stated as not seen.
     pub fn write(&self, folder: &Path, name: &str) {
+        let picture = folder.join(&self.picture);
+        if !picture.exists() {
+            // Each view's picture is another picture: the block stands at another place.
+            let block = match self.view {
+                "front" => [40, 20],
+                "three-quarter" => [80, 20],
+                _ => [120, 20],
+            };
+            super::made_up_image_with_block(&picture, PICTURE_WIDTH as u32, 1000, block);
+        }
+        let started = format!("{name}.started");
+        let mut arguments = vec![
+            "start-reading",
+            "--image",
+            &self.picture,
+            "--view",
+            self.view,
+            "--reader",
+            &self.reader,
+            "--out",
+            &started,
+        ];
+        match self.faces {
+            Some("the viewer's right") => arguments.extend(["--faces", "right"]),
+            Some("the viewer's left") => arguments.extend(["--faces", "left"]),
+            Some(other) => panic!("a made-up head cannot face {other}"),
+            None => {}
+        }
+        super::measure_ok(folder, &arguments);
+        let template = super::text(&folder.join(&started));
+        std::fs::remove_file(folder.join(&started)).expect("the started reading can be removed");
+
         let mut out = String::from(
             "# A made-up reading for a test. No drawing was read: the positions are a made-up head's.\n",
         );
-        out.push_str("instructions = \"made up\"\n\n[reader]\n");
+        out.push_str(&format!(
+            "instructions = \"{}\"\n\n[reader]\n",
+            match &self.instructions {
+                Some(revision) => revision.clone(),
+                None => super::said_by(&template, "instructions"),
+            }
+        ));
         out.push_str(&format!("name = \"{}\"\naids = \"made up\"\n", self.reader));
         out.push_str(&format!(
             "\n[image]\nfile = \"{}\"\nsha256 = \"{}\"\nwidth = {PICTURE_WIDTH}\nheight = 1000\n",
-            self.picture, self.sha256
+            self.picture,
+            super::said_by(&template, "sha256")
         ));
         out.push_str(
             "\n[reference]\nwork = \"a made-up work\"\ndesigner = \"a made-up designer\"\nsource = \"a made-up source\"\nage_band = \"adult\"\nsex = \"woman\"\nspecies = \"human\"\nmanner = \"made up\"\n",
@@ -138,6 +184,7 @@ impl MadeUp {
             "turn_degrees = {:?}\nlevel = {}\nlevel_why = \"made up: the level\"\nset_aside = {}\nset_aside_why = \"made up: the head looks down\"\n\n[landmarks]\n",
             self.stated_turn, self.level, self.set_aside
         ));
+        // A drawing that is set aside has nothing placed.
         if !self.set_aside {
             for (name, at) in &self.points {
                 out.push_str(&format!(
@@ -145,11 +192,13 @@ impl MadeUp {
                     at[0], at[1]
                 ));
             }
+            out.push_str("\n[not_seen]\n");
+            for asked in super::asked_by(&template) {
+                if !self.points.contains_key(&asked) {
+                    out.push_str(&format!("{asked} = \"made up: not in the made-up head\"\n"));
+                }
+            }
         }
-        let path = folder.join(name);
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).expect("the folder can be made");
-        }
-        std::fs::write(path, out).expect("the made-up reading is written");
+        std::fs::write(folder.join(name), out).expect("the made-up reading is written");
     }
 }
