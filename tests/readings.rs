@@ -154,6 +154,96 @@ fn with_no_reference_folder_drawing_still_works() {
     assert!(instructions.status.success());
 }
 
+/// `--references` names the reference folder on the command line, so that a command can begin
+/// with the program's own name. It wins over the environment variable.
+#[test]
+fn the_reference_folder_can_be_named_on_the_command_line_and_that_wins_over_the_environment() {
+    let named = folder_with_picture("readings-named-on-the-command-line");
+    let absent = references("readings-named-absent").join("not-there");
+    for environment in [None, Some(absent.as_path())] {
+        let out = format!("front-{}.toml", environment.is_some());
+        let output = maquette_in(
+            environment,
+            &[
+                "start-reading",
+                "--references",
+                path_text(&named),
+                "--image",
+                "picture.png",
+                "--view",
+                "front",
+                "--reader",
+                "first made-up reader",
+                "--out",
+                &out,
+            ],
+        );
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(named.join(&out).is_file(), "{out} was not written");
+    }
+    // It may stand anywhere among the options, as every option may. The reading was only
+    // started, so its check finds it incomplete: it was found in the folder named.
+    let checked = maquette_in(
+        Some(&absent),
+        &[
+            "check-reading",
+            "--reading",
+            "front-false.toml",
+            "--references",
+            path_text(&named),
+        ],
+    );
+    let said = String::from_utf8_lossy(&checked.stdout);
+    assert!(
+        said.contains("The reading is not complete"),
+        "{said}{}",
+        String::from_utf8_lossy(&checked.stderr)
+    );
+}
+
+#[test]
+fn a_reference_folder_named_on_the_command_line_is_held_to_what_the_environment_is_held_to() {
+    let absent = references("readings-named-folder-absent").join("not-there");
+    for arguments in MEASURING {
+        let mut with_option = arguments.to_vec();
+        with_option.extend_from_slice(&["--references", path_text(&absent)]);
+        let message = failure(&maquette_in(None, &with_option));
+        let command = arguments[0];
+        assert!(
+            message.contains("does not exist")
+                && message.contains("--references")
+                && message.contains("nothing can be measured"),
+            "{command}: {message}"
+        );
+    }
+    let missing_value = failure(&maquette_in(None, &["check-reading", "--references"]));
+    assert!(
+        missing_value.contains("`--references` needs a value"),
+        "{missing_value}"
+    );
+    let inside = scratch("readings-named-folder-in-a-repository");
+    let message = failure(&maquette_in(
+        None,
+        &[
+            "check-reading",
+            "--references",
+            path_text(&inside),
+            "--reading",
+            "front.toml",
+        ],
+    ));
+    assert!(
+        message.contains("is inside the Git repository")
+            && message.contains("--references")
+            && message.contains("outside every repository"),
+        "{message}"
+    );
+}
+
 /// A made-up reference folder with one made-up picture in it.
 fn folder_with_picture(name: &str) -> PathBuf {
     let folder = references(name);

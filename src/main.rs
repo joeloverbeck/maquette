@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use maquette::head_model;
-use maquette::reference_folder::Folder;
+use maquette::reference_folder::{self, Folder};
 use maquette::views::Placement;
 use maquette::{
     Error, Result, armature, differences, enlargement, hand_made_drawings, hand_made_views,
@@ -134,8 +134,8 @@ Usage:
 
 Measuring. The commands below read and write in the reference folder, the one folder
 outside every repository that holds reference images, readings and reference check sheets.
-The environment variable MAQUETTE_REFERENCES names it; a folder inside a Git repository is
-refused. Every path given to them is taken from that folder, and one that leaves it, by its
+Each of them takes --references <folder>, which names it; without that option the environment
+variable MAQUETTE_REFERENCES names it. A folder inside a Git repository is refused. Every path given to them is taken from that folder, and one that leaves it, by its
 own steps or through a link, is refused; with no folder they stop and say so.
 Where a view is asked for, <readings> is one reading, or the two readings of the drawing
 with a comma between them: a landmark then stands midway between the two.
@@ -666,13 +666,31 @@ fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
 }
 
 /// The reference folder and the options of a measuring command. The folder comes first: with
-/// none, a measuring command stops before it looks at anything else.
+/// none, a measuring command stops before it looks at anything else. Every measuring command
+/// takes `--references`, which names the folder and wins over the environment.
 fn measuring<'a>(
     arguments: &'a [String],
     allowed: &[&str],
 ) -> Result<(Folder, BTreeMap<&'a str, &'a str>)> {
-    let folder = Folder::configured()?;
-    Ok((folder, options(arguments, allowed)?))
+    // Options come in pairs, a name and its value, so the name is the first of a pair.
+    let named = match arguments
+        .chunks(2)
+        .find(|pair| pair[0] == reference_folder::OPTION)
+    {
+        Some([_, folder]) => Some(folder.as_str()),
+        Some(_) => {
+            return Err(Error::new(format!(
+                "`{}` needs a value",
+                reference_folder::OPTION
+            )));
+        }
+        None => None,
+    };
+    let folder = Folder::configured(named)?;
+    let allowed = [allowed, &[reference_folder::OPTION]].concat();
+    let mut found = options(arguments, &allowed)?;
+    found.remove(reference_folder::OPTION);
+    Ok((folder, found))
 }
 
 /// A reading of the reference folder, read. Its path is named in what goes wrong.

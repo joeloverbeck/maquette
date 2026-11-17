@@ -55,6 +55,9 @@ If required text cannot be located or read, substantive work is unauthorized. Pr
 - **Using a research finding, a reference drawing or a measurement, or committing data:** `docs/foundation/04-evidence-and-references.md`.
 - **Writing code or tooling, or drawing, laying out or mocking up anything with VectorCraft or FigCraft:** `docs/foundation/05-code-and-design-tools.md`.
 - **The research behind the founding:** `docs/research/2026-11-15-feasibility/`. Evidence only.
+- **Putting a sheet to Jon's eyes:** `docs/agents/looks.md`.
+- **Running a spec or launching subagents:** `docs/agents/running-a-spec.md`.
+- **Briefing readers of drawings:** `docs/agents/reader-brief.md`.
 
 ## House rules
 

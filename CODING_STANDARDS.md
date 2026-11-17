@@ -1,0 +1,11 @@
+# Coding standards
+
+Read at review, not at implementation. These are judgements a reviewer makes; `cargo fmt`, clippy and the tests enforce the rest, and are not restated here. Each rule says where it comes from.
+
+- **A landmark name means one point, in every view.** A point that a view shows differently, such as the tip of the nose in a profile and the base of the nose mark from the front, gets its own name; it does not share one and differ by view. Look 5 drew a long nose from a tip's depth set at a base's height under one name (issue #10). Where it comes from: `docs/foundation/02-first-table.md`, "The increment", part 5; README.md, "Building, checking and drawing".
+- **The head model is the one place that relates proportions and landmarks.** Both directions, proportions to landmarks and landmarks back, go through `src/head_model.rs`; a view, a guide, a reading or a check that needs the relation calls it, and does not work it out again. Where it comes from: the head of `src/head_model.rs`.
+- **A departure from flat projection is a named correction with an amount,** stated in the list of proportions and carried by a set. Nothing moves a landmark in one view by a rule of its own. Where it comes from: README.md, "Building, checking and drawing".
+- **Tests drive the command line, files in and files out.** A test runs the program as a user would and reads what it writes; it reaches no private function. Where it comes from: the head of `tests/support/mod.rs`; README.md, "Where things are".
+- **An expected value comes from somewhere the code under test does not:** a landmark file, a worked example, a recorded reply, a drawing with known positions. Never from the output it checks. Where it comes from: `EVID-4`; the oracle in `02-first-table.md`, "The SVG contract".
+- **A made-up fixture says it is made up,** in its own text, and claims nothing about a real character or a real drawing. Where it comes from: `OPS-7`; README.md, "Where things are", `tests/`.
+- **Nothing private is committed:** no reference image, crop or reading, no path on Jon's machine, no name of the reference folder. `tests/nothing_private_is_committed.rs` checks what can be checked; a reviewer checks names of works, characters and designers, which no test can. Where it comes from: `docs/foundation/04-evidence-and-references.md`; README.md, "The reference folder".
