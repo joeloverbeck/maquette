@@ -4,9 +4,12 @@
 //! upright axis through the skull's centre, so a landmark keeps its height in every view, and
 //! its sideways position is its offset times the cosine of the turn plus its depth times the
 //! sine. The side view is the same turn carried to 90 degrees: it shows a landmark's depth as
-//! its sideways position, and it faces the viewer's right. There is no perspective and no
-//! correction: a departure from this would be a named correction with an amount, and there is
-//! none.
+//! its sideways position, and it faces the viewer's right. There is no perspective.
+//!
+//! A departure from this is a named correction with an amount, which the list of proportions
+//! defines and a set of proportions carries. There is one: in the side view only, the mouth
+//! and the chin are drawn further back than their depths. A landmark it moves keeps its depth
+//! and says beside it where the view draws it. A set that carries no correction is drawn flat.
 
 use crate::head_model::Head;
 use crate::number::round3;
@@ -128,6 +131,22 @@ pub struct Placed {
     /// between the two eye openings' centres, as the list of proportions defines it. It is the
     /// same in every view.
     pub depth: f64,
+    /// Set when a named correction moves the landmark in this view: the depth the view draws
+    /// it at, in SVG units, which is where its `x` stands. Its `depth` is still its place in
+    /// space.
+    pub drawn_at_depth: Option<f64>,
+}
+
+/// One amount of a named correction as a view carries it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SetBack {
+    /// The correction's name in the list of proportions.
+    pub correction: &'static str,
+    /// The amount's name there.
+    pub amount: &'static str,
+    /// How far behind their depth the view draws the landmarks, in SVG units.
+    pub by: f64,
+    pub landmarks: Vec<String>,
 }
 
 /// A head as one view shows it.
@@ -146,6 +165,8 @@ pub struct Seen {
     /// Hair top to chin, in SVG units.
     pub head_height: f64,
     pub landmarks: Vec<Placed>,
+    /// The amounts of the named corrections this view carries. Only the side view carries any.
+    pub set_backs: Vec<SetBack>,
     cos: f64,
     sin: f64,
     axis_depth: f64,
@@ -209,18 +230,41 @@ pub fn show(head: &Head, view: View, placement: &Placement) -> Seen {
         View::ThreeQuarter => placement.three_quarter_axis_x,
         View::Side => placement.side_axis_x,
     };
+    // The named corrections set landmarks back in the side view and in no other.
+    let set_backs: &[crate::head_model::SetBack] = if view == View::Side {
+        &head.side_set_backs
+    } else {
+        &[]
+    };
     let landmarks = head
         .landmarks
         .iter()
         .map(|landmark| {
-            let in_front_of_axis = landmark.depth - axis_depth;
+            let set_back = set_backs
+                .iter()
+                .find(|set_back| set_back.landmarks.contains(&landmark.name))
+                .map(|set_back| set_back.by);
+            // Where the view draws the point: its depth, less a correction's amount.
+            let drawn_depth = landmark.depth - set_back.unwrap_or(0.0);
             Placed {
                 name: landmark.name.clone(),
                 x: turn_axis_x
-                    + round3((landmark.offset * cos + in_front_of_axis * sin) * placement.unit),
+                    + round3(
+                        (landmark.offset * cos + (drawn_depth - axis_depth) * sin) * placement.unit,
+                    ),
                 y: placement.eye_line_y + round3(landmark.drop * placement.unit),
                 depth: round3(landmark.depth * placement.unit),
+                drawn_at_depth: set_back.map(|_| round3(drawn_depth * placement.unit)),
             }
+        })
+        .collect();
+    let set_backs = set_backs
+        .iter()
+        .map(|set_back| SetBack {
+            correction: set_back.correction,
+            amount: set_back.amount,
+            by: round3(set_back.by * placement.unit),
+            landmarks: set_back.landmarks.clone(),
         })
         .collect();
     Seen {
@@ -234,6 +278,7 @@ pub fn show(head: &Head, view: View, placement: &Placement) -> Seen {
         turn_axis_depth: round3(axis_depth * placement.unit),
         head_height: round3(head.head_height * placement.unit),
         landmarks,
+        set_backs,
         cos,
         sin,
         axis_depth,

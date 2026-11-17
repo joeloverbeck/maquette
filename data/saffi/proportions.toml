@@ -40,6 +40,10 @@ disagreement_rules = [
   "What the three-quarter view does not show is taken from the front view: a point's height, a pair's offset when one of its points is missing, and the half-width of a silhouette.",
   "The neck and the shoulder line take their widths from the front view. A neck is a column, whose width does not narrow as it turns, and the widest span of the figure is read where nothing foreshortens it.",
 ]
+# The share of the chin's full amount at which the named correction `lower_face_set_back`, at the
+# end of this file, was worked out from this set's own depths. The list of proportions states the
+# rule of each amount. The drawings give no side view, so no amount was measured on them.
+lower_face_set_back_share = 0.5
 
 # Where each hand-made view puts the unit, the eye line and the upright axis the head turns about,
 # in the record's own units. `maquette draw` with these lays a generated view over the hand-made one.
@@ -127,3 +131,9 @@ neck_base_drop = 1.056492
 shoulder_half_width = 1.906641
 shoulder_drop = 1.909002
 shoulder_depth = -0.988595
+
+# Corrections: named departures from flat projection, each with its amounts in units.
+# `maquette list-proportions` defines each, and says which view it changes.
+[corrections.lower_face_set_back]
+chin = 0.10432
+mouth = 0.09083

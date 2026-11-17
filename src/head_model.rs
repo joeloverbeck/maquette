@@ -31,10 +31,47 @@ pub struct Landmark {
     pub depth: f64,
 }
 
+/// One amount of a named correction as a head carries it: the landmarks the side view draws
+/// further back than their depth, and by how much. The landmarks keep their place in space.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SetBack {
+    /// The correction's name in the list of proportions.
+    pub correction: &'static str,
+    /// The amount's name there.
+    pub amount: &'static str,
+    /// How far behind their depth the side view draws the landmarks, in units.
+    pub by: f64,
+    pub landmarks: Vec<String>,
+}
+
+/// The correction of the list that sets the lower face back in the side view.
+const LOWER_FACE_SET_BACK: &str = "lower_face_set_back";
+
+/// Which landmarks each amount of that correction sets back: the chin with the jaw point
+/// beside it, and the mouth line's centre with its two ends. `proportions/list.toml` states
+/// this for a person.
+const LOWER_FACE_SET_BACK_MOVES: &[(&str, &[&str])] = &[
+    (
+        "chin",
+        &["chin", "face-outline-right-jaw", "face-outline-left-jaw"],
+    ),
+    (
+        "mouth",
+        &[
+            "mouth-line-centre",
+            "mouth-line-right-end",
+            "mouth-line-left-end",
+        ],
+    ),
+];
+
 /// A head in space: its landmarks, and the sizes of the forms that are not points.
 #[derive(Debug, Clone)]
 pub struct Head {
     pub landmarks: Vec<Landmark>,
+    /// What the side view draws further back than its depth: the amounts of the named
+    /// corrections the set of proportions carries. Empty when it carries none.
+    pub side_set_backs: Vec<SetBack>,
     /// Hair top to chin.
     pub head_height: f64,
     pub skull_radius: f64,
@@ -260,8 +297,25 @@ pub fn head(set: &Set) -> Result<Head> {
         }
     }
 
+    let mut side_set_backs = Vec::new();
+    if let Some(amounts) = set.correction(LOWER_FACE_SET_BACK) {
+        for (amount, moved) in LOWER_FACE_SET_BACK_MOVES {
+            // An amount the list does not give this correction is a fault in the program.
+            let by = *amounts.get(*amount).unwrap_or_else(|| {
+                panic!("the list of proportions gives `{LOWER_FACE_SET_BACK}` no amount `{amount}`, which the head model uses")
+            });
+            side_set_backs.push(SetBack {
+                correction: LOWER_FACE_SET_BACK,
+                amount,
+                by,
+                landmarks: moved.iter().map(|name| name.to_string()).collect(),
+            });
+        }
+    }
+
     Ok(Head {
         landmarks,
+        side_set_backs,
         head_height: set.get("hair_top_rise") + 1.0,
         skull_radius: set.get("skull_radius"),
         iris_width: set.get("iris_width"),
@@ -272,6 +326,38 @@ pub fn head(set: &Set) -> Result<Head> {
         neck_depth: set.get("neck_depth"),
         neck_base_drop: set.get("neck_base_drop"),
     })
+}
+
+/// The set carrying the named correction `lower_face_set_back`, with its amounts worked out
+/// from the set's own depths as `proportions/list.toml` states their rules.
+///
+/// `share` is how much of the chin's full amount to take, from 0 to 1. The full amount draws
+/// the chin straight below the iris's centre. The mouth's amount then brings the mouth line's
+/// centre onto the straight line from the nose mark's bottom to the chin as drawn. Neither
+/// amount is below zero: a point that is already there or behind it is left alone.
+pub fn with_lower_face_set_back(set: Set, share: f64) -> Result<Set> {
+    if !(0.0..=1.0).contains(&share) {
+        return Err(Error::new(format!(
+            "the share of the lower face's set-back is {share}, and it is a share from 0 to 1"
+        )));
+    }
+    let chin = (share * (set.get("chin_depth") - set.get("iris_depth"))).max(0.0);
+    let nose_drop = set.get("nose_mark_bottom_drop");
+    let mouth_drop = set.get("mouth_centre_drop");
+    if !(nose_drop < mouth_drop && mouth_drop < 1.0) {
+        return Err(Error::new(format!(
+            "the mouth line's centre is {mouth_drop} below the eye line, the nose mark's bottom {nose_drop} and the chin 1, so the mouth is not between them and the line from the nose mark to the chin does not pass its height"
+        )));
+    }
+    let nose_depth = set.get("nose_mark_bottom_depth");
+    let chin_drawn = set.get("chin_depth") - chin;
+    let line_at_mouth =
+        nose_depth + (mouth_drop - nose_drop) / (1.0 - nose_drop) * (chin_drawn - nose_depth);
+    let mouth = (set.get("mouth_centre_depth") - line_at_mouth).max(0.0);
+    set.with_correction(
+        LOWER_FACE_SET_BACK,
+        BTreeMap::from([("chin".to_string(), chin), ("mouth".to_string(), mouth)]),
+    )
 }
 
 /// The rules of the head model: every coordinate the table marks `Rule`.

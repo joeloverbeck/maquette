@@ -81,11 +81,15 @@ The level midway between the top and the bottom of the eye opening. The eye leve
 How far a point stands in front of the eyes, toward where the face points. A front view shows none.
 
 **Set of proportions**:
-One value for every proportion of the list: what the generator draws one head from.
+One value for every proportion of the list, with the amounts of any correction it carries: what the generator draws one head from.
 _Avoid_: preset, parameters, settings
 
 **Convention**:
 A proportion or a guide built by a stated rule because nothing is drawn behind it, such as the skull under the hair. It is never a measurement and has no valid range.
+
+**Correction**:
+A named departure from flat projection, with an amount, that a set of proportions carries and one view draws. The list of proportions defines each, and the landmark file of the view it changes gives every moved landmark's depth in space beside the depth it is drawn at.
+_Avoid_: tweak, cheat, adjustment, fix
 
 **Head height**:
 The distance from the hair's top to the chin of a level head. Differences between positions are stated as shares of it.
