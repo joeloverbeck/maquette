@@ -565,3 +565,85 @@ fn measuring_takes_only_what_jon_accepted_and_leaves_out_what_he_marked() {
     let (said, complete) = what_is_said(&folder);
     assert!(!complete && said.contains("has changed since"), "{said}");
 }
+
+#[test]
+fn a_mark_on_one_readers_reading_leaves_the_landmark_to_the_other_reader() {
+    let folder = folder("jons-check-one-reader");
+    // Made up: work-1's second reader puts both brows 20 pixels lower than the first does,
+    // on what the test has Jon rule are the folds of the eyes.
+    let lower: std::collections::BTreeMap<String, [f64; 2]> = seen(0.0, 500.0)
+        .into_iter()
+        .map(|(name, at)| match name.starts_with("brow-line-") {
+            true => (name, [at[0], at[1] + 20.0]),
+            false => (name, at),
+        })
+        .collect();
+    write(
+        &folder,
+        MadeUp::front("second", lower),
+        1,
+        "work-1-front.png",
+        "second/work-1-front.toml",
+    );
+    let record = say(
+        &all_accepted(&folder),
+        "work-1",
+        "accepted",
+        &[(
+            "front",
+            "off = []",
+            "off = [{ landmark = \"brow-line-*\", reader = \"second\" }]",
+        )],
+    );
+    filled(&folder, &record);
+    let (said, complete) = what_is_said(&folder);
+    assert!(complete, "{said}");
+    assert!(
+        said.contains("brow-line-* in the reading by second"),
+        "{said}"
+    );
+
+    let output = taken_with_check(&folder, &["--front", &both(1, "front")], "marked.toml");
+    assert!(output.status.success(), "{}", failure(&output));
+    let printed = String::from_utf8_lossy(&output.stdout).into_owned();
+    assert!(
+        printed.contains("from the reading by first alone, because Jon's mark left out the reading by second: brow-line-left-inner-end"),
+        "{printed}"
+    );
+    let read = text(&folder.join("marked.toml"));
+    assert!(
+        read.contains("because Jon's mark left out the reading by second"),
+        "{read}"
+    );
+    let marked = support::proportions(&folder.join("marked.toml"));
+    // The brows are the first reader's alone: the same as from the first reading by itself,
+    // and not midway between the two.
+    let output = taken(
+        &folder,
+        &["--front", "first/work-1-front.toml"],
+        "first.toml",
+    );
+    assert!(output.status.success(), "{}", failure(&output));
+    let first = support::proportions(&folder.join("first.toml"));
+    for name in [
+        "brow_inner_end_rise",
+        "brow_outer_end_rise",
+        "brow_inner_end_offset",
+        "brow_outer_end_offset",
+    ] {
+        support::assert_close(marked[name], first[name], 1e-9, name);
+    }
+    // 0.3 units above the eye line, as the made-up head has it; midway would be 0.25.
+    support::assert_close(
+        marked["brow_inner_end_rise"],
+        0.3,
+        1e-9,
+        "the inner end's rise",
+    );
+
+    // A mark that names no reader of the drawing is said, and the record is not complete.
+    let spoiled = record.replace("reader = \"second\"", "reader = \"third\"");
+    filled(&folder, &spoiled);
+    let (said, complete) = what_is_said(&folder);
+    assert!(!complete && said.contains("`third`"), "{said}");
+}

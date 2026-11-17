@@ -11,7 +11,7 @@
 //! for: the skull, the middle of an eye opening, the centre of an iris, and the jaw line
 //! above the nose level.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest, Sha256};
 
@@ -1104,6 +1104,20 @@ pub struct Drawing {
     pub placed: BTreeMap<String, [f64; 2]>,
     /// The landmarks only one of two readings places. They are left out.
     pub placed_by_one: Vec<String>,
+    /// The landmarks taken from one of two readings because Jon's mark left the other
+    /// reading's point out.
+    pub left_to_one: Vec<LeftToOne>,
+}
+
+/// A landmark of a drawing read twice that is taken from one reading alone, because Jon's
+/// mark left the other reading's point of it out.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LeftToOne {
+    pub landmark: String,
+    /// The reader whose point is taken.
+    pub kept: String,
+    /// The reader whose point Jon's mark left out.
+    pub left_out: String,
 }
 
 impl Drawing {
@@ -1111,6 +1125,15 @@ impl Drawing {
     /// that is not set aside, and two must be the two readings of one drawing, as
     /// [`same_drawing`] says.
     pub fn of(records: &[Record]) -> Result<Drawing> {
+        Drawing::of_marked(records, &[])
+    }
+
+    /// Takes readings together as [`Drawing::of`] does, after Jon's marks: `marked[i]` are
+    /// the landmarks a mark of his left out of `records[i]` alone. A landmark that one
+    /// reading places, and whose point in the other a mark left out, is taken from the one.
+    pub fn of_marked(records: &[Record], marked: &[BTreeSet<String>]) -> Result<Drawing> {
+        let marked_in =
+            |index: usize, name: &str| marked.get(index).is_some_and(|names| names.contains(name));
         let (first, second) = match records {
             [first] => (first, None),
             [first, second] => (first, Some(second)),
@@ -1130,6 +1153,7 @@ impl Drawing {
             stated_turns: first.turn_degrees.into_iter().collect(),
             placed: first.placed.clone(),
             placed_by_one: Vec::new(),
+            left_to_one: Vec::new(),
         };
         if let Some(second) = second {
             second.measurable()?;
@@ -1145,11 +1169,29 @@ impl Drawing {
                             [(at[0] + other[0]) / 2.0, (at[1] + other[1]) / 2.0],
                         );
                     }
+                    None if marked_in(1, name) => {
+                        drawing.placed.insert(name.clone(), *at);
+                        drawing.left_to_one.push(LeftToOne {
+                            landmark: name.clone(),
+                            kept: first.reader.clone(),
+                            left_out: second.reader.clone(),
+                        });
+                    }
                     None => drawing.placed_by_one.push(name.clone()),
                 }
             }
-            for name in second.placed.keys() {
-                if !first.placed.contains_key(name) {
+            for (name, at) in &second.placed {
+                if first.placed.contains_key(name) {
+                    continue;
+                }
+                if marked_in(0, name) {
+                    drawing.placed.insert(name.clone(), *at);
+                    drawing.left_to_one.push(LeftToOne {
+                        landmark: name.clone(),
+                        kept: second.reader.clone(),
+                        left_out: first.reader.clone(),
+                    });
+                } else {
                     drawing.placed_by_one.push(name.clone());
                 }
             }
@@ -1161,6 +1203,33 @@ impl Drawing {
     /// The positions as the head model reads them. See [`Record::positions`].
     pub fn positions(&self) -> Result<head_model::Reading> {
         positions_of(self.view, self.faces, self.picture.width, &self.placed)
+    }
+
+    /// What was taken from one reading alone because of Jon's marks, in words: a sentence for
+    /// each reading kept. Nothing when nothing was.
+    pub fn left_to_one_words(&self) -> Vec<String> {
+        let mut pairs: Vec<(&str, &str)> = self
+            .left_to_one
+            .iter()
+            .map(|left| (left.kept.as_str(), left.left_out.as_str()))
+            .collect();
+        pairs.sort_unstable();
+        pairs.dedup();
+        pairs
+            .into_iter()
+            .map(|(kept, left_out)| {
+                let names: Vec<&str> = self
+                    .left_to_one
+                    .iter()
+                    .filter(|left| left.kept == kept && left.left_out == left_out)
+                    .map(|left| left.landmark.as_str())
+                    .collect();
+                format!(
+                    "Taken from the reading by {kept} alone, because Jon's mark left out the reading by {left_out}: {}.",
+                    names.join(", ")
+                )
+            })
+            .collect()
     }
 
     /// Who read the drawing, in words.

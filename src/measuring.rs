@@ -33,7 +33,7 @@ pub const RULES: &[(&str, &str)] = &[
     ),
     (
         "two_readings",
-        "Where a view is given by its two readings, a landmark stands midway between the two positions. A landmark only one of them places is left out.",
+        "Where a view is given by its two readings, a landmark stands midway between the two positions. A landmark only one of them places is left out, unless Jon's mark left the other reading's point of it out: it is then taken from the one reading, and what is written says so.",
     ),
     (
         "facing",
@@ -669,6 +669,9 @@ impl ReadFrom {
                         " Placed by one reading only and left out: {}.",
                         given.drawing.placed_by_one.join(", ")
                     ));
+                }
+                for words in given.drawing.left_to_one_words() {
+                    line.push_str(&format!(" {words}"));
                 }
                 line
             })

@@ -15,6 +15,8 @@
 //! Nothing here judges a drawing. The program reports what the record says and what follows
 //! from it by the rules below; the decisions are Jon's.
 
+use std::collections::BTreeSet;
+
 use crate::number::counted;
 use crate::readings::{Drawing, Record, view_named};
 use crate::toml_text::{quoted, tables, words};
@@ -54,6 +56,10 @@ pub const RULES: &[(&str, &str)] = &[
     (
         "off",
         "A landmark Jon marks as off on a drawing is left out of that drawing, in each of its readings. The drawing is still measured, and what that landmark alone would have given is not given, or is taken from the character's other view where the rules for two views say so. A mark is a landmark's name, or a name with `*` in it for every landmark it fits: `ear-*` is every landmark of both ears.",
+    ),
+    (
+        "off_in_one_reading",
+        "A mark may name one reader, where Jon rules that one reader placed a landmark rightly and the other did not: it leaves that landmark out of that reader's reading alone. A landmark the other reading places is then measured from the other reading's point alone, and what is written says so. A landmark only one reading places with no mark of Jon's behind it is still left out.",
     ),
     (
         "proportions_off",
@@ -99,8 +105,34 @@ pub struct DrawingChecked {
     pub ruling_why: String,
     /// With a ruling to measure: the view Jon says it is, where it is not the card's.
     pub view: Option<View>,
-    /// The landmarks Jon marks as off: each a name, or a name with `*` in it.
-    pub off: Vec<String>,
+    /// The landmarks Jon marks as off.
+    pub off: Vec<Mark>,
+}
+
+/// A landmark Jon marks as off on a drawing: a name, or a name with `*` in it, in every
+/// reading of the drawing or in one reader's alone.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Mark {
+    pub landmark: String,
+    /// The reader, by the label of the reading, whose point alone the mark leaves out.
+    /// None for every reading of the drawing.
+    pub reader: Option<String>,
+}
+
+impl Mark {
+    /// Whether the mark leaves a landmark out of a reading by this reader.
+    fn leaves_out(&self, reader: &str, name: &str) -> bool {
+        self.reader.as_deref().is_none_or(|own| own == reader) && fits(&self.landmark, name)
+    }
+}
+
+impl std::fmt::Display for Mark {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.reader {
+            Some(reader) => write!(formatter, "{} in the reading by {reader}", self.landmark),
+            None => formatter.write_str(&self.landmark),
+        }
+    }
 }
 
 /// One character, as the record holds it.
@@ -143,6 +175,42 @@ fn names(table: &toml::Table, key: &str) -> Vec<String> {
         .flatten()
         .filter_map(|name| name.as_str().map(|name| name.trim().to_string()))
         .collect()
+}
+
+/// The marks a drawing's `off` gives: each a landmark's name, or a table that names the
+/// `landmark` and the `reader` whose reading alone it is left out of. What is neither is a
+/// fault, said with `of`.
+fn marks(drawing: &toml::Table, of: &str, faults: &mut Vec<String>) -> Vec<Mark> {
+    let entries = drawing
+        .get("off")
+        .and_then(toml::Value::as_array)
+        .into_iter()
+        .flatten();
+    let mut marks = Vec::new();
+    for (number, entry) in entries.enumerate() {
+        let mark = match entry {
+            toml::Value::String(landmark) => Some(Mark {
+                landmark: landmark.trim().to_string(),
+                reader: None,
+            }),
+            toml::Value::Table(table) => {
+                let (landmark, reader) = (words(table, "landmark"), words(table, "reader"));
+                (!landmark.is_empty() && !reader.is_empty()).then_some(Mark {
+                    landmark,
+                    reader: Some(reader),
+                })
+            }
+            _ => None,
+        };
+        match mark {
+            Some(mark) => marks.push(mark),
+            None => faults.push(format!(
+                "mark {} in the `off` of {of} is not a mark: a mark is a landmark's name, such as \"ear-*\", or {{ landmark = \"brow-line-*\", reader = \"<the reader's label>\" }} for one reader's reading alone",
+                number + 1
+            )),
+        }
+    }
+    marks
 }
 
 /// The record of one check.
@@ -204,7 +272,10 @@ pub fn template(sheet: &str, characters: &[(&str, Vec<ToCheck>)]) -> String {
 # - `off` lists the landmarks Jon marks as off on that drawing, by the names the sheet gives:
 #   each is left out of that drawing, and the drawing is still measured. A name may hold `*`
 #   for every landmark it fits: \"ear-*\" is both ears, \"mouth-line-*\" the whole mouth,
-#   \"brow-line-*\" both brows.
+#   \"brow-line-*\" both brows. Where Jon says one reader placed a landmark wrongly and the
+#   other rightly, the mark names that reader by the label in its reading, and leaves the
+#   landmark out of that reading alone: { landmark = \"brow-line-*\", reader = \"<label>\" }.
+#   The other reader's point is then measured by itself.
 # - `proportions_off` lists the proportions Jon marks as off for the character, by their
 #   names in `maquette list-proportions`: each is not given for this work, and its landmarks
 #   stay. \"eye_opening_height\" leaves the opening's height out and keeps the eye line.
@@ -311,7 +382,7 @@ impl Check {
                         }
                     },
                 };
-                let off = names(drawing, "off");
+                let off = marks(drawing, &of, &mut faults);
                 let readings: Vec<Named> = tables(drawing, "readings")
                     .into_iter()
                     .map(|reading| Named {
@@ -469,19 +540,31 @@ impl DrawingChecked {
                 (records.to_vec(), said)
             }
         };
-        if !self.off.is_empty() {
-            for record in &mut measured {
-                record
-                    .placed
-                    .retain(|name, _| !self.off.iter().any(|mark| fits(mark, name)));
-            }
-            said.push_str(&format!(
-                ". Left out by Jon's marks: {}",
-                self.off.join(", ")
-            ));
+        // What the marks leave out of each reading: a landmark that one reading still places
+        // after them is then that reading's alone, by the rule `off_in_one_reading`.
+        let mut marked: Vec<BTreeSet<String>> = Vec::new();
+        for record in &mut measured {
+            let reader = record.reader.clone();
+            let left_out: BTreeSet<String> = record
+                .placed
+                .keys()
+                .filter(|name| self.off.iter().any(|mark| mark.leaves_out(&reader, name)))
+                .cloned()
+                .collect();
+            record.placed.retain(|name, _| !left_out.contains(name));
+            marked.push(left_out);
         }
-        match Drawing::of(&measured) {
-            Ok(drawing) => Outcome::Measured { drawing, said },
+        if !self.off.is_empty() {
+            let marks: Vec<String> = self.off.iter().map(Mark::to_string).collect();
+            said.push_str(&format!(". Left out by Jon's marks: {}", marks.join(", ")));
+        }
+        match Drawing::of_marked(&measured, &marked) {
+            Ok(drawing) => {
+                for words in drawing.left_to_one_words() {
+                    said.push_str(&format!(". {}", words.trim_end_matches('.')));
+                }
+                Outcome::Measured { drawing, said }
+            }
             Err(error) => Outcome::NotMeasured(error.to_string()),
         }
     }
@@ -629,10 +712,25 @@ impl Check {
                     .map(|asked| asked.name)
                     .collect();
                 for mark in &drawing.off {
-                    if !asked.iter().any(|name| fits(mark, name)) {
+                    if !asked.iter().any(|name| fits(&mark.landmark, name)) {
                         problems.push(format!(
-                            "`{mark}` is marked as off on {of}, and a {} view asks for no landmark of that name",
+                            "`{}` is marked as off on {of}, and a {} view asks for no landmark of that name",
+                            mark.landmark,
                             drawing.counts_as().name()
+                        ));
+                    }
+                    // A mark on one reader's reading names a reader of the drawing.
+                    if let Some(reader) = &mark.reader
+                        && !records.iter().any(|record| &record.reader == reader)
+                    {
+                        let readers: Vec<&str> = records
+                            .iter()
+                            .map(|record| record.reader.as_str())
+                            .collect();
+                        problems.push(format!(
+                            "`{}` is marked as off on {of} in the reading by `{reader}`, and no reading of it is by that reader: its readers are {}",
+                            mark.landmark,
+                            readers.join(" and ")
                         ));
                     }
                 }

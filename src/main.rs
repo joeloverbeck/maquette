@@ -233,7 +233,8 @@ records the digest of the file it was read from.
       sheet, each of its drawings, and each reading with the digest of its file, to be
       filled in with what Jon said. A `verdict` for each character, accepted or rejected;
       for a drawing, a `ruling` where he overrules its readers (measure, or set aside) and
-      the landmarks he marks as `off`; for a character, the proportions he marks as off.
+      the landmarks he marks as `off`, in every reading or in one reader's alone; for a
+      character, the proportions he marks as off.
 
   maquette jons-check --check <check>
       Say what a record of Jon's check does and what it lacks: each character accepted or
@@ -242,10 +243,12 @@ records the digest of the file it was read from.
       as too thin. Exit status 0 when the record is complete, 1 when it is not.
 
 turn-from-readings, fit-of-views and proportions-from-readings take `--check <check>`, the
-record of Jon's check. With it only the readings of a character he accepted are measured,
-each drawing as his record rules, with what he marked as off left out; a reading that has
-changed since the record was started is refused. Without it the readings are measured as
-their readers judged them, and what is written says that Jon has not checked them.
+record of Jon's check. A record that is not complete measures nothing. With a complete one
+only the readings of a character he accepted are measured, each drawing from all the
+readings the record lists for it and as it rules, with what he marked as off left out; a
+reading that has changed since the record was started is refused. Without it the readings
+are measured as their readers judged them, and what is written says that Jon has not
+checked them.
 ";
 
 /// How a command ended, when nothing went wrong in running it.
