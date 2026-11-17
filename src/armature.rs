@@ -342,7 +342,7 @@ fn parsed(text: &str) -> Result<toml::Table> {
 /// Where a landmark file says its view stands on the page.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Placed {
-    /// The view's name: `front` or `three-quarter`.
+    /// The view's name: `front`, `three-quarter` or `side`.
     pub view: String,
     /// The length of one unit, eye line to chin.
     pub unit: f64,

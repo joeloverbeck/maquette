@@ -9,16 +9,18 @@ repository = "https://github.com/joeloverbeck/maquette"
 publish = false
 
 [dependencies]
+# Reads the SVG of a hand-made drawing: its groups and shapes. The generator writes its SVG
+# as text and parses none, so the tests that read its output with this crate still share no
+# code with what they check.
+roxmltree = "0.21"
 # VectorCraft's MCP server speaks JSON: the read-back writes its requests and reads its
 # replies and recordings of them with this.
 serde_json = { version = "1.0", default-features = false, features = ["std"] }
+# A hand-made drawing is read only when its SHA-256 digest is the one recorded for it.
+sha2 = { version = "0.10", default-features = false }
 # Reads every text file a person edits or a consumer reads back: the list of proportions,
 # a set of proportions, a landmark file and the record of the hand-made views.
 toml = { version = "1.2", default-features = false, features = ["std", "parse", "serde"] }
-
-[dev-dependencies]
-# The tests read the written SVG with a parser the generator does not share.
-roxmltree = "0.21"
 
 # Its own stand-in for VectorCraft's server, so it has no test harness: see the file.
 [[test]]

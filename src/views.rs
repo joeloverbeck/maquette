@@ -1,10 +1,12 @@
-//! Shows a head in space from the front and from the three-quarter turn.
+//! Shows a head in space from the front, from the three-quarter turn and from the side.
 //!
 //! A view is a flat projection of the same points: the head is level and turns about the
 //! upright axis through the skull's centre, so a landmark keeps its height in every view, and
 //! its sideways position is its offset times the cosine of the turn plus its depth times the
-//! sine. There is no perspective and no correction: a departure from this would be a named
-//! correction with an amount, and there is none.
+//! sine. The side view is the same turn carried to 90 degrees: it shows a landmark's depth as
+//! its sideways position, and it faces the viewer's right. There is no perspective and no
+//! correction: a departure from this would be a named correction with an amount, and there is
+//! none.
 
 use crate::head_model::Head;
 use crate::number::round3;
@@ -18,21 +20,26 @@ use crate::{Error, Result};
 /// one by one support 27.9 to 29.4 degrees. This is the only place the turn is written.
 pub const THREE_QUARTER_TURN_DEGREES: f64 = 29.0;
 
+/// How far the side view is turned: the three-quarter view's turn carried to a full profile.
+pub const SIDE_TURN_DEGREES: f64 = 90.0;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum View {
     Front,
     ThreeQuarter,
+    Side,
 }
 
 impl View {
-    /// The views the generator writes. The side view is a later ticket.
-    pub const ALL: [View; 2] = [View::Front, View::ThreeQuarter];
+    /// The views the generator writes.
+    pub const ALL: [View; 3] = [View::Front, View::ThreeQuarter, View::Side];
 
     /// The view's name, as files and landmark files carry it.
     pub fn name(self) -> &'static str {
         match self {
             View::Front => "front",
             View::ThreeQuarter => "three-quarter",
+            View::Side => "side",
         }
     }
 
@@ -41,6 +48,7 @@ impl View {
         match self {
             View::Front => 0.0,
             View::ThreeQuarter => THREE_QUARTER_TURN_DEGREES,
+            View::Side => SIDE_TURN_DEGREES,
         }
     }
 }
@@ -56,6 +64,7 @@ pub struct Placement {
     /// Where the upright axis the head turns about stands in each view.
     pub front_axis_x: f64,
     pub three_quarter_axis_x: f64,
+    pub side_axis_x: f64,
 }
 
 impl Default for Placement {
@@ -67,6 +76,7 @@ impl Default for Placement {
             eye_line_y: 400.0,
             front_axis_x: 500.0,
             three_quarter_axis_x: 500.0,
+            side_axis_x: 500.0,
         }
     }
 }
@@ -81,6 +91,7 @@ impl Placement {
             eye_line_y: round3(self.eye_line_y),
             front_axis_x: round3(self.front_axis_x),
             three_quarter_axis_x: round3(self.three_quarter_axis_x),
+            side_axis_x: round3(self.side_axis_x),
         };
         for (name, value) in [
             ("page width", placement.width),
@@ -97,6 +108,7 @@ impl Placement {
             ("eye line", placement.eye_line_y),
             ("front view's axis", placement.front_axis_x),
             ("three-quarter view's axis", placement.three_quarter_axis_x),
+            ("side view's axis", placement.side_axis_x),
         ] {
             if !value.is_finite() {
                 return Err(Error::new(format!("the {name} is not a finite number")));
@@ -182,9 +194,12 @@ impl Seen {
 /// Shows a head from one view.
 pub fn show(head: &Head, view: View, placement: &Placement) -> Seen {
     let turn = view.turn_degrees();
-    // A front view is exactly flat on: no rounding of a cosine may move a point.
+    // A front view is exactly flat on and a side view exactly side on: no rounding of a
+    // cosine may move a point.
     let (sin, cos) = if turn == 0.0 {
         (0.0, 1.0)
+    } else if turn == 90.0 {
+        (1.0, 0.0)
     } else {
         turn.to_radians().sin_cos()
     };
@@ -192,6 +207,7 @@ pub fn show(head: &Head, view: View, placement: &Placement) -> Seen {
     let turn_axis_x = match view {
         View::Front => placement.front_axis_x,
         View::ThreeQuarter => placement.three_quarter_axis_x,
+        View::Side => placement.side_axis_x,
     };
     let landmarks = head
         .landmarks

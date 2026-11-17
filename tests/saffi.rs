@@ -2,7 +2,8 @@
 //! and her proportions drawn.
 //!
 //! The expected numbers below are worked by hand from the positions that
-//! `data/saffi/README.md` and `data/saffi/hand-made-views.toml` give, not taken from the program.
+//! `data/saffi/README.md`, `data/saffi/hand-made-views.toml` and
+//! `data/saffi/final-drawings.toml` give, not taken from the program.
 //! Nothing here says her armature looks right: that is Jon's look.
 
 mod support;
@@ -10,26 +11,77 @@ mod support;
 use support::{assert_close, draw, maquette, maquette_ok, path_text, repository, text};
 
 const RECORD: &str = "data/saffi/hand-made-views.toml";
+/// Her final drawings' ears and lids, which replace her record's (Jon, 2026-11-16).
+const FINAL_RECORD: &str = "data/saffi/final-drawings.toml";
 const HER_PROPORTIONS: &str = "data/saffi/proportions.toml";
 
 /// The pinned turn of her three-quarter view.
 const TURN_DEGREES: f64 = 29.0;
 
-/// Her three-quarter view's eye line: the openings run from y = 350 to 390 on her right eye
-/// and from 350 to 390.108 on her left, so the eye line is at 370.027.
-const EYE_LINE: f64 = (350.0 + 390.0 + 350.0 + 390.108) / 4.0;
+/// Her three-quarter view's eye line, from her final rig's eye openings: they run from
+/// y = 353.785 to 390 on her right eye and from 355.176 to 390.163 on her left, so the eye
+/// line is at 372.281. Her S2 underdrawing's openings started at 350, and its eye line was at
+/// 370.027.
+const EYE_LINE: f64 = (353.785 + 390.0 + 355.176 + 390.163) / 4.0;
 /// Her chin is at y = 567 in both views.
 const UNIT: f64 = 567.0 - EYE_LINE;
+/// Her front view's eye line, from her model sheet's front: both openings run from 353.785
+/// to 390.
+const FRONT_EYE_LINE: f64 = (353.785 + 390.0) / 2.0;
+const FRONT_UNIT: f64 = 567.0 - FRONT_EYE_LINE;
 
 #[test]
-fn her_set_of_proportions_is_what_the_command_writes_from_her_record() {
+fn her_set_of_proportions_is_what_the_command_writes_from_her_records() {
     // The committed file was not typed in by hand: it is the command's output, byte for byte.
     // This pins no armature. If the head model changes, the file is written again.
-    let written = maquette_ok(&["proportions-from-hand-made-views", "--record", RECORD]);
+    let written = maquette_ok(&[
+        "proportions-from-hand-made-views",
+        "--record",
+        RECORD,
+        "--final-record",
+        FINAL_RECORD,
+    ]);
     let committed = text(&repository().join(HER_PROPORTIONS));
     assert!(
         written == committed,
-        "{HER_PROPORTIONS} is not what `maquette proportions-from-hand-made-views --record {RECORD}` writes. Write it again with `--out {HER_PROPORTIONS}`."
+        "{HER_PROPORTIONS} is not what `maquette proportions-from-hand-made-views --record {RECORD} --final-record {FINAL_RECORD}` writes. Write it again with `--out {HER_PROPORTIONS}`."
+    );
+}
+
+#[test]
+fn without_her_final_drawings_her_record_gives_her_s2_proportions() {
+    // The final record is what moves her ears and her lids: without it the command works her
+    // proportions out from the S2 underdrawings alone, whose eye openings start at y = 350.
+    let folder = support::scratch("saffi-s2-only");
+    let out = folder.join("s2.toml");
+    maquette_ok(&[
+        "proportions-from-hand-made-views",
+        "--record",
+        RECORD,
+        "--out",
+        path_text(&out),
+    ]);
+    let table: toml::Table = text(&out).parse().expect("TOML");
+    let source = table["source"].as_table().expect("[source]");
+    assert!(source.get("final_drawings").is_none());
+    let front = source["front"].as_table().expect("[source.front]");
+    assert_eq!(support::number(&front["eye_line_y"]), 370.0);
+    assert_eq!(support::number(&front["unit"]), 197.0);
+    // The outer base of her S2 ears is 340 apart in the front view and at y = 176 on the near
+    // ear of the three-quarter view, whose eye line is at (350 + 390 + 350 + 390.108) / 4.
+    let s2 = support::proportions(&out);
+    let s2_eye_line = (350.0 + 390.0 + 350.0 + 390.108) / 4.0;
+    assert_close(
+        s2["ear_base_outer_offset"],
+        340.0 / 2.0 / 197.0,
+        6e-7,
+        "S2 ear offset",
+    );
+    assert_close(
+        s2["ear_base_outer_rise"],
+        (s2_eye_line - 176.0) / (567.0 - s2_eye_line),
+        6e-7,
+        "S2 ear rise",
     );
 }
 
@@ -49,6 +101,16 @@ fn her_file_records_where_it_came_from() {
         source["three_quarter_sha256"].as_str(),
         Some("c50bb0529f254fe12ac0af7b3f6175ae175df14b61d24f16bfec54afcc2efb02")
     );
+    // And the record and the digests of the two final drawings her ears and lids come from.
+    assert_eq!(source["final_drawings"].as_str(), Some(FINAL_RECORD));
+    assert_eq!(
+        source["final_front_sha256"].as_str(),
+        Some("15d6fe02177427db7b0ae956411b97295f250d3328554f598134bb8e91c8136e")
+    );
+    assert_eq!(
+        source["final_three_quarter_sha256"].as_str(),
+        Some("23251a2e5c196738514f324cec1c25c171fb0785112044d45168541d060d304a")
+    );
     assert_eq!(support::number(&source["turn_degrees"]), TURN_DEGREES);
     for rules in ["reading_rules", "disagreement_rules"] {
         assert!(
@@ -64,10 +126,20 @@ fn her_unit_is_eye_line_to_chin_and_her_two_views_agree_on_it() {
         .parse()
         .expect("TOML");
     let source = table["source"].as_table().expect("[source]");
-    // Front view: both openings run from y = 350 to 390, and the chin is at 567.
+    // Front view: both openings run from y = 353.785 to 390, and the chin is at 567.
     let front = source["front"].as_table().expect("[source.front]");
-    assert_eq!(support::number(&front["eye_line_y"]), 370.0);
-    assert_eq!(support::number(&front["unit"]), 197.0);
+    assert_close(
+        support::number(&front["eye_line_y"]),
+        FRONT_EYE_LINE,
+        0.00051,
+        "front eye line",
+    );
+    assert_close(
+        support::number(&front["unit"]),
+        FRONT_UNIT,
+        0.00051,
+        "front unit",
+    );
     assert_eq!(support::number(&front["turn_axis_x"]), 500.0);
     let turned = source["three_quarter"]
         .as_table()
@@ -86,51 +158,70 @@ fn her_unit_is_eye_line_to_chin_and_her_two_views_agree_on_it() {
 fn her_proportions_follow_from_her_record_by_the_stated_rules() {
     let hers = support::proportions(&repository().join(HER_PROPORTIONS));
     let (sin, cos) = TURN_DEGREES.to_radians().sin_cos();
-    // Depth zero in her three-quarter view: the mean x of her four eye corners.
-    let zero_x = (602.0 + 530.0 + 655.0 + 453.0) / 4.0;
+    // Depth zero in her three-quarter view: the mean x of her four eye corners, which are her
+    // final rig's.
+    let zero_x = (602.0 + 530.3 + 656.0 + 453.0) / 4.0;
     let expected = [
         // Heights come from the three-quarter view.
         ("hair_top_rise", (EYE_LINE - 85.6) / UNIT),
         ("nose_mark_bottom_drop", (458.0 - EYE_LINE) / UNIT),
         ("skull_radius", 191.5 / UNIT),
-        // A pair's height is the mean of its two heights there: her outer corners are at 366 and 369.
+        // A pair's height is the mean of its two heights there: her outer corners are at 367
+        // and 368.5.
         (
             "eye_outer_corner_drop",
-            ((366.0 + 369.0) / 2.0 - EYE_LINE) / UNIT,
+            ((367.0 + 368.5) / 2.0 - EYE_LINE) / UNIT,
+        ),
+        // The top of each opening is where the hooded lid leaves it: at 353.785 and 355.176,
+        // with the bottoms at 390 and 390.163.
+        (
+            "eye_opening_height",
+            ((390.0 + 390.163) / 2.0 - (353.785 + 355.176) / 2.0) / UNIT,
         ),
         // An offset is half the three-quarter spacing over the cosine of the turn:
-        // outer corners 202 apart, iris centres 136, mouth ends 48.
-        ("eye_outer_corner_offset", 202.0 / 2.0 / cos / UNIT),
+        // outer corners 203 apart, iris centres 136, mouth ends 48.
+        ("eye_outer_corner_offset", 203.0 / 2.0 / cos / UNIT),
         ("iris_centre_offset", 136.0 / 2.0 / cos / UNIT),
         ("mouth_end_offset", 48.0 / 2.0 / cos / UNIT),
-        // Depth from a midpoint: the inner corners' is x = 566 and the outer corners' 554.
-        ("eye_wrap_depth", (566.0 - 554.0) / sin / UNIT),
+        // Her irises stay her S2 underdrawing's: their centres are at y = 370.377.
+        ("iris_centre_drop", (370.377 - EYE_LINE) / UNIT),
+        // Depth from a midpoint: the inner corners' is x = 566.15 and the outer corners' 554.5.
+        ("eye_wrap_depth", (566.15 - 554.5) / sin / UNIT),
         // The skull's centre is at x = 495, the nose mark's bottom at 591, the chin at 576.
         ("skull_centre_depth", (495.0 - zero_x) / sin / UNIT),
         ("nose_mark_bottom_depth", (591.0 - zero_x) / sin / UNIT),
         ("chin_depth", (576.0 - zero_x) / sin / UNIT),
-        // The neck and the shoulder line take their widths from the front view, whose unit is 197:
+        // The neck and the shoulder line take their widths from the front view and its unit:
         // the shoulder points are 744 apart there and the neck 180 wide.
-        ("shoulder_half_width", 744.0 / 2.0 / 197.0),
-        ("neck_half_width", 180.0 / 2.0 / 197.0),
+        ("shoulder_half_width", 744.0 / 2.0 / FRONT_UNIT),
+        ("neck_half_width", 180.0 / 2.0 / FRONT_UNIT),
         // The head covers the far ear's base in the three-quarter view, so the offset is the
-        // front view's (340 apart) and the height the near ear's (y = 176).
-        ("ear_base_outer_offset", 340.0 / 2.0 / 197.0),
-        ("ear_base_outer_rise", (EYE_LINE - 176.0) / UNIT),
+        // front view's (667.004 - 332.996 apart in her model sheet's front) and the height
+        // the near ear's in her final rig (y = 191.834).
+        (
+            "ear_base_outer_offset",
+            (667.004 - 332.996) / 2.0 / FRONT_UNIT,
+        ),
+        ("ear_base_outer_rise", (EYE_LINE - 191.834) / UNIT),
+        // Its depth is from the near ear's outer base at x = 340.203 and that offset.
+        (
+            "ear_base_outer_depth",
+            ((340.203 - zero_x) / UNIT + (667.004 - 332.996) / 2.0 / FRONT_UNIT * cos) / sin,
+        ),
         // The face's half-width at the nose level is the front view's: the outline crosses at
         // x = 373.196 and 626.804. Its cheek point's depth is from the far side's crossing at
         // x = 665.486, and its jaw-line point's from the near side's at x = 394.
         (
             "face_half_width_at_nose_level",
-            (626.804 - 373.196) / 2.0 / 197.0,
+            (626.804 - 373.196) / 2.0 / FRONT_UNIT,
         ),
         (
             "face_depth_at_nose_level",
-            ((665.486 - zero_x) / UNIT - (626.804 - 373.196) / 2.0 / 197.0 * cos) / sin,
+            ((665.486 - zero_x) / UNIT - (626.804 - 373.196) / 2.0 / FRONT_UNIT * cos) / sin,
         ),
         (
             "jaw_line_depth_at_nose_level",
-            ((394.0 - zero_x) / UNIT + (626.804 - 373.196) / 2.0 / 197.0 * cos) / sin,
+            ((394.0 - zero_x) / UNIT + (626.804 - 373.196) / 2.0 / FRONT_UNIT * cos) / sin,
         ),
     ];
     for (name, value) in expected {

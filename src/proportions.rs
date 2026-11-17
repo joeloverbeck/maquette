@@ -140,6 +140,7 @@ fn parse_list(text: &str) -> Result<List> {
             ("why", "Why"),
             ("front", "Front view"),
             ("three_quarter", "Three-quarter view"),
+            ("side", "Side view"),
         ] {
             if let Some(value) = section.get(field).and_then(toml::Value::as_str) {
                 lines.push((label.to_string(), value.to_string()));

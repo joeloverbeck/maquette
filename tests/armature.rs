@@ -10,9 +10,10 @@ use std::path::Path;
 
 use support::{LandmarkFile, MADE_UP, assert_close, draw, maquette, path_text, scratch, text};
 
-const VIEWS: [&str; 2] = ["front", "three-quarter"];
+const VIEWS: [&str; 3] = ["front", "three-quarter", "side"];
 
-/// The guides issue #3 lists, under the names the SVG carries.
+/// The guides issue #3 lists, under the names the SVG carries, as the front view and the
+/// three-quarter view show them.
 const GUIDES: [&str; 22] = [
     "skull",
     "face-outline",
@@ -41,9 +42,64 @@ const GUIDES: [&str; 22] = [
 /// The groups that hold guides, and the one layer.
 const GROUPS: [&str; 4] = ["armature", "eye-left", "eye-right", "neck"];
 
+/// The guides the side view shows. The head hides the eye, the brow and the ear of the
+/// character's left there. The centre line is the front of the face outline, so it is not
+/// drawn a second time. The neck's two lines are its front and its back, which are nobody's
+/// left and right.
+const SIDE_GUIDES: [&str; 16] = [
+    "skull",
+    "face-outline",
+    "eye-level-line",
+    "nose-level-line",
+    "mouth-level-line",
+    "eye-opening-right",
+    "lid-line-right",
+    "iris-right",
+    "brow-line-right",
+    "nose-mark",
+    "mouth-line",
+    "ear-right",
+    "neck-front",
+    "neck-back",
+    "hair-volume",
+    "shoulder-line",
+];
+
+const SIDE_GROUPS: [&str; 3] = ["armature", "eye-right", "neck"];
+
+fn guides_of(view: &str) -> BTreeSet<&'static str> {
+    if view == "side" {
+        SIDE_GUIDES.into_iter().collect()
+    } else {
+        GUIDES.into_iter().collect()
+    }
+}
+
+fn groups_of(view: &str) -> BTreeSet<&'static str> {
+    if view == "side" {
+        SIDE_GROUPS.into_iter().collect()
+    } else {
+        GROUPS.into_iter().collect()
+    }
+}
+
 /// The three-quarter turn pinned from Saffi's hand-made view: 29 degrees, where her drawings
 /// support 27.9 to 29.4 (`data/saffi/views-compared.toml`).
 const TURN_DEGREES: f64 = 29.0;
+
+/// The side view is the same turn carried to a full profile.
+const SIDE_TURN_DEGREES: f64 = 90.0;
+
+/// The sine and the cosine of a view's turn. The front and the side view are exact.
+fn sin_cos(turn_degrees: f64) -> (f64, f64) {
+    if turn_degrees == 0.0 {
+        (0.0, 1.0)
+    } else if turn_degrees == 90.0 {
+        (1.0, 0.0)
+    } else {
+        turn_degrees.to_radians().sin_cos()
+    }
+}
 
 fn landmark_file(folder: &Path, view: &str) -> LandmarkFile {
     LandmarkFile::read(&folder.join(format!("{view}.landmarks.toml")))
@@ -123,8 +179,8 @@ fn anchors_of(node: roxmltree::Node) -> Vec<[f64; 2]> {
 }
 
 #[test]
-fn one_command_writes_an_svg_and_a_landmark_file_for_each_view() {
-    let folder = draw("writes-both-views", MADE_UP, &[]);
+fn one_command_writes_an_svg_and_a_landmark_file_for_each_of_the_three_views() {
+    let folder = draw("writes-three-views", MADE_UP, &[]);
     for view in VIEWS {
         let svg = svg_text(&folder, view);
         assert!(svg.contains("<svg"), "{view}.svg is not an SVG");
@@ -150,6 +206,8 @@ fn one_command_writes_an_svg_and_a_landmark_file_for_each_view() {
         "front.landmarks.toml",
         "three-quarter.svg",
         "three-quarter.landmarks.toml",
+        "side.svg",
+        "side.landmarks.toml",
     ]
     .iter()
     .map(|name| name.to_string())
@@ -158,12 +216,39 @@ fn one_command_writes_an_svg_and_a_landmark_file_for_each_view() {
 }
 
 #[test]
-fn the_three_quarter_view_is_turned_as_far_as_the_pinned_turn() {
+fn the_three_quarter_view_is_turned_as_far_as_the_pinned_turn_and_the_side_view_to_90_degrees() {
     let folder = draw("pinned-turn", MADE_UP, &[]);
     let front = landmark_file(&folder, "front");
     let turned = landmark_file(&folder, "three-quarter");
+    let side = landmark_file(&folder, "side");
     assert_eq!(support::number(&front.table["turn_degrees"]), 0.0);
     assert_eq!(support::number(&turned.table["turn_degrees"]), TURN_DEGREES);
+    assert_eq!(
+        support::number(&side.table["turn_degrees"]),
+        SIDE_TURN_DEGREES
+    );
+}
+
+#[test]
+fn the_side_view_faces_the_viewers_right() {
+    // The same turn as the three-quarter view, carried on: what stands in front of the turn
+    // axis shows toward the viewer's right of it, and what stands behind toward the left.
+    let folder = draw("side-faces-right", MADE_UP, &[]);
+    let side = landmark_file(&folder, "side");
+    let axis = side.frame("turn_axis_x");
+    for in_front in ["chin", "nose-mark-bottom", "mouth-line-centre"] {
+        assert!(
+            side.point(in_front).x > axis,
+            "{in_front} is not toward the viewer's right"
+        );
+    }
+    // The made-up neck and shoulders stand behind the skull's centre.
+    for behind in ["shoulder-right-point", "shoulder-left-point"] {
+        assert!(
+            side.point(behind).x < axis,
+            "{behind} is not toward the viewer's left"
+        );
+    }
 }
 
 #[test]
@@ -181,26 +266,58 @@ fn the_same_input_written_twice_gives_the_same_bytes() {
 }
 
 #[test]
-fn every_landmark_has_the_same_height_in_both_views() {
+fn every_landmark_has_the_same_height_in_all_three_views() {
     let folder = draw(
         "same-heights",
         MADE_UP,
         &["--unit", "173.3", "--eye-line-y", "412.7"],
     );
     let front = landmark_file(&folder, "front");
-    let turned = landmark_file(&folder, "three-quarter");
     assert!(front.landmarks.len() > 50, "expected the whole head");
-    assert_eq!(
-        front.landmarks.keys().collect::<Vec<_>>(),
-        turned.landmarks.keys().collect::<Vec<_>>(),
-        "the two views do not show the same landmarks"
-    );
-    for (name, point) in &front.landmarks {
+    for view in ["three-quarter", "side"] {
+        let turned = landmark_file(&folder, view);
         assert_eq!(
-            point.y, turned.landmarks[name].y,
-            "{name} is not at one height in both views"
+            front.landmarks.keys().collect::<Vec<_>>(),
+            turned.landmarks.keys().collect::<Vec<_>>(),
+            "the front view and the {view} view do not show the same landmarks"
         );
+        for (name, point) in &front.landmarks {
+            assert_eq!(
+                point.y, turned.landmarks[name].y,
+                "{name} is not at one height in the front view and the {view} view"
+            );
+        }
     }
+}
+
+#[test]
+fn a_landmarks_sideways_position_in_the_side_view_is_its_depth() {
+    let folder = draw(
+        "side-is-depth",
+        MADE_UP,
+        &["--unit", "173.3", "--side-axis-x", "455.5"],
+    );
+    let side = landmark_file(&folder, "side");
+    let axis = side.frame("turn_axis_x");
+    assert_eq!(axis, 455.5);
+    let axis_depth = side.frame("turn_axis_depth");
+    assert!(side.landmarks.len() > 50, "expected the whole head");
+    for (name, point) in &side.landmarks {
+        let depth = point.depth.unwrap_or_else(|| panic!("{name} has no depth"));
+        // How far the point stands in front of the turn axis, and nothing of its offset.
+        // The three numbers are each rounded to 0.001.
+        assert_close(point.x, axis + (depth - axis_depth), 0.0015, name);
+    }
+    // So the two points of a left and right pair stand at one place.
+    let mut pairs = 0;
+    for (name, point) in &side.landmarks {
+        if name.contains("-left-") {
+            let twin = side.landmarks[&name.replace("-left-", "-right-")];
+            assert_eq!((point.x, point.y), (twin.x, twin.y), "{name} and its twin");
+            pairs += 1;
+        }
+    }
+    assert!(pairs > 20, "expected the head's pairs, found {pairs}");
 }
 
 #[test]
@@ -215,27 +332,35 @@ fn a_landmarks_sideways_position_when_turned_is_the_one_its_front_position_and_d
             "481.25",
             "--three-quarter-axis-x",
             "507.5",
+            "--side-axis-x",
+            "455.5",
         ],
     );
     let front = landmark_file(&folder, "front");
-    let turned = landmark_file(&folder, "three-quarter");
-    let (sin, cos) = TURN_DEGREES.to_radians().sin_cos();
-    let (front_axis, turned_axis) = (front.frame("turn_axis_x"), turned.frame("turn_axis_x"));
+    let front_axis = front.frame("turn_axis_x");
     assert_eq!(front_axis, 481.25);
-    assert_eq!(turned_axis, 507.5);
-    // Depth is measured from the list's zero, the eyes; the turn axis stands at its own depth,
-    // the same in both views.
-    let axis_depth = turned.frame("turn_axis_depth");
-    assert_eq!(front.frame("turn_axis_depth"), axis_depth);
-    for (name, point) in &front.landmarks {
-        let depth = point.depth.unwrap_or_else(|| panic!("{name} has no depth"));
-        let shown = turned.landmarks[name];
-        assert_eq!(shown.depth, Some(depth), "{name} has two depths");
-        // A level head turned about an upright axis, drawn flat: offset times the cosine of
-        // the turn plus the depth in front of the axis times the sine. Each of the four
-        // numbers is rounded to 0.001.
-        let expected = turned_axis + (point.x - front_axis) * cos + (depth - axis_depth) * sin;
-        assert_close(shown.x, expected, 0.0015, name);
+    for (view, turn, axis) in [
+        ("three-quarter", TURN_DEGREES, 507.5),
+        ("side", SIDE_TURN_DEGREES, 455.5),
+    ] {
+        let turned = landmark_file(&folder, view);
+        let (sin, cos) = sin_cos(turn);
+        let turned_axis = turned.frame("turn_axis_x");
+        assert_eq!(turned_axis, axis, "{view}");
+        // Depth is measured from the list's zero, the eyes; the turn axis stands at its own
+        // depth, the same in every view.
+        let axis_depth = turned.frame("turn_axis_depth");
+        assert_eq!(front.frame("turn_axis_depth"), axis_depth, "{view}");
+        for (name, point) in &front.landmarks {
+            let depth = point.depth.unwrap_or_else(|| panic!("{name} has no depth"));
+            let shown = turned.landmarks[name];
+            assert_eq!(shown.depth, Some(depth), "{view}: {name} has two depths");
+            // A level head turned about an upright axis, drawn flat: offset times the cosine
+            // of the turn plus the depth in front of the axis times the sine. Each of the
+            // four numbers is rounded to 0.001.
+            let expected = turned_axis + (point.x - front_axis) * cos + (depth - axis_depth) * sin;
+            assert_close(shown.x, expected, 0.0015, &format!("{view}: {name}"));
+        }
     }
 }
 
@@ -354,6 +479,203 @@ fn positions_follow_from_the_proportions_as_the_list_defines_them() {
 }
 
 #[test]
+fn the_side_views_guides_are_built_as_the_list_states_for_that_view() {
+    // Worked by hand from the made-up set, at the default placement: one unit is 200, the eye
+    // line is at y = 400 and the turn axis at x = 500, at skull_centre_depth = -0.6375. So a
+    // point at a depth stands at x = 500 + 200 * (depth + 0.6375).
+    let folder = draw("side-constructions", MADE_UP, &[]);
+    let side = landmark_file(&folder, "side");
+    let at = |depth: f64| 500.0 + 200.0 * (depth + 0.6375);
+    let through = |guide: &str| -> Vec<&str> {
+        side.guides[guide]
+            .passes_through
+            .iter()
+            .map(String::as_str)
+            .collect()
+    };
+    let stands = |name: &str, x: f64, y: f64| {
+        let point = side.point(name);
+        assert_close(point.x, x, 0.0011, &format!("the x of {name}"));
+        assert_close(point.y, y, 0.0011, &format!("the y of {name}"));
+    };
+
+    // The face outline runs through the centre-line landmarks, from the skull's front down to
+    // the chin, and then back and up through the jaw-line points, which are the side of the
+    // head. The jaw point beside the chin belongs to the front of the face and is not on it.
+    assert_eq!(
+        through("face-outline"),
+        [
+            "skull-front",
+            "centre-line-at-eye-level",
+            "nose-mark-bottom",
+            "mouth-line-centre",
+            "chin",
+            "jaw-line-right-at-mouth-level",
+            "jaw-line-right-at-nose-level",
+            "jaw-line-right-at-eye-level",
+            "jaw-line-right-top",
+        ]
+    );
+    // skull_radius 0.9379 in front of the skull's centre, at its height (rise 0.3623).
+    stands("skull-front", 500.0 + 187.58, 400.0 - 72.46);
+    // chin_depth 0.1875; nose_mark_bottom_depth 0.3377 at drop 0.4629;
+    // jaw_line_depth_at_mouth_level -0.3881 at mouth_centre_drop 0.6871.
+    stands("chin", at(0.1875), 600.0);
+    stands("nose-mark-bottom", at(0.3377), 400.0 + 92.58);
+    stands("jaw-line-right-at-mouth-level", at(-0.3881), 400.0 + 137.42);
+
+    // The skull is the same circle, and its front is the landmark the face outline starts at.
+    assert_eq!(side.guides["skull"].element, "circle");
+    assert_eq!(
+        through("skull"),
+        ["skull-front", "skull-bottom", "skull-back", "skull-top"]
+    );
+    stands("skull-back", 500.0 - 187.58, 400.0 - 72.46);
+
+    // The level lines span the face outline, from the jaw line at the back to its front.
+    assert_eq!(
+        through("eye-level-line"),
+        ["jaw-line-right-at-eye-level", "centre-line-at-eye-level"]
+    );
+    assert_eq!(
+        through("mouth-level-line"),
+        ["jaw-line-right-at-mouth-level", "mouth-line-centre"]
+    );
+    assert_eq!(
+        through("nose-level-line"),
+        [
+            "jaw-line-right-at-nose-level",
+            "face-outline-front-at-nose-level"
+        ]
+    );
+    // The centre line meets the eye line on the skull: sqrt(0.9379^2 - 0.3623^2) = 0.865098
+    // in front of the skull's centre.
+    stands("centre-line-at-eye-level", 500.0 + 200.0 * 0.865098, 400.0);
+    // The nose level is midway between the nose mark's corners (0.3873) and its bottom
+    // (0.4629): 0.4251. The outline's front there lies between the eye line and the nose
+    // mark's bottom, so no further back than the first and no further forward than the second.
+    let crossing = side.point("face-outline-front-at-nose-level");
+    assert_close(crossing.y, 400.0 + 85.02, 0.0011, "the nose level");
+    assert!(
+        crossing.x > side.point("centre-line-at-eye-level").x
+            && crossing.x < side.point("nose-mark-bottom").x,
+        "the face outline's front at the nose level is at x = {}",
+        crossing.x
+    );
+
+    // The side eye is the same opening at its depths: the inner corner half the wrap (0.1375)
+    // in front of depth zero and the outer corner half behind.
+    assert_eq!(
+        through("eye-opening-right"),
+        [
+            "eye-right-outer-corner",
+            "eye-right-opening-top",
+            "eye-right-inner-corner",
+            "eye-right-opening-bottom",
+        ]
+    );
+    stands(
+        "eye-right-inner-corner",
+        at(0.06875),
+        400.0 + 200.0 * 0.0379,
+    );
+    stands(
+        "eye-right-outer-corner",
+        at(-0.06875),
+        400.0 - 200.0 * 0.0121,
+    );
+
+    // The iris is a flat disc facing forward, so the side view shows it edge on: an upright
+    // line at iris_depth -0.0377, from its top to its bottom, iris_height 0.2121 about
+    // iris_centre_drop 0.0123.
+    assert_eq!(side.guides["iris-right"].element, "line");
+    assert_eq!(
+        through("iris-right"),
+        ["iris-right-top", "iris-right-bottom"]
+    );
+    stands("iris-right-top", at(-0.0377), 400.0 + 2.46 - 21.21);
+    stands("iris-right-bottom", at(-0.0377), 400.0 + 2.46 + 21.21);
+
+    // The nose mark and the mouth line: each from its near end to the centre line.
+    assert_eq!(side.guides["nose-mark"].element, "line");
+    assert_eq!(
+        through("nose-mark"),
+        ["nose-mark-right-corner", "nose-mark-bottom"]
+    );
+    assert_eq!(
+        through("mouth-line"),
+        ["mouth-line-right-end", "mouth-line-centre"]
+    );
+
+    // The ear is the same lobe at its depths.
+    assert_eq!(
+        through("ear-right"),
+        [
+            "ear-right-base-outer",
+            "ear-right-outer-extent",
+            "ear-right-top",
+            "ear-right-inner-extent",
+            "ear-right-base-inner",
+        ]
+    );
+    stands("ear-right-base-outer", at(-0.7621), 400.0 - 187.46);
+    stands("ear-right-base-inner", at(-0.5877), 400.0 - 197.42);
+
+    // The neck is the same upright column: neck_half_width 0.4373 to each side of neck_depth
+    // -0.8879, down to neck_base_drop 1.1121.
+    assert_eq!(through("neck-back"), ["neck-back-top", "neck-back-base"]);
+    assert_eq!(through("neck-front"), ["neck-front-top", "neck-front-base"]);
+    stands("neck-back-base", at(-0.8879 - 0.4373), 400.0 + 222.42);
+    stands("neck-front-base", at(-0.8879 + 0.4373), 400.0 + 222.42);
+    assert_eq!(
+        side.point("neck-back-top").x,
+        side.point("neck-back-base").x
+    );
+    assert_eq!(
+        side.point("neck-front-top").x,
+        side.point("neck-front-base").x
+    );
+    assert!(side.point("neck-front-top").y < side.point("neck-front-base").y);
+
+    // The shoulder line is seen end on, at the one point both shoulder points stand at:
+    // shoulder_depth -0.9129, shoulder_drop 1.8373. It is drawn as a level tick through that
+    // point, half the neck's width to each side.
+    assert_eq!(
+        through("shoulder-line"),
+        ["shoulder-line-back-end", "shoulder-line-front-end"]
+    );
+    stands("shoulder-right-point", at(-0.9129), 400.0 + 367.46);
+    stands(
+        "shoulder-line-back-end",
+        at(-0.9129) - 87.46,
+        400.0 + 367.46,
+    );
+    stands(
+        "shoulder-line-front-end",
+        at(-0.9129) + 87.46,
+        400.0 + 367.46,
+    );
+
+    // The hair volume: the same dome, hair_half_depth 1.1629 to each side of hair_centre_depth
+    // -0.7113 and hair_top_rise 1.3127 high, down to the height of the skull's centre. Behind
+    // the head its side runs on down to the chin's height; in front it stops, so that it does
+    // not cross the face.
+    assert_eq!(
+        through("hair-volume"),
+        [
+            "hair-back-end",
+            "hair-back-extent",
+            "hair-top",
+            "hair-front-extent",
+        ]
+    );
+    stands("hair-top", at(-0.7113), 400.0 - 262.54);
+    stands("hair-back-end", at(-0.7113) - 232.58, 600.0);
+    stands("hair-back-extent", at(-0.7113) - 232.58, 400.0 - 72.46);
+    stands("hair-front-extent", at(-0.7113) + 232.58, 400.0 - 72.46);
+}
+
+#[test]
 fn the_front_view_is_symmetric_left_to_right() {
     let folder = draw("front-symmetry", MADE_UP, &["--unit", "173.3"]);
     let front = landmark_file(&folder, "front");
@@ -375,9 +697,11 @@ fn the_front_view_is_symmetric_left_to_right() {
 }
 
 #[test]
-fn left_and_right_in_a_name_are_the_characters_own_in_both_views() {
+fn left_and_right_in_a_name_are_the_characters_own_in_the_front_and_three_quarter_views() {
+    // In the side view the two points of a pair stand at one place, which
+    // `a_landmarks_sideways_position_in_the_side_view_is_its_depth` checks.
     let folder = draw("own-left-and-right", MADE_UP, &[]);
-    for view in VIEWS {
+    for view in ["front", "three-quarter"] {
         let file = landmark_file(&folder, view);
         for (name, point) in &file.landmarks {
             if name.contains("-left-") {
@@ -394,9 +718,8 @@ fn left_and_right_in_a_name_are_the_characters_own_in_both_views() {
 #[test]
 fn every_guide_of_the_inventory_appears_once_under_its_name_in_each_view() {
     let folder = draw("inventory", MADE_UP, &["--unit", "173.3"]);
-    let guides: BTreeSet<&str> = GUIDES.into_iter().collect();
-    let groups: BTreeSet<&str> = GROUPS.into_iter().collect();
     for view in VIEWS {
+        let (guides, groups) = (guides_of(view), groups_of(view));
         let svg = svg_text(&folder, view);
         let document = roxmltree::Document::parse(&svg).expect("the SVG is XML");
         let mut ids: BTreeMap<&str, usize> = BTreeMap::new();
