@@ -358,10 +358,12 @@ pub fn render(
             view.as_ref()
                 .map(|(named, drawing)| Given { named, drawing })
         }
-        let fit = match (given(&front), given(&turned)) {
-            (Some(front), Some(turned)) => {
-                Some(measuring::fit(&front, &turned, given(&side).as_ref()))
-            }
+        let fit = match given(&front) {
+            Some(front) if turned.is_some() || side.is_some() => Some(measuring::fit(
+                &front,
+                given(&turned).as_ref(),
+                given(&side).as_ref(),
+            )),
             _ => None,
         };
         let usable_views = [&front, &turned, &side]
@@ -386,14 +388,15 @@ pub fn render(
             ),
             None if usable_views == 0 => ("No usable view".to_string(), SET_ASIDE_TEXT),
             None => (
-                "No front view and three-quarter view to fit".to_string(),
+                "No front view to fit the other views to".to_string(),
                 SET_ASIDE_TEXT,
             ),
         };
         let turn = fit
             .as_ref()
             .and_then(|fit| fit.as_ref().ok())
-            .map(|fit| fit.turn.degrees);
+            .and_then(|fit| fit.turn.as_ref())
+            .map(|turn| turn.degrees);
 
         // The heading: what the character is, from its readings.
         let about = &shown[0].first().reference;

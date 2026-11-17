@@ -177,18 +177,26 @@ records the digest of the file it was read from.
       writes nothing, where no turn gives what the readings show: a pair with no spacing in
       the front view, or pairs wider apart in the three-quarter view than in the front view.
 
-  maquette fit-of-views --front <readings> --three-quarter <readings> [--side <readings>]
+  maquette fit-of-views --front <readings> [--three-quarter <readings>] [--side <readings>]
                         [--out <file>]
       Say, as one figure, how far a character's views are from being drawings of one level,
       symmetric head: the largest misfit in level, in spacing against the turn, and from the
-      front view's centre line, as a share of head height. A side view is compared in height.
+      front view's centre line, as a share of head height. The front view is set against a
+      three-quarter view, a side view or both. A side view is compared in height, and with
+      no three-quarter view there is no turn and no spacing to compare.
 
-  maquette proportions-from-readings --front <readings> --three-quarter <readings>
+  maquette proportions-from-readings --front <readings>
+                                     [--three-quarter <readings> | --side <readings>]
                                      [--out <file>]
-      Take a character's readings back into proportions, at the turn the readings show.
-      The skull is built by rule from the ears and the temples. The proportions the
-      readings do not give are listed with the reason; when all are given, the file is a
-      set of proportions that `maquette draw` reads.
+      Take a character's readings back into proportions. A front view alone gives heights
+      and widths and no depth. With a three-quarter view, depth is taken at the turn the
+      readings show. With a side view, depth is taken as the side view shows it: each view
+      is measured in its own unit, eye line to chin, so the two may be drawn at two sizes,
+      and a side view may face either way. A side view is asked for no temple, no cheek
+      point and no jaw point, so it gives those no depth. The skull is built by rule from
+      the ears and the temples, where the readings give them. The proportions the readings
+      do not give are listed with the reason; when all are given, the file is a set of
+      proportions that `maquette draw` reads.
 
   maquette score-reading --reading <reading> --known-positions <record> [--out <file>]
       Score a reading against a drawing whose true positions are on record, such as
@@ -679,6 +687,12 @@ fn drawing(folder: &Folder, named: &str) -> Result<readings::Drawing> {
     readings::Drawing::of(&records)
 }
 
+/// A view a measuring command may be given, as measuring takes it.
+fn given<'a>(view: &'a Option<(&'a str, readings::Drawing)>) -> Option<measuring::Given<'a>> {
+    view.as_ref()
+        .map(|(named, drawing)| measuring::Given { named, drawing })
+}
+
 /// Writes what a measuring command worked out into the reference folder, at `--out`, and
 /// prints its summary; or prints the whole of it.
 fn deliver_measured(
@@ -734,40 +748,44 @@ fn fit_of_views(arguments: &[String]) -> Result<()> {
         &["--front", "--three-quarter", "--side", "--out"],
     )?;
     let front = required(&found, "--front")?;
-    let three_quarter = required(&found, "--three-quarter")?;
-    let side = match found.get("--side") {
-        Some(side) => Some((*side, drawing(&folder, side)?)),
-        None => None,
+    let beside = |option: &str| -> Result<Option<(&str, readings::Drawing)>> {
+        match found.get(option) {
+            Some(named) => Ok(Some((*named, drawing(&folder, named)?))),
+            None => Ok(None),
+        }
     };
+    let (three_quarter, side) = (beside("--three-quarter")?, beside("--side")?);
     let fit = measuring::fit(
         &measuring::Given {
             named: front,
             drawing: &drawing(&folder, front)?,
         },
-        &measuring::Given {
-            named: three_quarter,
-            drawing: &drawing(&folder, three_quarter)?,
-        },
-        side.as_ref()
-            .map(|(named, drawing)| measuring::Given { named, drawing })
-            .as_ref(),
+        given(&three_quarter).as_ref(),
+        given(&side).as_ref(),
     )?;
     deliver_measured(&folder, &found, &fit.file(), &fit.summary())
 }
 
 fn proportions_from_readings(arguments: &[String]) -> Result<()> {
-    let (folder, found) = measuring(arguments, &["--front", "--three-quarter", "--out"])?;
+    let (folder, found) = measuring(
+        arguments,
+        &["--front", "--three-quarter", "--side", "--out"],
+    )?;
     let front = required(&found, "--front")?;
-    let three_quarter = required(&found, "--three-quarter")?;
+    let beside = |option: &str| -> Result<Option<(&str, readings::Drawing)>> {
+        match found.get(option) {
+            Some(named) => Ok(Some((*named, drawing(&folder, named)?))),
+            None => Ok(None),
+        }
+    };
+    let (three_quarter, side) = (beside("--three-quarter")?, beside("--side")?);
     let taken = measuring::proportions(
         &measuring::Given {
             named: front,
             drawing: &drawing(&folder, front)?,
         },
-        &measuring::Given {
-            named: three_quarter,
-            drawing: &drawing(&folder, three_quarter)?,
-        },
+        given(&three_quarter).as_ref(),
+        given(&side).as_ref(),
     )?;
     deliver_measured(&folder, &found, &taken.file()?, &taken.summary())
 }
