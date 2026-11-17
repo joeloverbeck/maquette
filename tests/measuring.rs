@@ -419,3 +419,64 @@ fn the_fit_is_above_zero_for_a_perturbed_head_and_names_the_worst_misfit() {
     assert_eq!(worst["kind"].as_str(), Some("spacing"));
     assert_eq!(worst["landmark"].as_str(), Some("mouth-line-end"));
 }
+
+#[test]
+fn a_side_view_counts_in_the_fit_by_its_heights() {
+    let folder = folder("measuring-fit-side");
+    MadeUp::front("first", seen(0.0, 500.0)).write(&folder, "front.toml");
+    MadeUp::turned("first", seen(29.0, 470.0)).write(&folder, "turned.toml");
+    // A side view is the same head turned 90 degrees, and shows the near side only: the
+    // character's right, when it faces the viewer's right.
+    let side_view = |points: std::collections::BTreeMap<String, [f64; 2]>| {
+        let mut side = MadeUp::turned("first", points);
+        side.picture = "made-up-side.png".to_string();
+        side.sha256 = "made-up-side-digest".to_string();
+        side.view = "side";
+        side.stated_turn = 90.0;
+        side.points.retain(|name, _| !name.contains("-left-"));
+        side
+    };
+    let fit = |side: &str, out: &str| {
+        measured(
+            &folder,
+            &[
+                "fit-of-views",
+                "--front",
+                "front.toml",
+                "--three-quarter",
+                "turned.toml",
+                "--side",
+                side,
+            ],
+            out,
+        )
+    };
+    side_view(seen(90.0, 430.0)).write(&folder, "side.toml");
+    let found = fit("side.toml", "fit-rigid.toml");
+    assert_eq!(number(&found["fit"]["percent_of_head_height"]), 0.0);
+
+    // The near brow's outer end 6 pixels lower in the side view than in the two others:
+    // 6 / 480 = 1.25% of head height.
+    let mut lower = seen(90.0, 430.0);
+    lower
+        .get_mut("brow-line-right-outer-end")
+        .expect("in the head")[1] += 6.0;
+    side_view(lower).write(&folder, "side-lower.toml");
+    let found = fit("side-lower.toml", "fit-lower.toml");
+    assert_close(
+        number(&found["fit"]["percent_of_head_height"]),
+        1.25,
+        1e-9,
+        "the fit",
+    );
+    let worst = entries(&found, "misfit")[0];
+    assert_eq!(worst["kind"].as_str(), Some("level"));
+    assert_eq!(
+        worst["landmark"].as_str(),
+        Some("brow-line-right-outer-end")
+    );
+    assert!(
+        worst["what"].as_str().expect("words").contains("side view"),
+        "{worst:?}"
+    );
+}
