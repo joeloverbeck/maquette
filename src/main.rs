@@ -460,6 +460,7 @@ fn proportions_from_hand_made_views(arguments: &[String]) -> Result<()> {
         None => None,
     };
     let hand_made = hand_made_views::read(
+        record_path,
         &read(record_path)?,
         final_record
             .as_ref()
