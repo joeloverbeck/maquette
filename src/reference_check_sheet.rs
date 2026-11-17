@@ -29,7 +29,7 @@ use std::collections::BTreeMap;
 use base64::Engine;
 
 use crate::measuring::{self, Given};
-use crate::number::{plain, plain3};
+use crate::number::{counted, plain, plain3};
 use crate::readings::{self, Drawing, Record};
 use crate::views::View;
 use crate::{Error, Result};
@@ -738,8 +738,8 @@ pub fn render(
         escape(&format!(
             "{} · {}, {}",
             description.look,
-            count(rows.len(), "character"),
-            count(drawings, "drawing")
+            counted(rows.len(), "character"),
+            counted(drawings, "drawing")
         ))
     ));
     out.push_str(&line(
@@ -765,14 +765,6 @@ pub fn render(
     out.push_str(&body);
     out.push_str("</svg>\n");
     Ok(out)
-}
-
-fn count(number: usize, noun: &str) -> String {
-    if number == 1 {
-        format!("1 {noun}")
-    } else {
-        format!("{number} {noun}s")
-    }
 }
 
 /// The card of a view that no reading is of.

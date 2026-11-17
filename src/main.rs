@@ -751,9 +751,10 @@ impl ViewsGiven<'_> {
     }
 }
 
-/// Reads the views a measuring command was given. With `--check`, only the readings of a
-/// character Jon accepted are measured, each drawing as his record rules, with the
-/// landmarks he marked as off left out.
+/// Reads the views a measuring command was given. With `--check`, the record decides what is
+/// measured, as [`jons_check::Review::measured`] says: nothing when the record is not
+/// complete, only the readings of a character Jon accepted, and each drawing from all the
+/// readings the record lists for it, as it rules, with his marks left out.
 fn views_given<'a>(
     folder: &Folder,
     found: &BTreeMap<&str, &'a str>,
@@ -763,6 +764,19 @@ fn views_given<'a>(
         Some(path) => Some((*path, check_record(folder, path)?)),
         None => None,
     };
+    let review = match &check {
+        Some((path, check)) => {
+            let review = check.review(path, &|reading| reading_now(folder, reading));
+            if !review.complete() {
+                return Err(Error::new(format!(
+                    "the record of Jon's check `{path}` is not complete, so nothing is measured by it: {}. `maquette jons-check --check {path}` says what it does and lacks",
+                    review.problems.join("; ")
+                )));
+            }
+            Some((*path, review))
+        }
+        None => None,
+    };
     let mut drawings = BTreeMap::new();
     let mut character: Option<&jons_check::Checked> = None;
     let mut notes = Vec::new();
@@ -770,86 +784,36 @@ fn views_given<'a>(
         let Some(named) = found.get(option).copied() else {
             continue;
         };
-        let Some((check_path, check)) = &check else {
+        let Some((_, review)) = &review else {
             drawings.insert(*option, (named, drawing(folder, named)?));
             continue;
         };
         let view = option.trim_start_matches("--");
         let paths: Vec<&str> = named.split(',').map(str::trim).collect();
         separate_files(folder, &paths)?;
-        let whole = |path: &str| folder.path(path).ok();
-        let first = whole(paths[0]);
-        let (of, checked) = check
-            .drawing_of(&|recorded| first.is_some() && whole(recorded) == first)
-            .ok_or_else(|| {
-                Error::new(format!(
-                    "`{}` is not a reading of the record of Jon's check `{check_path}`: with that record, only the readings he checked are measured",
-                    paths[0]
-                ))
-            })?;
+        let same = |recorded: &str, given: &str| {
+            folder
+                .path(recorded)
+                .is_ok_and(|recorded| folder.path(given).is_ok_and(|given| given == recorded))
+        };
+        let measured = review.measured(&paths, &same)?;
         match character {
-            Some(other) if other.label != of.label => {
+            Some(other) if other.label != measured.character.label => {
                 return Err(Error::new(format!(
                     "the views named are of two characters of the record of Jon's check, `{}` and `{}`: a character's own views are measured together",
-                    other.label, of.label
+                    other.label, measured.character.label
                 )));
             }
-            _ => character = Some(of),
+            _ => character = Some(measured.character),
         }
-        match of.verdict {
-            Some(jons_check::Verdict::Accepted) => {}
-            Some(jons_check::Verdict::Rejected) => {
-                return Err(Error::new(format!(
-                    "Jon rejected the character `{}`{}, so its readings are not measured",
-                    of.label,
-                    if of.why.is_empty() {
-                        String::new()
-                    } else {
-                        format!(" (\"{}\")", of.why)
-                    }
-                )));
-            }
-            None => {
-                return Err(Error::new(format!(
-                    "the character `{}` has no verdict in the record of Jon's check `{check_path}`: it is not yet checked, so its readings are not measured",
-                    of.label
-                )));
-            }
-        }
-        let mut records = Vec::new();
+        // Each reading is still held to what `check-reading` checks, against its picture.
         for path in &paths {
-            let recorded = checked
-                .readings
-                .iter()
-                .find(|recorded| whole(&recorded.path) == whole(path))
-                .ok_or_else(|| {
-                    Error::new(format!(
-                        "`{path}` is not a reading of the same drawing as `{}` in the record of Jon's check `{check_path}`",
-                        paths[0]
-                    ))
-                })?;
-            let (sha256, _) = reading_now(folder, path)?;
-            if sha256 != recorded.sha256 {
-                return Err(Error::new(format!(
-                    "`{path}` has changed since the record of Jon's check `{check_path}` was started: it is not the reading he checked, so it is not measured"
-                )));
-            }
-            records.push(checked_reading(folder, path)?.0);
+            checked_reading(folder, path)?;
         }
-        match checked.outcome(&records) {
-            jons_check::Outcome::Measured { records, said, .. } => {
-                notes.push(format!("the {view} view is {said}"));
-                drawings.insert(*option, (named, readings::Drawing::of(&records)?));
-            }
-            jons_check::Outcome::NotMeasured(why) => {
-                return Err(Error::new(format!(
-                    "the {view} view of `{}` is not measured: {why}",
-                    of.label
-                )));
-            }
-        }
+        notes.push(format!("the {view} view is {}", measured.said));
+        drawings.insert(*option, (named, measured.drawing.clone()));
     }
-    let (checked, proportions_off) = match (&check, character) {
+    let (checked, proportions_off) = match (&review, character) {
         (Some((check_path, _)), Some(of)) => (
             Some(format!(
                 "By the record of Jon's check `{check_path}`, the character `{}` is accepted: {}.",
@@ -1099,10 +1063,7 @@ fn start_jons_check(arguments: &[String]) -> Result<()> {
     folder.write(out, jons_check::template(sheet, &to_check).as_bytes())?;
     println!(
         "Started the record of Jon's check in `{out}`: {} to give a verdict on. Write in it what Jon said, and nothing else; `maquette jons-check --check {out}` then says what it does. It stays in the reference folder and is never committed.",
-        match to_check.len() {
-            1 => "1 character".to_string(),
-            count => format!("{count} characters"),
-        }
+        maquette::number::counted(to_check.len(), "character")
     );
     Ok(())
 }
@@ -1118,9 +1079,9 @@ fn jons_check_command(arguments: &[String]) -> Result<Ended> {
     let (folder, found) = measuring(arguments, &["--check"])?;
     let path = required(&found, "--check")?;
     let check = check_record(&folder, path)?;
-    let said = check.said(path, &|reading| reading_now(&folder, reading));
-    print!("{}", said.text);
-    Ok(if said.complete {
+    let review = check.review(path, &|reading| reading_now(&folder, reading));
+    print!("{}", review.said());
+    Ok(if review.complete() {
         Ended::Well
     } else {
         Ended::CheckFailed

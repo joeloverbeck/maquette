@@ -318,6 +318,106 @@ fn taken(folder: &Path, views: &[&str], out: &str) -> std::process::Output {
     maquette_in(Some(folder), &arguments)
 }
 
+/// `proportions-from-readings` with the record of Jon's check.
+fn taken_with_check(folder: &Path, views: &[&str], out: &str) -> std::process::Output {
+    let mut arguments = views.to_vec();
+    arguments.extend(["--check", "checks/check.toml"]);
+    taken(folder, &arguments, out)
+}
+
+/// A started record in which every character is accepted, and nothing else is said.
+fn all_accepted(folder: &Path) -> String {
+    let mut record = started(folder);
+    for work in 1..=6 {
+        record = say(&record, &format!("work-{work}"), "accepted", &[]);
+    }
+    record
+}
+
+fn both(work: usize, view: &str) -> String {
+    format!("first/work-{work}-{view}.toml,second/work-{work}-{view}.toml")
+}
+
+#[test]
+fn with_a_record_a_drawing_is_measured_from_all_the_readings_it_lists_or_not_at_all() {
+    let folder = folder("jons-check-all-readings");
+    let record = all_accepted(&folder);
+    filled(&folder, &record);
+    let (said, complete) = what_is_said(&folder);
+    assert!(complete, "{said}");
+    // Made up: work-3's second reader set its front view aside, and Jon gave no ruling.
+    let output = taken_with_check(&folder, &["--front", &both(3, "front")], "work-3.toml");
+    assert!(failure(&output).contains("set aside by second"));
+    // Naming only the first reading does not get round the second reader's setting aside.
+    let output = taken_with_check(
+        &folder,
+        &["--front", "first/work-3-front.toml"],
+        "work-3.toml",
+    );
+    let message = failure(&output);
+    assert!(
+        message.contains("all the readings it lists")
+            && message.contains("second/work-3-front.toml"),
+        "{message}"
+    );
+    // Nor does naming one reading of a drawing whose readings are both measured.
+    let output = taken_with_check(
+        &folder,
+        &["--front", "second/work-1-front.toml"],
+        "work-1.toml",
+    );
+    assert!(failure(&output).contains("all the readings it lists"));
+    assert!(!folder.join("work-3.toml").exists() && !folder.join("work-1.toml").exists());
+    // Named in either order, both readings are the drawing's readings.
+    let output = taken_with_check(
+        &folder,
+        &[
+            "--front",
+            "second/work-1-front.toml,first/work-1-front.toml",
+        ],
+        "work-1.toml",
+    );
+    assert!(output.status.success(), "{}", failure(&output));
+}
+
+#[test]
+fn a_measuring_command_stops_at_a_record_jons_check_does_not_call_complete() {
+    let folder = folder("jons-check-faulty-record");
+    let record = all_accepted(&folder);
+    // A ruling that is not one of the two words: `jons-check` calls the record incomplete,
+    // and measuring does not go on as if the readers' judgement stood.
+    let spoiled = say(
+        &record,
+        "work-1",
+        "accepted",
+        &[("front", "ruling = \"\"", "ruling = \"set-aside\"")],
+    );
+    filled(&folder, &spoiled);
+    let (said, complete) = what_is_said(&folder);
+    assert!(!complete && said.contains("\"set-aside\""), "{said}");
+    let output = taken_with_check(&folder, &["--front", &both(1, "front")], "work-1.toml");
+    let message = failure(&output);
+    assert!(
+        message.contains("is not complete") && message.contains("\"set-aside\""),
+        "{message}"
+    );
+    // A mark that fits no landmark of the view, on another character's drawing.
+    let spoiled = say(
+        &record,
+        "work-4",
+        "accepted",
+        &[("front", "off = []", "off = [\"nose-bottom\"]")],
+    );
+    filled(&folder, &spoiled);
+    let output = taken_with_check(&folder, &["--front", &both(1, "front")], "work-1.toml");
+    let message = failure(&output);
+    assert!(
+        message.contains("is not complete") && message.contains("`nose-bottom`"),
+        "{message}"
+    );
+    assert!(!folder.join("work-1.toml").exists());
+}
+
 #[test]
 fn measuring_takes_only_what_jon_accepted_and_leaves_out_what_he_marked() {
     let folder = folder("jons-check-measuring");
@@ -345,6 +445,8 @@ fn measuring_takes_only_what_jon_accepted_and_leaves_out_what_he_marked() {
         "accepted",
         &[("front", "ruling = \"\"", "ruling = \"measure\"")],
     );
+    record = say(&record, "work-4", "accepted", &[]);
+    record = say(&record, "work-5", "accepted", &[]);
     record = say(&record, "work-6", "rejected", &[]);
     filled(&folder, &record);
     let front = |work: usize| format!("first/work-{work}-front.toml,second/work-{work}-front.toml");
@@ -415,17 +517,30 @@ fn measuring_takes_only_what_jon_accepted_and_leaves_out_what_he_marked() {
     let output = with_check(&["--front", &front(3)], "work-3.toml");
     assert!(output.status.success(), "{}", failure(&output));
 
-    // A drawing Jon sets aside, a character he rejected, one he has not checked, and a
-    // reading that is not on the sheet he checked are not measured.
+    // A drawing Jon sets aside, a character he rejected, and a reading that is not on the
+    // sheet he checked are not measured.
     for (work, why) in [
         (2, "set aside by Jon"),
         (6, "Jon rejected the character `work-6`"),
-        (4, "has no verdict"),
     ] {
         let output = with_check(&["--front", &front(work)], "refused.toml");
         let message = failure(&output);
         assert!(message.contains(why), "work-{work}: {message}");
     }
+    // Nor is anything, while a character has no verdict: the record is not complete.
+    let unchecked = record.replacen(
+        "label = \"work-4\"\nverdict = \"accepted\"",
+        "label = \"work-4\"\nverdict = \"\"",
+        1,
+    );
+    filled(&folder, &unchecked);
+    let output = with_check(&["--front", &front(1)], "refused.toml");
+    let message = failure(&output);
+    assert!(
+        message.contains("is not complete") && message.contains("`work-4` has no verdict"),
+        "{message}"
+    );
+    filled(&folder, &record);
     MadeUp::front("third", seen(0.0, 500.0)).write(&folder, "third/elsewhere.toml");
     let output = with_check(&["--front", "third/elsewhere.toml"], "refused.toml");
     assert!(failure(&output).contains("is not a reading of the record"));

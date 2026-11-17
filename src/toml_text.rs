@@ -49,3 +49,23 @@ pub fn quoted_lines<T: AsRef<str>>(texts: &[T]) -> String {
     out.push(']');
     out
 }
+
+/// The text a table gives a key, trimmed: empty where it gives none, or gives something else.
+pub fn words(table: &toml::Table, key: &str) -> String {
+    table
+        .get(key)
+        .and_then(toml::Value::as_str)
+        .unwrap_or_default()
+        .trim()
+        .to_string()
+}
+
+/// The tables of an array of tables, such as every `[[character]]`: none where the key is
+/// not there, and an entry that is not a table is passed over.
+pub fn tables<'a>(table: &'a toml::Table, key: &str) -> Vec<&'a toml::Table> {
+    table
+        .get(key)
+        .and_then(toml::Value::as_array)
+        .map(|entries| entries.iter().filter_map(toml::Value::as_table).collect())
+        .unwrap_or_default()
+}

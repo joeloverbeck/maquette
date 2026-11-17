@@ -7,6 +7,8 @@
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
+use crate::number::counted;
+use crate::toml_text::tables;
 use crate::{Error, Result};
 
 const LIST_TEXT: &str = include_str!("../proportions/list.toml");
@@ -86,14 +88,6 @@ fn text_of(table: &toml::Table, key: &str, context: &str) -> Result<String> {
                 "the list of proportions: {context} has no text `{key}`"
             ))
         })
-}
-
-fn tables<'a>(table: &'a toml::Table, key: &str) -> Vec<&'a toml::Table> {
-    table
-        .get(key)
-        .and_then(toml::Value::as_array)
-        .map(|entries| entries.iter().filter_map(toml::Value::as_table).collect())
-        .unwrap_or_default()
 }
 
 fn parse_list(text: &str) -> Result<List> {
@@ -380,7 +374,7 @@ impl Set {
         if !missing.is_empty() {
             return Err(Error::new(format!(
                 "the set of proportions lacks {}: {}. `maquette list-proportions` defines each.",
-                count(missing.len(), "proportion"),
+                counted(missing.len(), "proportion"),
                 missing.join(", ")
             )));
         }
@@ -392,7 +386,7 @@ impl Set {
         if !unknown.is_empty() {
             return Err(Error::new(format!(
                 "the set of proportions has {} the list does not: {}",
-                count(unknown.len(), "name"),
+                counted(unknown.len(), "name"),
                 unknown.join(", ")
             )));
         }
@@ -579,13 +573,5 @@ impl Set {
             }
         }
         Ok(out)
-    }
-}
-
-fn count(number: usize, noun: &str) -> String {
-    if number == 1 {
-        format!("1 {noun}")
-    } else {
-        format!("{number} {noun}s")
     }
 }

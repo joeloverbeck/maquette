@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 use sha2::{Digest, Sha256};
 
 use crate::head_model;
-use crate::toml_text::quoted;
+use crate::toml_text::{quoted, words};
 use crate::views::View;
 use crate::{Error, Result};
 
@@ -621,15 +621,6 @@ fn table<'a>(file: &'a toml::Table, key: &str) -> Result<&'a toml::Table> {
     file.get(key)
         .and_then(toml::Value::as_table)
         .ok_or_else(|| Error::new(format!("the reading has no [{key}] table")))
-}
-
-fn words(table: &toml::Table, key: &str) -> String {
-    table
-        .get(key)
-        .and_then(toml::Value::as_str)
-        .unwrap_or_default()
-        .trim()
-        .to_string()
 }
 
 fn number(value: Option<&toml::Value>) -> Option<f64> {

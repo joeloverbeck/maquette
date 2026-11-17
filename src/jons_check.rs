@@ -15,10 +15,9 @@
 //! Nothing here judges a drawing. The program reports what the record says and what follows
 //! from it by the rules below; the decisions are Jon's.
 
-use std::collections::BTreeMap;
-
-use crate::readings::{Record, view_named};
-use crate::toml_text::quoted;
+use crate::number::counted;
+use crate::readings::{Drawing, Record, view_named};
+use crate::toml_text::{quoted, tables, words};
 use crate::views::View;
 use crate::{Error, Result};
 
@@ -31,6 +30,14 @@ pub const RULES: &[(&str, &str)] = &[
     (
         "accepted_only",
         "Only the readings of a character Jon accepted are measured. A character he rejected, or has not given a verdict on, gives nothing.",
+    ),
+    (
+        "complete",
+        "A measuring command given a record that `maquette jons-check` does not call complete measures nothing by it, and says what the record lacks or gets wrong.",
+    ),
+    (
+        "all_readings",
+        "A drawing is measured from all of the readings the record lists for it, as the record rules, or not at all: a command that names only some of them measures nothing.",
     ),
     (
         "as_the_readers_judged",
@@ -246,26 +253,9 @@ pub fn template(sheet: &str, characters: &[(&str, Vec<ToCheck>)]) -> String {
     out
 }
 
-fn words(table: &toml::Table, key: &str) -> String {
-    table
-        .get(key)
-        .and_then(toml::Value::as_str)
-        .unwrap_or_default()
-        .trim()
-        .to_string()
-}
-
-fn tables<'a>(table: &'a toml::Table, key: &str) -> Vec<&'a toml::Table> {
-    table
-        .get(key)
-        .and_then(toml::Value::as_array)
-        .map(|entries| entries.iter().filter_map(toml::Value::as_table).collect())
-        .unwrap_or_default()
-}
-
 impl Check {
     /// Reads the text of a record. One that is not filled in is still read: what it lacks
-    /// is [`Check::said`]'s to say.
+    /// is [`Check::review`]'s to say.
     pub fn read(text: &str) -> Result<Check> {
         let file: toml::Table = text.parse().map_err(|error| {
             Error::new(format!(
@@ -370,32 +360,27 @@ impl Check {
             faults,
         })
     }
-
-    /// The character and the drawing a reading belongs to. `same` says whether a path the
-    /// record names is the reading looked for.
-    pub fn drawing_of(&self, same: &dyn Fn(&str) -> bool) -> Option<(&Checked, &DrawingChecked)> {
-        self.characters.iter().find_map(|character| {
-            character
-                .drawings
-                .iter()
-                .find(|drawing| drawing.readings.iter().any(|named| same(&named.path)))
-                .map(|drawing| (character, drawing))
-        })
-    }
 }
 
 /// What the record does to one drawing.
 #[derive(Debug, Clone)]
 pub enum Outcome {
-    /// It is measured: from these readings, as changed by the rulings and the marks.
+    /// It is measured: its readings taken together, as changed by the rulings and the marks.
     Measured {
-        view: View,
-        records: Vec<Record>,
+        drawing: Drawing,
         /// How, in words.
         said: String,
     },
     /// It is not measured, and why.
     NotMeasured(String),
+}
+
+fn quote(why: &str) -> String {
+    if why.is_empty() {
+        String::new()
+    } else {
+        format!(": \"{why}\"")
+    }
 }
 
 impl DrawingChecked {
@@ -408,13 +393,6 @@ impl DrawingChecked {
     /// in the record's order: the rules `as_the_readers_judged`, `measure`, `set_aside` and
     /// `off`.
     pub fn outcome(&self, records: &[Record]) -> Outcome {
-        let quote = |why: &str| {
-            if why.is_empty() {
-                String::new()
-            } else {
-                format!(": \"{why}\"")
-            }
-        };
         let (mut measured, mut said): (Vec<Record>, String) = match self.ruling {
             Some(Ruling::SetAside) => {
                 return Outcome::NotMeasured(format!(
@@ -502,38 +480,47 @@ impl DrawingChecked {
                 self.off.join(", ")
             ));
         }
-        let view = measured[0].view;
-        Outcome::Measured {
-            view,
-            records: measured,
-            said,
+        match Drawing::of(&measured) {
+            Ok(drawing) => Outcome::Measured { drawing, said },
+            Err(error) => Outcome::NotMeasured(error.to_string()),
         }
     }
 }
 
-/// What a record says and does, for a person: [`Check::said`]'s result.
-pub struct Said {
-    pub text: String,
-    /// Whether the record lacks nothing and gets nothing wrong.
-    pub complete: bool,
+/// What a record does and what it lacks or gets wrong, worked out once from the readings as
+/// they are now. `maquette jons-check` says it, and a measuring command obeys it: each
+/// drawing's [`Outcome`] is decided here and nowhere else.
+pub struct Review<'a> {
+    check: &'a Check,
+    /// The record's path in the reference folder.
+    path: &'a str,
+    /// For each character, in the record's order, what the record does to each drawing.
+    outcomes: Vec<Vec<Outcome>>,
+    /// What the record lacks or gets wrong. Empty when it is complete.
+    pub problems: Vec<String>,
+    /// What the record says, for a person: everything but the counts and the problems.
+    lines: String,
+    /// For each character, its work, and the views measured of it when it is accepted.
+    measured_views: Vec<(String, Vec<View>)>,
 }
 
-fn works(count: usize) -> String {
-    let thin = if count < WORKS_FOR_A_TABLE {
-        format!(": too thin, a view needs {WORKS_FOR_A_TABLE}")
-    } else {
-        String::new()
-    };
-    match count {
-        1 => format!("1 work{thin}"),
-        count => format!("{count} works{thin}"),
-    }
+/// A drawing a measuring command measures, as the record rules it.
+pub struct Measured<'a> {
+    pub character: &'a Checked,
+    pub drawing: &'a Drawing,
+    /// How it is measured, in words.
+    pub said: &'a str,
 }
 
 impl Check {
-    /// What the record says and does, and what it lacks or gets wrong. `reading` gives a
-    /// reading the record names as it is now: the digest of its file, and the reading.
-    pub fn said(&self, path: &str, reading: &dyn Fn(&str) -> Result<(String, Record)>) -> Said {
+    /// Works out what the record does to each drawing and what it lacks or gets wrong.
+    /// `path` is the record's own, for what is said; `reading` gives a reading the record
+    /// names as it is now: the digest of its file, and the reading.
+    pub fn review<'a>(
+        &'a self,
+        path: &'a str,
+        reading: &dyn Fn(&str) -> Result<(String, Record)>,
+    ) -> Review<'a> {
         let mut problems = self.faults.clone();
         for (key, value, what) in [
             (
@@ -556,28 +543,22 @@ impl Check {
                 problems.push(format!("`{key}` is empty: {what}"));
             }
         }
+        let or = |value: &str, none: &'static str| -> String {
+            if value.is_empty() {
+                none.to_string()
+            } else {
+                value.to_string()
+            }
+        };
         let mut out = format!(
             "Jon's check `{path}`: {}, checked on {}, recorded by {}.\n",
-            if self.look.is_empty() {
-                "look not said"
-            } else {
-                &self.look
-            },
-            if self.checked_on.is_empty() {
-                "a day not said"
-            } else {
-                &self.checked_on
-            },
-            if self.recorded_by.is_empty() {
-                "nobody named"
-            } else {
-                &self.recorded_by
-            }
+            or(&self.look, "look not said"),
+            or(&self.checked_on, "a day not said"),
+            or(&self.recorded_by, "nobody named"),
         );
 
-        // The works behind each view, and behind each route to depth: by the work each
-        // character's readings name.
-        let mut behind: BTreeMap<&'static str, Vec<String>> = BTreeMap::new();
+        let mut outcomes = Vec::new();
+        let mut measured_views = Vec::new();
         for character in &self.characters {
             let label = &character.label;
             out.push('\n');
@@ -616,8 +597,9 @@ impl Check {
                     Err(error) => problems.push(error.to_string()),
                 }
             }
-            let mut measured_views: Vec<View> = Vec::new();
+            let mut views: Vec<View> = Vec::new();
             let mut work = String::new();
+            let mut of_character = Vec::new();
             for drawing in &character.drawings {
                 let of = format!("the {} view of `{label}`", drawing.card.name());
                 let mut records = Vec::new();
@@ -665,9 +647,9 @@ impl Check {
                     Outcome::NotMeasured("a reading of it could not be read".to_string())
                 };
                 let words = match &outcome {
-                    Outcome::Measured { view, said, .. } => {
+                    Outcome::Measured { drawing, said } => {
                         if character.verdict == Some(Verdict::Accepted) {
-                            measured_views.push(*view);
+                            views.push(drawing.view);
                         }
                         said.clone()
                     }
@@ -676,71 +658,191 @@ impl Check {
                 out.push_str(&format!(
                     "  {}, {}: {words}.\n",
                     drawing.card.name(),
-                    if drawing.picture.is_empty() {
-                        "its picture not named"
-                    } else {
-                        &drawing.picture
-                    }
+                    or(&drawing.picture, "its picture not named")
                 ));
+                of_character.push(outcome);
             }
+            outcomes.push(of_character);
             // A character with no work named still counts as a work of its own.
-            let work = if work.is_empty() {
-                format!("the work of `{label}`")
-            } else {
-                work
-            };
-            let has = |view: View| measured_views.contains(&view);
-            for (key, counted) in [
-                ("front", has(View::Front)),
-                ("three-quarter", has(View::ThreeQuarter)),
-                ("side", has(View::Side)),
-                ("front and side", has(View::Front) && has(View::Side)),
-                (
-                    "front and three-quarter",
-                    has(View::Front) && has(View::ThreeQuarter),
-                ),
-            ] {
-                let works = behind.entry(key).or_default();
-                if counted && !works.contains(&work) {
-                    works.push(work.clone());
-                }
+            if work.is_empty() {
+                work = format!("the work of `{label}`");
             }
+            measured_views.push((work, views));
         }
+        Review {
+            check: self,
+            path,
+            outcomes,
+            problems,
+            lines: out,
+            measured_views,
+        }
+    }
+}
 
-        let count = |key: &str| behind.get(key).map_or(0, Vec::len);
+/// What a count of accepted works is of: a view, or depth from a front view and the view
+/// beside it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Counted {
+    View(View),
+    Depth(View),
+}
+
+impl Counted {
+    const ALL: [Counted; 5] = [
+        Counted::View(View::Front),
+        Counted::View(View::ThreeQuarter),
+        Counted::View(View::Side),
+        Counted::Depth(View::Side),
+        Counted::Depth(View::ThreeQuarter),
+    ];
+
+    /// Whether a character whose measured views are these counts for it.
+    fn counts(self, measured: &[View]) -> bool {
+        match self {
+            Counted::View(view) => measured.contains(&view),
+            Counted::Depth(beside) => measured.contains(&View::Front) && measured.contains(&beside),
+        }
+    }
+
+    fn words(self) -> String {
+        match self {
+            Counted::View(view) => view.name().to_string(),
+            Counted::Depth(beside) => format!(
+                "depth, from a front and a {} view of one character",
+                beside.name()
+            ),
+        }
+    }
+}
+
+fn works(count: usize) -> String {
+    let thin = if count < WORKS_FOR_A_TABLE {
+        format!(": too thin, a view needs {WORKS_FOR_A_TABLE}")
+    } else {
+        String::new()
+    };
+    format!("{}{thin}", counted(count, "work"))
+}
+
+impl Review<'_> {
+    /// Whether the record lacks nothing and gets nothing wrong.
+    pub fn complete(&self) -> bool {
+        self.problems.is_empty()
+    }
+
+    /// What the record says and does, for a person: each character and drawing, the count
+    /// of accepted works for each view, and what the record lacks or gets wrong.
+    pub fn said(&self) -> String {
+        let mut out = self.lines.clone();
         out.push_str(&format!(
             "\nAccepted works for each view, of {} on the sheet:\n",
-            match self.characters.len() {
-                1 => "1 character".to_string(),
-                count => format!("{count} characters"),
+            counted(self.check.characters.len(), "character")
+        ));
+        for what in Counted::ALL {
+            let mut behind: Vec<&str> = Vec::new();
+            for (work, views) in &self.measured_views {
+                if what.counts(views) && !behind.contains(&work.as_str()) {
+                    behind.push(work);
+                }
             }
-        ));
-        for view in View::ALL {
-            out.push_str(&format!(
-                "  {}: {}\n",
-                view.name(),
-                works(count(view.name()))
-            ));
+            out.push_str(&format!("  {}: {}\n", what.words(), works(behind.len())));
         }
-        out.push_str(&format!(
-            "  depth, from a front and a side view of one character: {}\n",
-            works(count("front and side"))
-        ));
-        out.push_str(&format!(
-            "  depth, from a front and a three-quarter view of one character: {}\n",
-            works(count("front and three-quarter"))
-        ));
-        if !problems.is_empty() {
+        if self.complete() {
+            out.push_str("\nThe record is complete.\n");
+        } else {
             out.push_str("\nThe record is not complete, so these counts are not final:\n");
-            for problem in &problems {
+            for problem in &self.problems {
                 out.push_str(&format!("- {problem}\n"));
             }
-        } else {
-            out.push_str("\nThe record is complete.\n");
         }
-        Said {
-            text: out,
-            complete: problems.is_empty(),
+        out
+    }
+
+    /// The drawing whose readings a measuring command names, as the record rules it: rules
+    /// `all_readings` and `accepted_only`. `same` says whether a path the record names and
+    /// a path given are one file.
+    pub fn measured(
+        &self,
+        named: &[&str],
+        same: &dyn Fn(&str, &str) -> bool,
+    ) -> Result<Measured<'_>> {
+        let path = self.path;
+        let first = named.first().copied().unwrap_or_default();
+        let found = self
+            .check
+            .characters
+            .iter()
+            .enumerate()
+            .find_map(|(at, character)| {
+                character
+                    .drawings
+                    .iter()
+                    .enumerate()
+                    .find(|(_, drawing)| {
+                        drawing
+                            .readings
+                            .iter()
+                            .any(|listed| same(&listed.path, first))
+                    })
+                    .map(|(drawing_at, drawing)| (at, character, drawing_at, drawing))
+            });
+        let Some((at, character, drawing_at, drawing)) = found else {
+            return Err(Error::new(format!(
+                "`{first}` is not a reading of the record of Jon's check `{path}`: with that record, only the readings he checked are measured"
+            )));
+        };
+        let label = &character.label;
+        let of = format!("the {} view of `{label}`", drawing.card.name());
+        for given in named {
+            if !drawing
+                .readings
+                .iter()
+                .any(|listed| same(&listed.path, given))
+            {
+                return Err(Error::new(format!(
+                    "`{given}` is not a reading of the same drawing as `{first}` in the record of Jon's check `{path}`"
+                )));
+            }
+        }
+        let not_named: Vec<String> = drawing
+            .readings
+            .iter()
+            .filter(|listed| !named.iter().any(|given| same(&listed.path, given)))
+            .map(|listed| format!("`{}`", listed.path))
+            .collect();
+        if !not_named.is_empty() {
+            return Err(Error::new(format!(
+                "the record of Jon's check `{path}` lists {} of {of}, and {} is not named: with the record, a drawing is measured from all the readings it lists, as it rules, or not at all. Name them all, with a comma between them",
+                counted(drawing.readings.len(), "reading"),
+                not_named.join(" and ")
+            )));
+        }
+        match character.verdict {
+            Some(Verdict::Accepted) => {}
+            Some(Verdict::Rejected) => {
+                return Err(Error::new(format!(
+                    "Jon rejected the character `{label}`{}, so its readings are not measured",
+                    if character.why.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" (\"{}\")", character.why)
+                    }
+                )));
+            }
+            None => {
+                return Err(Error::new(format!(
+                    "the character `{label}` has no verdict in the record of Jon's check `{path}`: it is not yet checked, so its readings are not measured"
+                )));
+            }
+        }
+        match &self.outcomes[at][drawing_at] {
+            Outcome::Measured { drawing, said } => Ok(Measured {
+                character,
+                drawing,
+                said,
+            }),
+            Outcome::NotMeasured(why) => Err(Error::new(format!("{of} is not measured: {why}"))),
         }
     }
 }
