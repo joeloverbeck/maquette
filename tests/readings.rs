@@ -658,6 +658,81 @@ fn a_drawing_whose_set_aside_was_overruled_is_read_and_every_landmark_is_asked_f
     assert!(message.contains("eye line"), "{message}");
 }
 
+/// The points of a profile that a side view was first asked for after look 6, where the side
+/// view drawn without them failed: the bridge of the nose and the forehead on the front of the
+/// face, the jaw's angle, and the top of the neck's two lines.
+const PROFILE_SINCE_LOOK_6: [&str; 5] = [
+    "centre-line-at-eye-level",
+    "centre-line-at-brow-level",
+    "jaw-right-angle",
+    "neck-front-top",
+    "neck-back-top",
+];
+
+#[test]
+fn a_side_view_asks_for_the_bridge_the_forehead_the_jaws_angle_and_the_necks_top_ends() {
+    let folder = folder_with_picture("readings-side-profile");
+    let side = start(&folder, "side", &["--faces", "right"], "side.toml");
+    let said_of = |landmark: &str| -> String {
+        let lines: Vec<&str> = side.lines().collect();
+        let at = lines
+            .iter()
+            .position(|line| *line == format!("# {landmark} = {{ x = , y = }}"))
+            .unwrap_or_else(|| panic!("a side view does not ask for {landmark}"));
+        lines[at - 1].to_string()
+    };
+    assert!(said_of("centre-line-at-eye-level").contains("eye line"));
+    assert!(said_of("centre-line-at-brow-level").contains("brow"));
+    assert!(said_of("jaw-right-angle").contains("toward the ear"));
+    assert!(said_of("neck-front-top").contains("underside of the jaw"));
+    assert!(said_of("neck-back-top").contains("back of the neck"));
+    // The near side only: the head faces the viewer's right, so the near side is the right.
+    assert!(!asked(&side).contains(&"jaw-left-angle".to_string()));
+
+    // A front view and a three-quarter view ask for none of them.
+    let front = asked(&start(&folder, "front", &[], "front.toml"));
+    let turned = asked(&start(
+        &folder,
+        "three-quarter",
+        &["--faces", "right"],
+        "three-quarter.toml",
+    ));
+    for landmark in PROFILE_SINCE_LOOK_6 {
+        assert!(!front.contains(&landmark.to_string()), "{landmark}");
+        assert!(!turned.contains(&landmark.to_string()), "{landmark}");
+    }
+
+    // A side reading made under revision 2026-11-17.3, the revision the first batch's side
+    // views were read at, was not asked for them, and is not held to them now.
+    let earlier: String = filled_in(&side, 90.0, &|name| {
+        Some([300.0 + name.len() as f64, 100.0 + name.len() as f64 * 4.0])
+    })
+    .lines()
+    .filter(|line| {
+        !PROFILE_SINCE_LOOK_6
+            .iter()
+            .any(|landmark| line.starts_with(&format!("{landmark} = ")))
+    })
+    .map(|line| match line.starts_with("instructions = ") {
+        true => "instructions = \"2026-11-17.3\"\n".to_string(),
+        false => format!("{line}\n"),
+    })
+    .collect();
+    std::fs::write(folder.join("earlier.toml"), &earlier).expect("written");
+    let output = maquette_in(
+        Some(&folder),
+        &["check-reading", "--reading", "earlier.toml"],
+    );
+    let said = String::from_utf8_lossy(&output.stdout).into_owned()
+        + &String::from_utf8_lossy(&output.stderr);
+    assert!(said.contains("2026-11-17.3"), "{said}");
+    assert!(
+        !said.contains("neither placed nor stated as not seen"),
+        "{said}"
+    );
+    assert!(!said.contains("not a landmark"), "{said}");
+}
+
 #[test]
 fn a_side_reading_is_started_with_what_each_landmark_is_in_a_profile() {
     let folder = folder_with_picture("readings-side-words");

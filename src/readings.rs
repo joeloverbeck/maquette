@@ -334,6 +334,74 @@ const IN_SIDE_VIEW: &[Ask] = &[
     ),
 ];
 
+/// The revision of the reading instructions from which a side view is asked for the points of
+/// the profile below. Look 6 drew a side view whose forehead, jaw and neck nothing measured,
+/// and it read wrong there. A side reading made under an earlier revision was not asked for
+/// them, and is not held to them.
+const PROFILE_SINCE: &str = "2026-11-17.4";
+
+/// The points of the profile on the front of the face and on the neck that a side view is
+/// asked for since [`PROFILE_SINCE`], in the order a reader works down the head.
+const PROFILE_ON_CENTRE_LINE: &[Ask] = &[
+    ask(
+        "centre-line-at-brow-level",
+        "",
+        "face outline",
+        "The forehead: where the front outline of the face crosses the height of the near brow's front end.",
+    ),
+    ask(
+        "centre-line-at-eye-level",
+        "",
+        "face outline",
+        "The bridge of the nose: where the front outline of the face crosses the eye line.",
+    ),
+    ask(
+        "neck-front-top",
+        "",
+        "neck",
+        "The top of the front of the neck: where its edge leaves the underside of the jaw.",
+    ),
+    ask(
+        "neck-back-top",
+        "",
+        "neck",
+        "The top of the back of the neck: where its edge meets the head. Not where hair crosses it.",
+    ),
+];
+
+/// The point of the profile on the near side that a side view is asked for since
+/// [`PROFILE_SINCE`].
+const PROFILE_ON_NEAR_SIDE: Ask = ask(
+    "jaw",
+    "angle",
+    "jaw",
+    "The angle of the jaw: going back along the underside of the jaw from the chin, where it turns to run up toward the ear.",
+);
+
+/// Where a revision of the reading instructions stands among the others: its date, then its
+/// number that day. None for a revision not written that way, which is taken to come before
+/// every revision that is.
+fn revision_order(revision: &str) -> Option<(&str, u32)> {
+    let (date, number) = revision.rsplit_once('.')?;
+    let is_date = date.len() == 10
+        && date.bytes().enumerate().all(|(at, byte)| match at {
+            4 | 7 => byte == b'-',
+            _ => byte.is_ascii_digit(),
+        });
+    if !is_date {
+        return None;
+    }
+    Some((date, number.parse().ok()?))
+}
+
+/// Whether a reading made under `revision` was asked for what a view asks for since `since`.
+fn asked_since(revision: &str, since: &str) -> bool {
+    match (revision_order(revision), revision_order(since)) {
+        (Some(revision), Some(since)) => revision >= since,
+        _ => false,
+    }
+}
+
 /// The points of the near side's outline that a turned view does not ask for: above the nose
 /// level the list of proportions builds the jaw line by rule, and the jaw point belongs to
 /// the front of the face, which a side view shows as the centre line.
@@ -472,9 +540,19 @@ fn what_in(view: View, ask: &Ask) -> &'static str {
         .map_or(ask.what, |(_, _, what)| what)
 }
 
-/// The landmarks a view asks a reader for, in the order of a reading. `faces` is which way a
-/// turned head faces; a front view has none.
+/// The landmarks a view asks a reader for under the reading instructions as they stand, in the
+/// order of a reading. `faces` is which way a turned head faces; a front view has none.
 pub fn asked(view: View, faces: Option<Faces>) -> Vec<Asked> {
+    asked_with(view, faces, true)
+}
+
+/// The landmarks a view asked a reader for under `revision` of the reading instructions: a
+/// reading is held to what it was asked for when it was made.
+pub fn asked_under(view: View, faces: Option<Faces>, revision: &str) -> Vec<Asked> {
+    asked_with(view, faces, asked_since(revision, PROFILE_SINCE))
+}
+
+fn asked_with(view: View, faces: Option<Faces>, profile: bool) -> Vec<Asked> {
     let near = faces.unwrap_or(Faces::ViewersRight).near();
     let mut out: Vec<Asked> = ON_CENTRE_LINE
         .iter()
@@ -510,6 +588,21 @@ pub fn asked(view: View, faces: Option<Faces>) -> Vec<Asked> {
             kind: ask.kind,
             what: what_in(view, ask),
         }));
+        if profile {
+            out.extend(PROFILE_ON_CENTRE_LINE.iter().map(|ask| Asked {
+                name: ask.stem.to_string(),
+                kind: ask.kind,
+                what: ask.what,
+            }));
+            out.push(Asked {
+                name: format!(
+                    "{}-{near}-{}",
+                    PROFILE_ON_NEAR_SIDE.stem, PROFILE_ON_NEAR_SIDE.point
+                ),
+                kind: PROFILE_ON_NEAR_SIDE.kind,
+                what: PROFILE_ON_NEAR_SIDE.what,
+            });
+        }
     }
     out
 }
@@ -810,9 +903,9 @@ impl Record {
         })
     }
 
-    /// The landmarks this reading's view asks for.
+    /// The landmarks this reading's view asked for, under the revision it was made under.
     pub fn asked(&self) -> Vec<Asked> {
-        asked(self.view, self.faces)
+        asked_under(self.view, self.faces, &self.instructions)
     }
 
     /// What the reading lacks or gets wrong, in words its reader can act on. Empty when the

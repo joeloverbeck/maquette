@@ -1,6 +1,6 @@
 # Reading a drawing
 
-Revision: 2026-11-17.3
+Revision: 2026-11-17.4
 
 A reading is one reader's placement of the landmarks on one drawing of a head, with the reader's judgement of the view, the turn and whether the head is level. Maquette takes proportions from readings. Every drawing is read twice, by two readers who do not see each other's reading, and Jon checks the result. You are one of the two readers.
 
@@ -105,7 +105,8 @@ A side view is a profile. Several landmarks are another point of the drawing the
 **What is asked for.**
 
 - Only the near side is asked for, under that side's name. The reading file lists every landmark a side view asks for.
-- A side view asks for no temple, no jaw point, no crossing of the outline with the eye line, no `hair-<side>-extent` and no `neck-<side>-base`. Do not place them, and do not state them as not seen.
+- A side view asks for no temple, no jaw point, no crossing of the face outline with the eye line on the side of the face, no `hair-<side>-extent` and no `neck-<side>-base`. Do not place them, and do not state them as not seen.
+- A side view asks for points of the profile that no other view does: the forehead, the bridge of the nose, the jaw's angle and the top of the neck's two lines ("The forehead, the bridge, the jaw's angle and the neck" below).
 - Inner and outer: in every name of a side view, inner is toward the front of the face and outer is toward the back of the head. That holds for the eye's corners, the iris's extents, the lid line's and the brow line's ends, and the ear's extents.
 
 **The front of the face.** It is read through three points of the outline: `nose-mark-bottom`, `mouth-line-centre` and `chin`. Each is how far forward the face stands at its height, so each is placed on the turn of the outline and never on a level run behind it.
@@ -138,7 +139,15 @@ A side view is a profile. Several landmarks are another point of the drawing the
 - `neck-back-base` and `neck-front-base` are where the back and the front of the neck end: where each edge turns into the shoulder or the chest.
 - Head height is a difference in height only. In a side view the hair's top and the chin stand on different uprights, and how far apart they are sideways does not count.
 
-This part was revised once, at revision 2026-11-17.3, after the first published side drawings were read. It has not been tested on a painted head whose positions are known: the only side drawing with known positions is a generated armature, which is a drawing of guides.
+**The forehead, the bridge, the jaw's angle and the neck.** These are points of the profile that a drawn side view needs and no other view shows. Place the eye and the brow first, and work out the eye line from the near eye.
+
+- `centre-line-at-brow-level` is the forehead: where the front outline of the face crosses the height of `brow-line-<side>-inner-end`, the brow's front end. Where the brow is not seen, or hair or anything else lies over the front outline at that height, it is not seen.
+- `centre-line-at-eye-level` is the bridge of the nose: where the front outline of the face crosses the eye line. Where hair or the rim of a pair of glasses lies over the outline at that height, it is not seen.
+- `jaw-<side>-angle` is the angle of the jaw. Going back along the underside of the jaw from the chin, it is the point where the outline turns to run up toward the ear; on a rounded angle, where the turn is sharpest. Where the run up toward the ear is drawn as the edge of a shadow and not as a line, that edge is read, as for the back edge of the jaw. Where the underside runs on into the neck and no turn up toward the ear is drawn, or hair or a collar covers the turn, it is not seen. It is not the chin, and not where the neck's front line meets the jaw.
+- `neck-front-top` is the top of the front of the neck: going up the neck's front edge, where it meets the underside of the jaw. Where the two meet in a corner, it is the corner; where the edge curves into the jaw, it is where the curve is sharpest.
+- `neck-back-top` is the top of the back of the neck: going up the neck's back edge, where it meets the head. Where hair covers that end, it is not seen: the place where the hair's edge crosses the neck is not it.
+
+This part was revised at revision 2026-11-17.3, after the first published side drawings were read, and at revision 2026-11-17.4, after look 6, to ask for the forehead, the bridge, the jaw's angle and the neck's top ends. Each revision is tested on a side drawing whose positions are known before a published drawing is read under it.
 
 ## Judging the drawing
 

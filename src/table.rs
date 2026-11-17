@@ -558,6 +558,9 @@ pub enum Source {
     /// Borrowed as an offset from the point it hangs on, by the rule `hangs_on`: how it
     /// hangs, and why it is borrowed at all.
     BorrowedOffset(&'static str, &'static str),
+    /// Left out of the set: a proportion a set may leave out, which the works do not give to
+    /// draw and the borrowed set leaves out too. Why it would have been borrowed.
+    LeftOut(&'static str),
 }
 
 impl Source {
@@ -573,14 +576,17 @@ impl Source {
             Source::ThinAverage(works) => format!("a thin average: of {works} works"),
             Source::Borrowed(why) => format!("borrowed: {why}"),
             Source::BorrowedOffset(how, why) => format!("borrowed: {how}; {why}"),
+            Source::LeftOut(why) => {
+                format!("left out: {why}, and the set it would be borrowed from leaves it out")
+            }
         }
     }
 
     /// The kind of source a set's file states for a proportion: "the table", "a thin
-    /// average" or "borrowed". None for anything else.
+    /// average", "borrowed" or "left out". None for anything else.
     pub fn kind_of(words: &str) -> Option<&'static str> {
         let kind = words.split(':').next().unwrap_or_default().trim();
-        ["the table", "a thin average", "borrowed"]
+        ["the table", "a thin average", "borrowed", "left out"]
             .into_iter()
             .find(|known| *known == kind)
     }
@@ -609,46 +615,49 @@ impl Table {
         borrowed_from: &str,
         borrowed: &proportions::Set,
     ) -> Result<SetFromTable> {
-        let mut made: Vec<(String, f64, Source)> = self
+        // A borrowed number, or none where the borrowed set leaves out a proportion that a set
+        // may leave out: it is then left out of this set too.
+        let borrow = |name: &str, why: &'static str| -> (Option<f64>, Source) {
+            match borrowed.given(name) {
+                Some(value) => (Some(value), Source::Borrowed(why)),
+                None => (None, Source::LeftOut(why)),
+            }
+        };
+        let mut made: Vec<(String, Option<f64>, Source)> = self
             .lines
             .iter()
             .map(|line| {
                 let works = line.values.len();
                 let (value, source) = match line.standing() {
-                    Standing::Given => (median(&line.values), Source::Table(works)),
+                    Standing::Given => (Some(median(&line.values)), Source::Table(works)),
                     Standing::TooThin if works >= 2 => (
-                        line.values.iter().sum::<f64>() / works as f64,
+                        Some(line.values.iter().sum::<f64>() / works as f64),
                         Source::ThinAverage(works),
                     ),
-                    Standing::TooThin => (
-                        borrowed.get(&line.name),
-                        Source::Borrowed(
-                            "one work gives it, and one reference's number is not drawn",
-                        ),
+                    Standing::TooThin => borrow(
+                        &line.name,
+                        "one work gives it, and one reference's number is not drawn",
                     ),
-                    Standing::NoWork => (
-                        borrowed.get(&line.name),
-                        Source::Borrowed("no work gives it"),
-                    ),
-                    Standing::Convention => (
-                        borrowed.get(&line.name),
-                        Source::Borrowed("a convention, which is never measured"),
-                    ),
+                    Standing::NoWork => borrow(&line.name, "no work gives it"),
+                    Standing::Convention => {
+                        borrow(&line.name, "a convention, which is never measured")
+                    }
                 };
                 (line.name.clone(), value, source)
             })
             .collect();
-        // The rule `taken_whole`.
+        // The rule `taken_whole`. A proportion left out counts as one the works do not give.
+        let not_from_the_works =
+            |source: &Source| matches!(source, Source::Borrowed(_) | Source::LeftOut(_));
         for (start, why) in TAKEN_WHOLE {
             let whole = |name: &str| name.starts_with(start);
             if made
                 .iter()
-                .any(|(name, _, source)| whole(name) && matches!(source, Source::Borrowed(_)))
+                .any(|(name, _, source)| whole(name) && not_from_the_works(source))
             {
                 for (name, value, source) in &mut made {
-                    if whole(name) && !matches!(source, Source::Borrowed(_)) {
-                        *value = borrowed.get(name);
-                        *source = Source::Borrowed(why);
+                    if whole(name) && !not_from_the_works(source) {
+                        (*value, *source) = borrow(name, why);
                     }
                 }
             }
@@ -657,9 +666,10 @@ impl Table {
         for (name, anchor, how) in HANGS_ON {
             let anchored = anchor.and_then(|anchor| {
                 let (_, at, _) = made.iter().find(|(known, _, _)| known == anchor)?;
-                Some(*at - borrowed.get(anchor))
+                Some((*at)? - borrowed.get(anchor))
             });
-            if let Some((_, value, source)) = made.iter_mut().find(|(known, _, _)| known == name)
+            if let Some((_, Some(value), source)) =
+                made.iter_mut().find(|(known, _, _)| known == name)
                 && let Source::Borrowed(why) = *source
             {
                 // The borrowed number, moved by as far as this set's anchor stands from the
@@ -670,7 +680,7 @@ impl Table {
         }
         let set = proportions::Set::from_values(
             made.iter()
-                .map(|(name, value, _)| (name.clone(), *value))
+                .filter_map(|(name, value, _)| Some((name.clone(), (*value)?)))
                 .collect(),
         )?;
         const SET_BACK: &str = "lower_face_set_back";
@@ -743,10 +753,11 @@ impl SetFromTable {
             quoted(&self.borrowed_from)
         ));
         opening.push_str(&format!(
-            "from_the_table = {}\nthin_averages = {}\nborrowed = {}\n",
+            "from_the_table = {}\nthin_averages = {}\nborrowed = {}\nleft_out = {}\n",
             self.count(|source| matches!(source, Source::Table(_))),
             self.count(|source| matches!(source, Source::ThinAverage(_))),
-            self.count(Source::is_borrowed)
+            self.count(Source::is_borrowed),
+            self.count(|source| matches!(source, Source::LeftOut(_)))
         ));
         opening.push_str(&format!("correction = {}\n", quoted(&self.correction())));
         opening.push_str("\n[rules]\n");
@@ -762,13 +773,22 @@ impl SetFromTable {
 
     /// What was made, in a few lines, for a person.
     pub fn summary(&self) -> String {
+        let left_out = self.count(|source| matches!(source, Source::LeftOut(_)));
         format!(
-            "A set of {} proportions: {} from the table's middle values, {} thin averages of two to four works, {} borrowed from `{}`.\n{}\n",
-            self.sources.len(),
+            "A set of {} proportions: {} from the table's middle values, {} thin averages of two to four works, {} borrowed from `{}`.{}\n{}\n",
+            self.sources.len() - left_out,
             self.count(|source| matches!(source, Source::Table(_))),
             self.count(|source| matches!(source, Source::ThinAverage(_))),
             self.count(Source::is_borrowed),
             self.borrowed_from,
+            match left_out {
+                0 => String::new(),
+                left_out => format!(
+                    " {} left out: a set may leave them out, and neither the works nor `{}` give them.",
+                    counted(left_out, "proportion"),
+                    self.borrowed_from
+                ),
+            },
             self.correction()
         )
     }
@@ -890,6 +910,20 @@ fn read_table(path: &str, text: &str) -> Result<(String, BTreeMap<String, Stated
                 values,
             },
         );
+    }
+    // A table built before the list had a proportion that a set may leave out has no entry
+    // for it, and no work of that table gives it.
+    for proportion in &list.proportions {
+        if proportion.optional() && !stated.contains_key(&proportion.name) {
+            stated.insert(
+                proportion.name.clone(),
+                Stated {
+                    standing: Standing::NoWork,
+                    works: 0,
+                    values: None,
+                },
+            );
+        }
     }
     if let Some(missing) = list
         .proportions

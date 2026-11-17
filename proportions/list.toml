@@ -8,10 +8,10 @@
 # view is drawn from the same proportions. A convention states the rule that builds it where
 # nothing is drawn: the skull's three, since a published drawing shows no skull.
 # Each proportion says how it is taken from a side drawing, by the landmarks the reading
-# instructions ask a side view for as revision 2026-11-17.3 defines them, or why it is not.
-# Reading a side view by those definitions has been tested once on a drawing whose positions
-# are known: Saffi's generated side view, which is a drawing of guides. It has not been tested
-# on a painted side view.
+# instructions ask a side view for as revision 2026-11-17.4 defines them, or why it is not.
+# Revision 2026-11-17.3's definitions were tested once on a drawing whose positions are known:
+# Saffi's generated side view, which is a drawing of guides. Revision 2026-11-17.4 added the
+# points of the profile at the end of the list, which a set may leave out.
 
 [unit]
 name = "eye line to chin"
@@ -824,6 +824,135 @@ what = "The depth of the shoulder points."
 front = "Not seen."
 three_quarter = "The depth of the midpoint of the two shoulder points."
 side = "The depth of the near shoulder point."
+
+# ---------------------------------------------------------------- The profile, from a side view
+#
+# Asked of a side view since revision 2026-11-17.4 of the reading instructions. Look 6 drew a
+# side view whose forehead, jaw and neck nothing measured: the forehead was the skull's circle,
+# the jaw one run from the chin to the jaw line, and the neck the front view's column, and that
+# is where it read wrong. A height here is the side view's own, in its own unit, since a front
+# view does not show these points. A set may leave each of them out; `when_left_out` says what
+# a head drawn from a set that does is drawn with.
+
+[[proportion]]
+name = "forehead_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the front of the face on the centre line at the height of the brow line's inner end: the forehead, or the ridge of the brow."
+front = "Not seen."
+three_quarter = "Not taken: a three-quarter view draws the centre line on the face, not as its outline."
+side = "The depth of the point where the front outline of the face crosses the height of the near brow's front end."
+when_left_out = "the centre line above the eye line follows the skull's surface, a convention."
+
+[[proportion]]
+name = "bridge_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the centre line at the eye line: the bridge of the nose, between the eyes."
+front = "Not seen."
+three_quarter = "Not taken: a three-quarter view draws the centre line on the face, not as its outline."
+side = "The depth of the point where the front outline of the face crosses the eye line."
+when_left_out = "the centre line at the eye line stands on the skull's surface, a convention."
+
+[[proportion]]
+name = "jaw_angle_drop"
+kind = "measured"
+sign = "positive"
+what = "How far below the eye line the angle of the jaw is: going back along the underside of the jaw from the chin, where it turns to run up toward the ear."
+front = "Not taken: a front view is read for no angle of the jaw."
+three_quarter = "Not taken: a three-quarter view is read for no angle of the jaw."
+side = "The height of the near jaw angle minus the eye line's height, in the side view's own unit."
+when_left_out = "the side view's jaw runs from the chin to the jaw line at the mouth level with no angle between."
+
+[[proportion]]
+name = "jaw_angle_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the angle of the jaw."
+front = "Not seen."
+three_quarter = "Not taken: a three-quarter view is read for no angle of the jaw."
+side = "The depth of the near jaw angle."
+when_left_out = "the side view's jaw runs from the chin to the jaw line at the mouth level with no angle between."
+
+[[proportion]]
+name = "neck_front_top_drop"
+kind = "measured"
+sign = "positive"
+what = "How far below the eye line the front of the neck meets the underside of the jaw."
+front = "Not seen: a front view shows the neck's sides."
+three_quarter = "Not taken: a three-quarter view is read for the neck's sides."
+side = "The height of the point where the neck's front edge meets the underside of the jaw, minus the eye line's height, in the side view's own unit."
+when_left_out = "the neck is an upright column of the front view's width, standing at neck_depth."
+
+[[proportion]]
+name = "neck_front_top_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the point where the front of the neck meets the underside of the jaw."
+front = "Not seen."
+three_quarter = "Not taken: a three-quarter view is read for the neck's sides."
+side = "The depth of the point where the neck's front edge meets the underside of the jaw."
+when_left_out = "the neck is an upright column of the front view's width, standing at neck_depth."
+
+[[proportion]]
+name = "neck_front_base_drop"
+kind = "measured"
+sign = "positive"
+what = "How far below the eye line the front of the neck ends, where it meets the chest."
+front = "Not seen: a front view shows the neck's sides."
+three_quarter = "Not taken: a three-quarter view is read for the neck's sides."
+side = "The height of the point where the neck's front edge meets the chest, minus the eye line's height, in the side view's own unit."
+when_left_out = "the neck is an upright column of the front view's width, standing at neck_depth."
+
+[[proportion]]
+name = "neck_front_base_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the point where the front of the neck ends."
+front = "Not seen."
+three_quarter = "Not taken: a three-quarter view is read for the neck's sides."
+side = "The depth of the point where the neck's front edge meets the chest."
+when_left_out = "the neck is an upright column of the front view's width, standing at neck_depth."
+
+[[proportion]]
+name = "neck_back_top_drop"
+kind = "measured"
+sign = "any"
+what = "How far below the eye line the back of the neck meets the head."
+front = "Not seen: a front view shows the neck's sides."
+three_quarter = "Not taken: a three-quarter view is read for the neck's sides."
+side = "The height of the point where the neck's back edge meets the head, minus the eye line's height, in the side view's own unit."
+when_left_out = "the neck is an upright column of the front view's width, standing at neck_depth."
+
+[[proportion]]
+name = "neck_back_top_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the point where the back of the neck meets the head."
+front = "Not seen."
+three_quarter = "Not taken: a three-quarter view is read for the neck's sides."
+side = "The depth of the point where the neck's back edge meets the head."
+when_left_out = "the neck is an upright column of the front view's width, standing at neck_depth."
+
+[[proportion]]
+name = "neck_back_base_drop"
+kind = "measured"
+sign = "positive"
+what = "How far below the eye line the back of the neck ends, where it turns into the shoulders."
+front = "Not seen: a front view shows the neck's sides."
+three_quarter = "Not taken: a three-quarter view is read for the neck's sides."
+side = "The height of the point where the neck's back edge turns into the shoulders, minus the eye line's height, in the side view's own unit."
+when_left_out = "the neck is an upright column of the front view's width, standing at neck_depth."
+
+[[proportion]]
+name = "neck_back_base_depth"
+kind = "measured"
+sign = "any"
+what = "The depth of the point where the back of the neck ends."
+front = "Not seen."
+three_quarter = "Not taken: a three-quarter view is read for the neck's sides."
+side = "The depth of the point where the neck's back edge turns into the shoulders."
+when_left_out = "the neck is an upright column of the front view's width, standing at neck_depth."
 
 # ---------------------------------------------------------------- Corrections
 #

@@ -1110,11 +1110,17 @@ pub struct Taken {
 /// the offsets of the pairs it shows whole; the front view gives what the three-quarter view
 /// does not show, and the widths of silhouettes, the neck and the shoulder line.
 ///
-/// Every proportion must be given: a view that hides one is an error. [`take_proportions`]
-/// gives what there is.
+/// Every proportion must be given but those a set may leave out: a view that hides one is an
+/// error. [`take_proportions`] gives what there is.
 pub fn proportions_from_views(front: &Reading, three_quarter: &Reading) -> Result<Set> {
     let taken = take_proportions(front, three_quarter)?;
-    if let Some((_, why)) = taken.not_given.first() {
+    let list = crate::proportions::list()?;
+    let may_leave_out = |name: &str| list.find(name).is_some_and(|known| known.optional());
+    if let Some((_, why)) = taken
+        .not_given
+        .iter()
+        .find(|(name, _)| !may_leave_out(name))
+    {
         return Err(Error::new(why.clone()));
     }
     Set::from_values(taken.values)
@@ -1219,6 +1225,11 @@ pub fn take_from(front: &Reading, beside: Beside) -> Result<Taken> {
             values.insert(name.to_string(), value);
         }
         Err(Error(why)) => {
+            // A proportion a set may leave out is said to be missing only where a view that
+            // could give it was read: the points of the profile, beside a side view.
+            if !beside_side && list.find(name).is_some_and(|known| known.optional()) {
+                return;
+            }
             // Where the list says a side view does not give a proportion, its reason, in the
             // list's own words, is said beside what was missing.
             let by_the_list = list
@@ -1432,6 +1443,77 @@ pub fn take_from(front: &Reading, beside: Beside) -> Result<Taken> {
             )),
         },
     );
+
+    // The points of the profile that only a side view is asked for, the last part of the
+    // list: each gives a height in the side view's own unit, where the list takes one, and a
+    // depth. A height of the forehead and of the bridge is the brow's and the eye line's.
+    let in_profile = |landmarks: &[&str]| -> Result<(f64, f64)> {
+        let side = views
+            .turned
+            .as_ref()
+            .filter(|turned| turned.view == View::Side)
+            .ok_or_else(|| {
+                Error::new(format!(
+                    "only a side view is asked for `{}`, and no side view of the character was read",
+                    landmarks[0]
+                ))
+            })?;
+        let at = landmarks
+            .iter()
+            .find_map(|landmark| side.reading.get(landmark))
+            .ok_or_else(|| {
+                Error::new(format!(
+                    "the side view has no position for `{}`",
+                    landmarks.join("` or `")
+                ))
+            })?;
+        Ok((
+            (at[1] - side.frame.eye_line_y) / side.frame.unit,
+            views.depth_at(at[0], 0.0)?,
+        ))
+    };
+    for (landmarks, drop, depth) in [
+        (&["centre-line-at-brow-level"][..], None, "forehead_depth"),
+        (&["centre-line-at-eye-level"][..], None, "bridge_depth"),
+        // The near side's, whichever side is near.
+        (
+            &["jaw-right-angle", "jaw-left-angle"][..],
+            Some("jaw_angle_drop"),
+            "jaw_angle_depth",
+        ),
+        (
+            &["neck-front-top"][..],
+            Some("neck_front_top_drop"),
+            "neck_front_top_depth",
+        ),
+        (
+            &["neck-front-base"][..],
+            Some("neck_front_base_drop"),
+            "neck_front_base_depth",
+        ),
+        (
+            &["neck-back-top"][..],
+            Some("neck_back_top_drop"),
+            "neck_back_top_depth",
+        ),
+        (
+            &["neck-back-base"][..],
+            Some("neck_back_base_drop"),
+            "neck_back_base_depth",
+        ),
+    ] {
+        let taken = in_profile(landmarks);
+        if let Some(drop) = drop {
+            put(
+                drop,
+                match &taken {
+                    Ok((at, _)) => Ok(*at),
+                    Err(Error(why)) => Err(Error::new(why.clone())),
+                },
+            );
+        }
+        put(depth, taken.map(|(_, at)| at));
+    }
 
     // No circle is drawn: the skull is built by rule from what was taken above.
     let skull = if skull_drawn {
