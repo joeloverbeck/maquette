@@ -287,7 +287,9 @@ mirrored, by an EXIF orientation, is refused.
       of Jon's check gives: the table's middle value where a proportion has a range; the
       average of the works where two to four give it, marked as thin; and for the rest the
       number of the set named by --borrow, marked as borrowed. An ear and the neck are each taken whole: unless
-      the works give every one of a form's proportions, all are borrowed. The set carries no
+      the works give every one of a form's proportions, all are borrowed. A borrowed point that
+      hangs on a measured one keeps its offset from it: the jaw point is placed from this
+      set's own chin, as far from it as the borrowed set's stands from its chin. The set carries no
       correction, and says what the list's rule would set back on its own depths. It says
       of every proportion which of the three it is, and `maquette draw` reads it. The set
       borrowed from is read from where it is named; the set made is no table.

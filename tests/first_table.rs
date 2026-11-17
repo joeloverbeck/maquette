@@ -210,7 +210,22 @@ fn the_head_takes_the_tables_middles_and_borrows_saffis_numbers_as_it_says() {
             counted[2] += 1;
             assert!(said.starts_with("borrowed: "), "{name}: {said}");
             assert_ne!(entry["standing"].as_str(), Some("given"), "{name}");
-            assert_close(values[name], hers[name], 1e-9, name);
+            if name.starts_with("jaw_") && !name.starts_with("jaw_line_") {
+                // The jaw point hangs on the chin, and is borrowed as her jaw point's offset
+                // from her own chin. In height and in half-width that is her number, since
+                // every chin is one unit down and on the centre line. In depth it is not.
+                assert!(
+                    said.starts_with("borrowed: as its offset from the chin"),
+                    "{name}: {said}"
+                );
+                let expected = match name.as_str() {
+                    "jaw_depth" => values["chin_depth"] + hers["jaw_depth"] - hers["chin_depth"],
+                    _ => hers[name],
+                };
+                assert_close(values[name], expected, 1e-6, name);
+            } else {
+                assert_close(values[name], hers[name], 1e-9, name);
+            }
         }
     }
     assert_eq!(counted, [25, 16, 33]);
@@ -235,15 +250,15 @@ fn the_head_takes_the_tables_middles_and_borrows_saffis_numbers_as_it_says() {
 }
 
 /// The drawn head's three landmark files.
-fn drawn() -> [LandmarkFile; 3] {
-    let folder = draw("first-table-head", HEAD, &[]);
+fn drawn(name: &str) -> [LandmarkFile; 3] {
+    let folder = draw(name, HEAD, &[]);
     ["front", "three-quarter", "side"]
         .map(|view| LandmarkFile::read(&folder.join(format!("{view}.landmarks.toml"))))
 }
 
 #[test]
 fn the_drawn_head_has_every_landmark_at_one_height_in_all_three_views() {
-    let [front, three_quarter, side] = drawn();
+    let [front, three_quarter, side] = drawn("first-table-head-heights");
     assert!(front.landmarks.len() > 60);
     for (name, at) in &front.landmarks {
         for (view, file) in [("three-quarter", &three_quarter), ("side", &side)] {
@@ -258,7 +273,7 @@ fn the_drawn_head_has_every_landmark_at_one_height_in_all_three_views() {
 
 #[test]
 fn the_drawn_heads_sideways_positions_are_the_ones_its_front_view_and_depths_give() {
-    let [front, three_quarter, side] = drawn();
+    let [front, three_quarter, side] = drawn("first-table-head-sideways");
     // No correction: the side view is a flat projection, and says so.
     assert!(!side.table.contains_key("corrections"));
     for (view, file, turn_degrees) in [

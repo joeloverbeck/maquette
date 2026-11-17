@@ -24,6 +24,15 @@ One decision: is the table in `tables/adult-women/table.toml` accepted as measur
 
 **3. The neck is borrowed whole.** A neck is taken from one source, as an ear is: its width, its base and its depth are all Saffi's.
 
+**4. A borrowed point that hangs on a measured one keeps its offset from it.** The jaw point hangs on the chin. It is borrowed as how far Saffi's jaw point stands from her own chin, in height, in half-width and in depth, and is placed from the drawn head's chin.
+
+- Every chin is one unit below the eye line and on the centre line, so its height and half-width are her numbers as they stand: 0.946 and 0.170.
+- Its depth is not. The drawn head's chin stands at 0.079, the average of three side views, and hers at 0.166. Her jaw point stands 0.032 in front of her chin, so the drawn head's stands at 0.111 and not at her 0.198.
+- Borrowed as it stood, the jaw point was 24 units in front of the drawn head's chin where it is 6 in front of hers, and the chin of the three-quarter view was lopsided, with a notch. That was found before the look and repaired before Jon saw it.
+- The set says so: each of the three jaw proportions is marked as borrowed as its offset from the chin.
+
+Nothing else is placed this way. The mouth's ends and its centre are both measured. The neck starts where it crosses the face outline, as on Saffi's own head. The top of the face outline and its width at the eye line are both hers.
+
 ## The head
 
 `saffi-with-table-values.toml` is what `maquette set-from-table` wrote from the record of Jon's check and `data/saffi/proportions.toml`, copied here unchanged. It says of each of its 74 proportions where the number comes from:
@@ -32,7 +41,7 @@ One decision: is the table in `tables/adult-women/table.toml` accepted as measur
 |---|---|---|---|
 | The table's middle value | 25 | 27 | The median of the five or six works that give it. It has a valid range |
 | A thin average | 16 | 17 | The average of the two to four works that give it. It has no range |
-| Borrowed from Saffi | 33 | 29 | Her own number, as it stands: no work gives it, or one work alone, or it is a convention, or it belongs to a form that is taken whole |
+| Borrowed from Saffi | 33 | 29 | Her own number: no work gives it, or one work alone, or it is a convention, or it belongs to a form that is taken whole. As it stands, but for the jaw point, which is placed from the chin |
 
 - **From the table to borrowed:** the jaw point's drop and half-width.
 - **From thin to borrowed:** the neck's width and its base.
@@ -64,7 +73,7 @@ The panel "A face over this side view" is empty on purpose. A face is drawn over
 A diagnostic, which accepts nothing. Nothing is broken: each outline is one curve with no loop, and every guide is there under its name.
 
 - **The nose is shorter than at look 5.** Its tip stands where the three side views put it on average, in height and in depth. The guide round the tip is still a rounded wedge, because the outline is one smooth curve through the tip. Only the nose mark, which rises 9 units from the nostril to the tip, says that the nose turns up.
-- **The chin is lopsided in the three-quarter view.** The jaw point is Saffi's, and its depth stands 24 units in front of the averaged chin, so the chin's round lies to the far side of the centre line, with a small notch on the near side. On her own head the jaw point stands 6 units in front of her chin.
+- **The chin has no notch in the three-quarter view.** The jaw point stands from the drawn head's chin as Saffi's stands from hers: 34 units to each side and 11 above in the front view, 27 to the near side and 33 to the far side in the three-quarter view, and 6 in front in the side view.
 - **The brows stand high and slope down outward, and the mouth is wide with its ends above its centre.** Each is a middle or an average taken by itself.
 
 ## What it is made from
@@ -81,16 +90,16 @@ Every drawing on the sheet is a file the program wrote, imported into FigCraft u
 Their SHA-256 digests on 2026-11-17:
 
 ```
-ba63b73a9591939c3027da1fb7894a94c848e43773deaef94b1244cf2fa56f7c  saffi-with-table-values.toml
+61b9ebe8323d81ed1098896dd4182efc83846f6a930fc3e9382bd391fd0979a2  saffi-with-table-values.toml
 395e3d0603118d2155947c6605471a2a04ca8c00bdd1c44e843b18048d2a5ee4  tables/adult-women/table.toml
 7bf7da29d057bae86b78161ab6adeb6c4dddda2b38ae12228e30067a64818d96  front.svg
-60590881843de65dbc80d1026cc0f537858b3c34c458ce723a815c99a764cbfe  front.landmarks.toml
-eb427c944221d0702c314e47584abca420c1ed781f64331c3301cf8822a35d0d  three-quarter.svg
-be213a524455b724d9aaa115160fcd9048652b15df0fb6142814c27e3ce4ffb0  three-quarter.landmarks.toml
+0e500ee4d95cadceba1b2b73af4451748a9b1d006b6044e9a9b475643a4fedbc  front.landmarks.toml
+0c4090a0a98f88b0e1a101c3c23c5997c73dec885bab8d3c243677a918407bc4  three-quarter.svg
+336085f7c4f89780613dbc1f3ecf1170066ca5f187272b1ef6962d2e43a69624  three-quarter.landmarks.toml
 04f605850119051ecf0b25f515597c230944c352bb1df55e0a0eae3b15464076  side.svg
-37894aa9b585bfe98c178b006594d53e8e8f833fca2de69346eb441e43584fb6  side.landmarks.toml
+ede3e48b5477b3c359704fe77b08288836ccb923782d5db41d6c92446e02c6ca  side.landmarks.toml
 7582a76c178195c761f2b48e0f92ef340b7541c596d449976cee20ef54771204  front.sources-overlay.svg
-410df802a95b54e4f4f2e2d499ea4a26214aed182926be88a670ec2942498d61  three-quarter.sources-overlay.svg
+8c3cad5386dbc9b0ca76748236308beabd897b5af2ff7612ba835f73b5ecef15  three-quarter.sources-overlay.svg
 b649da5927cddcefa88028ce84e11523b9d9664063a24bc6cffc5c5da523629c  side.sources-overlay.svg
 ```
 

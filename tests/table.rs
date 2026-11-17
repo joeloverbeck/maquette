@@ -994,8 +994,37 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
     assert_eq!(source("brow_inner_end_rise"), "a thin average: of 4 works");
     assert_close(value("brow_inner_end_rise"), 0.3, 1e-6, "the brows");
     // What no work gives, and a convention, are borrowed as they stand.
-    assert_eq!(source("jaw_drop"), "borrowed: no work gives it");
+    assert_eq!(source("face_top_rise"), "borrowed: no work gives it");
+    assert_close(
+        value("face_top_rise"),
+        borrowed["face_top_rise"],
+        1e-9,
+        "borrowed",
+    );
+    // A borrowed point that hangs on a measured one keeps its offset from it. The jaw point
+    // hangs on the chin: it is borrowed as how far the borrowed set's jaw point stands from
+    // that set's own chin, and placed from this head's chin. The chin is one unit below the
+    // eye line and on the centre line in every head, so the jaw point's height and its
+    // half-width come over as they stand. Its depth does not: this head's chin stands at
+    // 0.4, the borrowed set's at 0.1875 with its jaw point at 0.1621, 0.0254 behind it.
+    let hangs =
+        "borrowed: as its offset from the chin, on which the jaw point hangs; no work gives it";
+    for name in ["jaw_drop", "jaw_half_width", "jaw_depth"] {
+        assert_eq!(source(name), hangs, "{name}");
+    }
     assert_close(value("jaw_drop"), borrowed["jaw_drop"], 1e-9, "borrowed");
+    assert_close(
+        value("jaw_half_width"),
+        borrowed["jaw_half_width"],
+        1e-9,
+        "borrowed",
+    );
+    assert_close(
+        value("jaw_depth"),
+        0.4 + (0.1621 - 0.1875),
+        1e-6,
+        "from the chin",
+    );
     assert_eq!(
         source("skull_radius"),
         "borrowed: a convention, which is never measured"

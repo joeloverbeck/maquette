@@ -227,7 +227,7 @@ cargo run -- overlay-sources --proportions <set> --armature <folder> --out <fold
 
 - **The table's middle value,** where the proportion has a range.
 - **A thin average,** where two to four works give it: their average, and not their middle, because the middle of three works is one work's own number.
-- **Borrowed** from the set named by `--borrow`, as it stands there: what one work alone gives, what no work gives, and a convention. An ear and the neck are each taken whole: unless the works give every one of a form's proportions, all are borrowed. A neck's width from one source on a depth from another set the head forward on a post at look 5.
+- **Borrowed** from the set named by `--borrow`, as it stands there: what one work alone gives, what no work gives, and a convention. An ear and the neck are each taken whole: unless the works give every one of a form's proportions, all are borrowed. A neck's width from one source on a depth from another set the head forward on a post at look 5. A borrowed point that hangs on a measured one keeps its offset from it: the jaw point is placed from the set's own chin, as far from it as the borrowed set's jaw point stands from its chin.
 
 The set carries no correction, and says what the list's rule for `lower_face_set_back` would set back on its own depths. It is no table and no part of one. `overlay-sources` then marks the views `maquette draw` wrote from it: for each view an SVG with a dot on every point a guide passes through, coloured by the least supported source among the proportions that place the point in that view. A front view shows no depth and a side view no width, so a point may be of one kind in one view and of another in the next.
 
