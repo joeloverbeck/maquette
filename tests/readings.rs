@@ -528,11 +528,12 @@ fn a_jpeg_whose_file_says_it_is_shown_turned_is_refused() {
 }
 
 #[test]
-fn a_webp_whose_file_says_it_is_shown_turned_is_refused() {
-    // A WebP keeps its EXIF in a chunk of its own, and a browser turns it by that as it does
-    // a JPEG. Every WebP of the second batch carries one.
+fn a_webp_whose_exif_says_it_is_shown_turned_is_refused_with_or_without_the_exif_prefix() {
+    // A WebP keeps its EXIF in a chunk of its own. WebP's specification has the chunk begin
+    // with the TIFF header; every WebP of the second batch begins it with "Exif" and two zero
+    // bytes first, as a JPEG's segment does. A turned picture is refused in either form.
+    use support::{EXIF_PREFIX, exif_orientation, made_up_webp_with_exif};
     let folder = references("readings-webp-turned");
-    support::made_up_webp_with_orientation(&folder.join("turned.webp"), 248, 240, 6);
     let starting = |image: &str| {
         maquette_in(
             Some(&folder),
@@ -549,17 +550,44 @@ fn a_webp_whose_file_says_it_is_shown_turned_is_refused() {
             ],
         )
     };
-    let message = failure(&starting("turned.webp"));
+    let turned = exif_orientation(6);
+    for (name, exif) in [
+        ("turned-as-specified.webp", turned.clone()),
+        ("turned-with-prefix.webp", [EXIF_PREFIX, &turned].concat()),
+    ] {
+        made_up_webp_with_exif(&folder.join(name), 248, 240, &exif);
+        let message = failure(&starting(name));
+        assert!(
+            message.contains(name) && message.contains("shown turned or mirrored"),
+            "{message}"
+        );
+        assert!(!folder.join("front.toml").exists());
+    }
+
+    // EXIF that is not a TIFF directory says nothing that can be read about how the picture
+    // is shown, so whether it is turned cannot be told: it is refused, and the message says so.
+    let unreadable = [EXIF_PREFIX, b"made up: not a TIFF header"].concat();
+    made_up_webp_with_exif(&folder.join("unreadable.webp"), 248, 240, &unreadable);
+    let message = failure(&starting("unreadable.webp"));
     assert!(
-        message.contains("turned.webp") && message.contains("shown turned or mirrored"),
+        message.contains("unreadable.webp") && message.contains("EXIF cannot be read"),
         "{message}"
     );
     assert!(!folder.join("front.toml").exists());
 
-    // One whose EXIF says it is upright is read as ever.
-    support::made_up_webp_with_orientation(&folder.join("upright.webp"), 248, 240, 1);
-    let output = starting("upright.webp");
-    assert!(output.status.success(), "{}", failure(&output));
+    // One whose EXIF says it is upright is read as ever, in either form.
+    for (name, exif) in [
+        ("upright-as-specified.webp", exif_orientation(1)),
+        (
+            "upright-with-prefix.webp",
+            [EXIF_PREFIX, &exif_orientation(1)].concat(),
+        ),
+    ] {
+        made_up_webp_with_exif(&folder.join(name), 248, 240, &exif);
+        let output = starting(name);
+        assert!(output.status.success(), "{name}: {}", failure(&output));
+        std::fs::remove_file(folder.join("front.toml")).expect("the started reading");
+    }
 }
 
 #[test]

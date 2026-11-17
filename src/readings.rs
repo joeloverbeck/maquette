@@ -565,18 +565,37 @@ pub fn picture_size(bytes: &[u8]) -> Result<(u32, u32)> {
 }
 
 /// Refuses a picture whose file says it is to be shown turned or mirrored, as an EXIF
-/// orientation other than upright does. A browser, and so a reference check sheet, shows it
+/// orientation other than upright does. A browser, and so a reference check sheet, may show it
 /// turned; maquette reads and enlarges its pixels as they are stored, and never converts a
-/// picture. A reading of it, its enlargements and its sheet would then not agree.
+/// picture. A reading of it, its enlargements and its sheet would then not agree. A picture
+/// whose EXIF cannot be read is refused too, since whether it is turned cannot be told.
 pub fn upright(bytes: &[u8]) -> Result<()> {
     use image::ImageDecoder;
+    use image::metadata::Orientation;
     let mut decoder = image::ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
         .map_err(not_a_picture)?
         .into_decoder()
         .map_err(not_a_picture)?;
-    let orientation = decoder.orientation().map_err(not_a_picture)?;
-    if orientation == image::metadata::Orientation::NoTransforms {
+    // The orientation is read from the EXIF here, not taken from the decoder's own account:
+    // the decoder expects a WebP's EXIF chunk to begin with the TIFF header, as WebP's
+    // specification says, and takes one that begins with "Exif" and two zero bytes first, as
+    // every WebP of the second batch does, for upright.
+    let orientation = match decoder.exif_metadata().map_err(not_a_picture)? {
+        None => Orientation::NoTransforms,
+        Some(exif) => {
+            let tiff = exif.strip_prefix(b"Exif\0\0").unwrap_or(&exif);
+            if !(tiff.starts_with(b"II*\0") || tiff.starts_with(b"MM\0*")) {
+                return Err(Error::new(
+                    "the picture's EXIF cannot be read: it holds no TIFF header, so whether its file says it is shown turned or mirrored cannot be told. Such a picture is not read",
+                ));
+            }
+            // A directory without an orientation, or with a value outside 1 to 8, says
+            // nothing of how the picture is shown, and a browser shows it upright.
+            Orientation::from_exif_chunk(tiff).unwrap_or(Orientation::NoTransforms)
+        }
+    };
+    if orientation == Orientation::NoTransforms {
         return Ok(());
     }
     Err(Error::new(format!(

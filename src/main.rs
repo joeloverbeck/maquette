@@ -165,9 +165,9 @@ A reading is measured only when it passes what check-reading checks: complete, a
 picture still the one that was read. The two readings of a drawing are two files, by two
 readers under two labels, and follow one revision of the reading instructions. A reading
 under an earlier revision is measured, and what is written says which it followed.
-A picture is a PNG, a JPEG or a WebP. It is read as it was published and never converted: a reading
-records the digest of the file it was read from. One whose file says it is shown turned or
-mirrored, by an EXIF orientation, is refused.
+A picture is a PNG, a JPEG or a WebP. It is read as it was published and never converted:
+a reading records the digest of the file it was read from. One whose file says it is shown
+turned or mirrored, by an EXIF orientation, is refused, and so is one whose EXIF cannot be read.
 
   maquette start-reading --image <picture> --view front|three-quarter|side
                          [--faces right|left] --reader <label> --out <reading>

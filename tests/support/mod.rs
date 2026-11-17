@@ -269,8 +269,8 @@ pub fn made_up_image_with_block(path: &Path, width: u32, height: u32, block: [u3
     picture.save(path).expect("the made-up picture is written");
 }
 
-/// The made-up picture as a JPEG, the other format a drawing is published in. A JPEG does
-/// not keep each pixel's value exactly, so a test of one holds a pixel to a tolerance.
+/// The made-up picture as a JPEG, another format a drawing is published in. A JPEG does not
+/// keep each pixel's value exactly, so a test of one holds a pixel to a tolerance.
 pub fn made_up_jpeg(path: &Path, width: u32, height: u32) {
     assert!(
         path.extension().is_some_and(|extension| extension == "jpg"),
@@ -285,16 +285,26 @@ pub fn made_up_jpeg(path: &Path, width: u32, height: u32) {
     );
 }
 
+/// EXIF that says only how a picture is to be shown: a big-endian TIFF header and one
+/// directory of one entry, tag 0x0112, the orientation, a SHORT, one of it. `orientation` is
+/// the EXIF value, 1 for upright and 6 for a quarter turn clockwise.
+pub fn exif_orientation(orientation: u8) -> Vec<u8> {
+    let mut exif = b"MM\0\x2a\0\0\0\x08\0\x01\x01\x12\0\x03\0\0\0\x01\0".to_vec();
+    exif.extend([orientation, 0, 0, 0, 0, 0, 0]);
+    exif
+}
+
+/// What precedes the TIFF header in a JPEG's EXIF segment, and in the EXIF chunk of every WebP
+/// of the second batch, though WebP's own specification leaves it out.
+pub const EXIF_PREFIX: &[u8] = b"Exif\0\0";
+
 /// The made-up JPEG with an EXIF segment that says the picture is to be shown turned:
-/// `orientation` is the EXIF value, 1 for upright and 6 for a quarter turn clockwise. The
-/// pixels are the made-up picture's, stored as they are.
+/// `orientation` is the EXIF value, as for [`exif_orientation`]. The pixels are the made-up
+/// picture's, stored as they are.
 pub fn made_up_jpeg_with_orientation(path: &Path, width: u32, height: u32, orientation: u8) {
     made_up_jpeg(path, width, height);
     let jpeg = std::fs::read(path).expect("the made-up JPEG is read");
-    // "Exif", then a big-endian TIFF header and one directory of one entry: tag 0x0112, the
-    // orientation, a SHORT, one of it.
-    let mut exif = b"Exif\0\0MM\0\x2a\0\0\0\x08\0\x01\x01\x12\0\x03\0\0\0\x01\0".to_vec();
-    exif.extend([orientation, 0, 0, 0, 0, 0, 0]);
+    let exif = [EXIF_PREFIX, &exif_orientation(orientation)].concat();
     let length = u16::try_from(exif.len() + 2).expect("a short segment");
     let mut out = jpeg[..2].to_vec();
     out.extend([0xFF, 0xE1]);
@@ -304,7 +314,7 @@ pub fn made_up_jpeg_with_orientation(path: &Path, width: u32, height: u32, orien
     std::fs::write(path, out).expect("the made-up JPEG is written");
 }
 
-/// The made-up picture as a WebP, the third format a drawing is published in. It is written
+/// The made-up picture as a WebP, another format a drawing is published in. It is written
 /// lossless, the only WebP the `image` crate writes, so each pixel keeps its value.
 pub fn made_up_webp(path: &Path, width: u32, height: u32) {
     assert!(
@@ -320,16 +330,11 @@ pub fn made_up_webp(path: &Path, width: u32, height: u32) {
     );
 }
 
-/// The made-up WebP in WebP's extended format, with an EXIF chunk that says the picture is to
-/// be shown turned: `orientation` is the EXIF value, as for [`made_up_jpeg_with_orientation`].
+/// The made-up WebP in WebP's extended format, with `exif` as its EXIF chunk, byte for byte.
 /// The pixels are the made-up picture's, in the chunk the plain WebP holds them in.
-pub fn made_up_webp_with_orientation(path: &Path, width: u32, height: u32, orientation: u8) {
+pub fn made_up_webp_with_exif(path: &Path, width: u32, height: u32, exif: &[u8]) {
     made_up_webp(path, width, height);
     let plain = std::fs::read(path).expect("the made-up WebP is read");
-    // The JPEG's EXIF without its "Exif" prefix: a big-endian TIFF header and one directory of
-    // one entry, tag 0x0112, the orientation, a SHORT, one of it.
-    let mut exif = b"MM\0\x2a\0\0\0\x08\0\x01\x01\x12\0\x03\0\0\0\x01\0".to_vec();
-    exif.extend([orientation, 0, 0, 0, 0, 0, 0]);
     // The extended format's header chunk: flags that say an EXIF chunk follows, three bytes
     // reserved, then the canvas's width and height less one, in three bytes each.
     let mut header = vec![0x08, 0, 0, 0];
@@ -352,7 +357,7 @@ pub fn made_up_webp_with_orientation(path: &Path, width: u32, height: u32, orien
     body.extend(chunk(b"VP8X", &header));
     // The plain WebP's one chunk, which holds the pixels, after its 12 bytes of RIFF header.
     body.extend(&plain[12..]);
-    body.extend(chunk(b"EXIF", &exif));
+    body.extend(chunk(b"EXIF", exif));
     let mut out = b"RIFF".to_vec();
     out.extend(
         u32::try_from(body.len())
