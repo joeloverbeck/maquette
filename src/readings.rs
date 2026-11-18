@@ -710,10 +710,7 @@ pub const REFERENCE_FIELDS: &[(&str, &str)] = &[
         "The work the drawing is from; for a drawing from no published work, what it is.",
     ),
     ("designer", "Its character designer, or who made it."),
-    (
-        "source",
-        "Where the picture was taken from: for a reference, the official publication.",
-    ),
+    ("source", "Where the picture was taken from."),
     (
         "age_band",
         "The character's age band, such as adult or child.",

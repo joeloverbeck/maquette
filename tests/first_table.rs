@@ -3,8 +3,9 @@
 //!
 //! The table was built from readings in the reference folder, which no clean clone has, so
 //! nothing here builds it again. These tests hold the table and Saffi's set against each
-//! other, and run on a drawn head the checks every armature passes. They pin no bytes:
-//! neither the table nor a head drawn from it is accepted.
+//! other, and run on a drawn head the checks every armature passes. They pin no bytes: Jon
+//! accepted the table at look 8, but it cannot be built again here, so its digest stands in
+//! its README; and a head drawn from it is no character's armature.
 
 mod support;
 

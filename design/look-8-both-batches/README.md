@@ -1,6 +1,10 @@
 # Look 8: the table of both batches, drawn
 
-The sheets for the eighth and last look under the ceiling of eight, made for #18 of spec #3. The armature review sheet started from look 6's, in `../look-6-first-table/`, whose README says how its layout is built; the face study started from look 6's face. Nothing on either sheet is accepted.
+The sheets for the eighth and last look under the ceiling of eight, made for #18 of spec #3. The armature review sheet started from look 6's, in `../look-6-first-table/`, whose README says how its layout is built; the face study started from look 6's face.
+
+## Jon's look, 2026-11-18
+
+**He accepted the table** in `tables/women-and-teenage-girls/table.toml`, as measured and with what it counts. **Of the question that binds nothing,** he said he is happier with the new side view than with the previous one, and that it clearly has problems, mainly the curve at the back of the jaw. He approved the result as shown. That accepts the table: the head drawn from it is no character's armature, and the face is a study, not a product. Looks used: eight of eight.
 
 - `armature-review-sheet.figcraft`: the FigCraft source of the review sheet.
 - `armature-review-sheet.png`: its export, 2400 pixels wide; `armature-review-sheet-full-size.png`, 4000 wide, for the small text.
