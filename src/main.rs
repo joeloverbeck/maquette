@@ -295,9 +295,9 @@ turned or mirrored, by an EXIF orientation, is refused, and so is one whose EXIF
       Make a whole set of proportions for one head to be drawn, from the table the records
       of Jon's checks give: the table's middle value where a proportion has a range; the
       average of the characters where two to four give it, marked as thin; and for the rest the
-      number of the set named by --borrow, marked as borrowed. An ear and the neck are each
-      taken whole: unless the characters give every one of a form's proportions, all are
-      borrowed. A borrowed point that hangs on a measured one keeps its offset from it: the jaw
+      number of the set named by --borrow, marked as borrowed. An ear, the neck and the jaw
+      line are each taken whole: unless the characters give every one of a form's
+      proportions, all are borrowed. A borrowed point that hangs on a measured one keeps its offset from it: the jaw
       point is placed from this set's own chin, as far from it as the borrowed set's stands
       from its chin. The set carries no correction, and says what the list's rule would set
       back on its own depths. It says of every proportion which of the three it is, and
@@ -314,9 +314,10 @@ turned or mirrored, by an EXIF orientation, is refused, and so is one whose EXIF
       place of the reference's own. With --unseen-from-table, what a front view does not show,
       as the list says, and the reference does not give, takes the middle value of the table
       those records give, where it has a range. The rest, and every convention, is the
-      number of the set named by --borrow. An ear and the neck are each taken whole from one
-      source, and the jaw point hangs on the chin, as in set-from-table. The set carries no
-      correction, and says of every proportion where it comes from. It reproduces one
+      number of the set named by --borrow. An ear, the neck and the jaw line are each taken
+      whole from one source, as in set-from-table, and each line of the neck's profile from
+      both its ends; the jaw point hangs on the chin. The set carries no correction, and
+      says of every proportion where it comes from. It reproduces one
       character's proportions, so it is written into the reference folder like the readings,
       and never committed; `maquette draw` reads it.
 

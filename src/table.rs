@@ -871,7 +871,7 @@ pub const SET_RULES: &[(&str, &str)] = &[
     ),
     (
         "taken_whole",
-        "An ear and the neck are each taken whole. An ear is one form built on its two base points, and the neck one column: its width, where it ends and how far back it stands belong together, and a width from one source on a depth from another sets the head forward on a post. So unless the table and the thin averages give every one of a form's proportions, all of them are borrowed.",
+        "An ear, the neck and the jaw line are each taken whole. An ear is one form built on its two base points, and the neck one column: its width, where it ends and how far back it stands belong together, and a width from one source on a depth from another sets the head forward on a post. The jaw line is one edge, the back of the jaw: its depth at the nose level from one source and at the mouth level from another bends it back on itself. So unless the table and the thin averages give every one of a form's proportions, all of them are borrowed.",
     ),
     (
         "hangs_on",
@@ -885,7 +885,11 @@ pub const SET_RULES: &[(&str, &str)] = &[
 
 /// The forms that are taken whole from one source, each by the start of its proportions'
 /// names, with what it is called: the rule `taken_whole`.
-const TAKEN_WHOLE: &[(&str, &str)] = &[("ear_", "the ear"), ("neck_", "the neck")];
+const TAKEN_WHOLE: &[(&str, &str)] = &[
+    ("ear_", "the ear"),
+    ("neck_", "the neck"),
+    ("jaw_line_", "the jaw line"),
+];
 
 /// How the jaw point hangs on the chin, as a proportion borrowed that way says it.
 const ON_THE_CHIN: &str = "as its offset from the chin, on which the jaw point hangs";

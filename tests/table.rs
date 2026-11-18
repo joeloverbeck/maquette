@@ -2238,3 +2238,50 @@ fn a_line_of_the_necks_profile_is_taken_from_both_its_ends_or_not_at_all() {
         );
     }
 }
+
+#[test]
+fn the_jaw_line_is_taken_whole_from_one_source() {
+    // Made up: works 1 to 5 have a side view that places the jaw line's point at the mouth's
+    // level, which a side reading names as the face outline's, so the table gives its depth a range. Only works 3 to 5 place its point at the
+    // nose's level: three characters, too few for a range. The side view's eye line shows at
+    // y = 300, depth zero at x = 700, and a unit is 100 pixels. Work 6 has a front view alone.
+    // Taken from the table, its jaw line would have its depth at the mouth's level from the
+    // table and at the nose's level from the borrowed set: both are borrowed.
+    let mut works = six_works();
+    for (at, depth) in [0.2, 0.3, 0.4, 0.5, 0.6].into_iter().enumerate() {
+        works[at].chin_depth = Some(depth);
+        works[at].side_points = vec![("face-outline-right-at-mouth-level", [660.0, 370.0])];
+        if at >= 2 {
+            works[at]
+                .side_points
+                .push(("face-outline-right-at-nose-level", [645.0, 345.0]));
+        }
+    }
+    let folder = folder("table-structure-reference-jaw-line", &works);
+    checked(&folder, &[]);
+    let (_, set) = set_from_structure_reference(
+        &folder,
+        "work-6",
+        false,
+        &["--unseen-from-table", "check.toml"],
+    );
+    let borrowed = support::proportions(&support::repository().join(support::MADE_UP));
+    for (name, source) in [
+        (
+            "jaw_line_depth_at_nose_level",
+            "borrowed: the structure reference does not give it",
+        ),
+        (
+            "jaw_line_depth_at_mouth_level",
+            "borrowed: the jaw line is taken whole, and the structure reference does not give all of it",
+        ),
+    ] {
+        assert_eq!(set["sources"][name].as_str(), Some(source), "{name}");
+        assert_close(
+            number(&set["proportions"][name]),
+            borrowed[name],
+            1e-9,
+            name,
+        );
+    }
+}
