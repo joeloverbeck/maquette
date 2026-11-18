@@ -24,6 +24,8 @@ cargo test
 
 Those three are what `.github/workflows/checks.yml` runs on every pull request. None of them needs VectorCraft, FigCraft, mudsong or a reference folder.
 
+A spec's integration branch stays in Jon's checkout until he accepts its work, so no pull request runs those checks on its commits. `.githooks/pre-commit` runs the first two before every commit; turn it on in a checkout with `git config core.hooksPath .githooks`. The tests are left to the agent, since they take longer than a commit should.
+
 ```sh
 cargo run -- list-proportions
 cargo run -- draw --proportions data/saffi/proportions.toml --out target/saffi

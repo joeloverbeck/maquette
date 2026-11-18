@@ -23,6 +23,16 @@ Accepted, rejected and inconclusive looks all count against the ceiling in `01-m
 
 An agent's own look at a render, and at the face, is a diagnostic. Finding nothing wrong establishes nothing; the record says what the agent saw.
 
+## Rendering a reference check sheet
+
+`maquette reference-check-sheet` writes one SVG, 3200 pixels wide and about 2,500 to 3,700 high for each character's row; look 7's, of 22 characters, was 64,030. A browser shows it whole, and Jon may scroll it. For pictures, cut it into pages at rows, since a screenshot in Chrome stops at about 16,000 pixels:
+
+1. Find where each row starts: its title is the 36-point line at `x="80"`. `grep -o '<text x="80" y="[0-9.]*" font-size="36" font-weight="600"[^>]*>[a-z0-9-]*' sheet.svg` gives each title's `y` and label.
+2. Choose page breaks about 60 pixels above a title, so that each page stays under 16,000 pixels.
+3. For each page, write a small HTML file beside the SVG: a `<div>` as wide as the sheet and as high as the page, with `overflow:hidden`, holding the SVG as an `<img>` moved up by the page's top. Shoot it with `google-chrome --headless=new --hide-scrollbars --virtual-time-budget=30000 --window-size=3200,<height> --screenshot=<page>.png file://<page>.html`, and delete the HTML files.
+
+The pages and the SVG stay in the reference folder.
+
 ## The records
 
 Both are comments on the issue that owns the work, written by `docs/agents/issue-tracker.md`. The repository is public: no work, character or designer is named, and what is private is placed as "in the reference folder, under `<folder>/`". Replace each `<...>`.
