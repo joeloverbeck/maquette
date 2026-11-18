@@ -1111,6 +1111,40 @@ fn a_set_that_gives_the_points_of_the_profile_draws_the_side_views_forehead_brid
         "the offset",
     );
 
+    // The chin is the outline's lowest point, as the reading instructions define it in a side
+    // view: where the outline stops running down and turns back under the jaw. The top of the
+    // neck's front stands above it here, at 0.9631, so nothing of the outline is lower.
+    let svg = svg_text(&folder, "side");
+    let document = roxmltree::Document::parse(&svg).expect("the side view is an SVG");
+    let outline = document
+        .descendants()
+        .find(|node| node.attribute("id") == Some("face-outline"))
+        .expect("the face outline");
+    let mut lowest = f64::MIN;
+    let mut at = [0.0, 0.0];
+    for (command, values) in path_commands(outline.attribute("d").expect("d")) {
+        match command {
+            'M' | 'L' => {
+                at = [values[0], values[1]];
+                lowest = lowest.max(at[1]);
+            }
+            'C' => {
+                for step in 0..=64 {
+                    let t = step as f64 / 64.0;
+                    let s = 1.0 - t;
+                    let y = s * s * s * at[1]
+                        + 3.0 * s * s * t * values[1]
+                        + 3.0 * s * t * t * values[3]
+                        + t * t * t * values[5];
+                    lowest = lowest.max(y);
+                }
+                at = [values[4], values[5]];
+            }
+            _ => {}
+        }
+    }
+    assert_close(lowest, down(1.0), 0.0011, "the outline's lowest point");
+
     // The side view's landmark file says which proportions of the profile it is drawn with.
     let profile: Vec<&str> = side.table["profile"]
         .as_array()

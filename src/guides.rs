@@ -443,7 +443,12 @@ fn build_side(head: &Head, seen: &Seen) -> Guides {
         outline_anchors.push(format!("jaw-line-{NEAR}-{level}"));
     }
     let outline = guides.positions_of(&outline_anchors);
-    let outline_stretches = smooth(&outline, &[]);
+    // The chin is the outline's lowest point, where it turns from running down the face to
+    // running back under the jaw: the curve runs level there, and does not sag below it on its
+    // way back to a neck that meets the jaw above the chin's height.
+    let mut directions = vec![None; outline.len()];
+    directions[chin_at] = LEVEL;
+    let outline_stretches = smooth(&outline, &directions);
     guides.add(
         "face-outline",
         None,
