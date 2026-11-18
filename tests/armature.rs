@@ -981,6 +981,151 @@ fn the_side_views_guides_are_built_as_the_list_states_for_that_view() {
     stands("hair-front-extent", at(-0.7113) + 232.58, 400.0 - 72.46);
 }
 
+/// The points of the profile, to add to the made-up set, and a tip of the nose that stands
+/// above the nose mark's bottom. Every number is made up, like the set.
+const MADE_UP_PROFILE: &str = "\
+forehead_depth = 0.2311
+bridge_depth = 0.2127
+jaw_angle_drop = 0.8873
+jaw_angle_depth = -0.4627
+neck_front_top_drop = 0.9631
+neck_front_top_depth = -0.1873
+neck_front_base_drop = 1.3127
+neck_front_base_depth = -0.2371
+neck_back_top_drop = 0.6373
+neck_back_top_depth = -1.2129
+neck_back_base_drop = 1.0871
+neck_back_base_depth = -1.3373
+";
+
+/// The made-up set with the points of the profile, and its tip of the nose at 0.3627 below
+/// the eye line, above the nose mark's bottom at 0.4629.
+fn made_up_profile_set(name: &str) -> PathBuf {
+    let set = scratch(&format!("{name}-set")).join("proportions.toml");
+    let made_up = text(&support::repository().join(MADE_UP))
+        .replace("nose_tip_drop = 0.4629", "nose_tip_drop = 0.3627");
+    std::fs::write(&set, format!("{made_up}{MADE_UP_PROFILE}")).expect("the set is written");
+    set
+}
+
+#[test]
+fn a_set_that_gives_the_points_of_the_profile_draws_the_side_views_forehead_bridge_jaw_and_neck_through_them()
+ {
+    let set = made_up_profile_set("profile");
+    let folder = draw("profile", path_text(&set), &[]);
+    let side = landmark_file(&folder, "side");
+    // As in the side view's own test: a point at a depth stands at x = 500 + 200 * (depth +
+    // 0.6375), and at a drop at y = 400 + 200 * drop.
+    let at = |depth: f64| 500.0 + 200.0 * (depth + 0.6375);
+    let down = |drop: f64| 400.0 + 200.0 * drop;
+    let through = |guide: &str| -> Vec<&str> {
+        side.guides[guide]
+            .passes_through
+            .iter()
+            .map(String::as_str)
+            .collect()
+    };
+    let stands = |name: &str, x: f64, y: f64| {
+        let point = &side.landmarks[name];
+        assert_close(point.x, x, 0.0011, &format!("the x of {name}"));
+        assert_close(point.y, y, 0.0011, &format!("the y of {name}"));
+    };
+
+    // The front of the face runs through the forehead at the brow's height and the bridge at
+    // the eye line; under the chin, the underside of the jaw runs back through the top of the
+    // neck's front and the angle of the jaw before it turns up through the jaw line.
+    assert_eq!(
+        through("face-outline"),
+        [
+            "skull-front",
+            "centre-line-at-brow-level",
+            "centre-line-at-eye-level",
+            "nose-tip",
+            "mouth-line-centre",
+            "chin",
+            "neck-front-top",
+            "jaw-right-angle",
+            "jaw-line-right-at-mouth-level",
+            "jaw-line-right-at-nose-level",
+            "jaw-line-right-at-eye-level",
+            "jaw-line-right-top",
+        ]
+    );
+    // brow_inner_end_rise 0.2129, and the points of the profile as the set gives them.
+    stands("centre-line-at-brow-level", at(0.2311), down(-0.2129));
+    stands("centre-line-at-eye-level", at(0.2127), down(0.0));
+    stands("neck-front-top", at(-0.1873), down(0.9631));
+    stands("jaw-right-angle", at(-0.4627), down(0.8873));
+    // The neck's two lines run through their own two points.
+    assert_eq!(through("neck-front"), ["neck-front-top", "neck-front-base"]);
+    assert_eq!(through("neck-back"), ["neck-back-top", "neck-back-base"]);
+    stands("neck-front-base", at(-0.2371), down(1.3127));
+    stands("neck-back-top", at(-1.2129), down(0.6373));
+    stands("neck-back-base", at(-1.3373), down(1.0871));
+
+    // Each is a point in space: every view's landmark file holds it at the same height. The
+    // three-quarter view's centre line runs through the forehead too.
+    let front = landmark_file(&folder, "front");
+    let three_quarter = landmark_file(&folder, "three-quarter");
+    for name in [
+        "centre-line-at-brow-level",
+        "jaw-right-angle",
+        "jaw-left-angle",
+        "neck-front-top",
+        "neck-front-base",
+        "neck-back-top",
+        "neck-back-base",
+    ] {
+        let y = front.landmarks[name].y;
+        for file in [&three_quarter, &side] {
+            assert_close(file.landmarks[name].y, y, 0.0011, name);
+        }
+    }
+    let centre_line: Vec<&str> = three_quarter.guides["centre-line"]
+        .passes_through
+        .iter()
+        .map(String::as_str)
+        .collect();
+    assert_eq!(
+        centre_line[..4],
+        [
+            "skull-top",
+            "skull-front",
+            "centre-line-at-brow-level",
+            "centre-line-at-eye-level"
+        ]
+    );
+    // The angle of the jaw stands at the half-width of the outline at the mouth level,
+    // 0.5371 to each side, a convention: nothing measures its offset.
+    let offset = |name: &str| front.landmarks[name].x - front.frame("turn_axis_x");
+    assert_close(
+        offset("jaw-left-angle"),
+        200.0 * 0.5371,
+        0.0011,
+        "the offset",
+    );
+    assert_close(
+        offset("jaw-right-angle"),
+        -200.0 * 0.5371,
+        0.0011,
+        "the offset",
+    );
+
+    // The side view's landmark file says which proportions of the profile it is drawn with.
+    let profile: Vec<&str> = side.table["profile"]
+        .as_array()
+        .expect("the proportions of the profile")
+        .iter()
+        .map(|name| name.as_str().expect("a name"))
+        .collect();
+    assert_eq!(profile.len(), 12);
+    assert!(profile.contains(&"bridge_depth") && profile.contains(&"neck_back_base_depth"));
+    // A set that gives none of them has no such line, as Saffi's accepted files do not.
+    let plain = landmark_file(&draw("profile-none", MADE_UP, &[]), "side");
+    assert!(!plain.table.contains_key("profile"));
+    assert!(!plain.landmarks.contains_key("centre-line-at-brow-level"));
+}
+
 #[test]
 fn the_front_view_is_symmetric_left_to_right() {
     let folder = draw("front-symmetry", MADE_UP, &["--unit", "173.3"]);
@@ -1412,6 +1557,45 @@ fn take_back(folder: &Path, with_side: bool) -> PathBuf {
     }
     support::maquette_ok(&arguments);
     taken_back
+}
+
+#[test]
+fn the_proportions_of_the_profile_are_taken_back_from_the_side_view_that_names_them() {
+    let set = made_up_profile_set("taken-back-profile");
+    let folder = draw("taken-back-profile", path_text(&set), &[]);
+    let given = support::proportions(&set);
+    let profile: Vec<&str> = MADE_UP_PROFILE
+        .lines()
+        .filter_map(|line| line.split(" = ").next())
+        .collect();
+    assert_eq!(profile.len(), 12);
+
+    // With the side view's landmark file every proportion comes back, those of the profile
+    // with the rest. Positions are written to three decimals at 200 to the unit.
+    let with_side = support::proportions(&take_back(&folder, true));
+    for (name, value) in &given {
+        let came_back = with_side
+            .get(name)
+            .unwrap_or_else(|| panic!("{name} did not come back"));
+        assert_close(*came_back, *value, 0.00001, name);
+    }
+    // Without it, none of the profile does: the front and three-quarter views do not draw it.
+    let without = support::proportions(&take_back(&folder, false));
+    for name in &profile {
+        assert!(
+            !without.contains_key(*name),
+            "{name} came back without the side view"
+        );
+    }
+    // A head drawn with none of them gives none back, though its side view has a bridge.
+    let plain = draw("taken-back-no-profile", MADE_UP, &[]);
+    let plain_back = support::proportions(&take_back(&plain, true));
+    for name in &profile {
+        assert!(
+            !plain_back.contains_key(*name),
+            "{name} came back from a plain head"
+        );
+    }
 }
 
 #[test]

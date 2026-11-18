@@ -579,7 +579,22 @@ fn proportions_from_landmarks(arguments: &[String]) -> Result<()> {
     )?;
     let front = armature::read_landmark_file(&read(required(&found, "--front")?)?)?;
     let three_quarter = armature::read_landmark_file(&read(required(&found, "--three-quarter")?)?)?;
-    let mut set = head_model::proportions_from_views(&front, &three_quarter)?;
+    let mut set = match found.get("--side") {
+        Some(side) => {
+            let in_side = |error: Error| Error::new(format!("{side}: {error}"));
+            let text = read(side)?;
+            let named = armature::read_side_view_profile(&text).map_err(in_side)?;
+            let side_view = armature::read_landmark_file(&text).map_err(in_side)?;
+            head_model::proportions_from_views_and_profile(
+                &front,
+                &three_quarter,
+                &side_view,
+                &named,
+            )
+            .map_err(in_side)?
+        }
+        None => head_model::proportions_from_views(&front, &three_quarter)?,
+    };
     let opening = match found.get("--side") {
         Some(side) => {
             let in_side = |error: Error| Error::new(format!("{side}: {error}"));
@@ -590,8 +605,9 @@ fn proportions_from_landmarks(arguments: &[String]) -> Result<()> {
             "\
 # A set of proportions taken back from the landmark files of an armature's three views,
 # by `maquette proportions-from-landmarks`: the proportions from the front view and the
-# three-quarter view, and any correction from the side view, whose landmark file is the one
-# that states it. `maquette list-proportions` defines each proportion and each correction.
+# three-quarter view, and from the side view any correction and the proportions of the profile
+# it is drawn with, which its landmark file is the one to state. `maquette list-proportions`
+# defines each proportion and each correction.
 "
         }
         None => {

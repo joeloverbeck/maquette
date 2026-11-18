@@ -1706,3 +1706,48 @@ fn the_points_of_a_drawn_head_are_marked_by_where_their_numbers_come_from() {
         failure(&output)
     );
 }
+
+#[test]
+fn the_bridge_of_a_drawn_head_is_marked_by_its_own_depth_where_the_set_gives_one() {
+    // The batches of `read_again`: two characters' side views place the bridge of the nose,
+    // so the set gives it as a thin average, and the side view draws the bridge from it and
+    // not from the skull.
+    let folder = read_again("table-overlay-bridge");
+    let made = maquette_in(
+        Some(&folder),
+        &[
+            "set-from-table",
+            "--check",
+            "batch-a/check.toml,batch-b/check.toml",
+            "--borrow",
+            support::MADE_UP,
+            "--out",
+            "results/set.toml",
+        ],
+    );
+    assert!(made.status.success(), "{}", failure(&made));
+    let set = folder.join("results/set.toml");
+    let drawn = scratch("overlay-bridge");
+    maquette_ok(&[
+        "draw",
+        "--proportions",
+        path_text(&set),
+        "--out",
+        path_text(&drawn),
+    ]);
+    maquette_ok(&[
+        "overlay-sources",
+        "--proportions",
+        path_text(&set),
+        "--armature",
+        path_text(&drawn),
+        "--out",
+        path_text(&drawn),
+    ]);
+    let side = text(&drawn.join("side.sources-overlay.svg"));
+    let point = support::LandmarkFile::read(&drawn.join("side.landmarks.toml"))
+        .point("centre-line-at-eye-level");
+    let at = [point.x, point.y];
+    assert!(has_dot(&dots(&side, "thin-averages"), at), "{side}");
+    assert!(!has_dot(&dots(&side, "borrowed"), at), "{side}");
+}

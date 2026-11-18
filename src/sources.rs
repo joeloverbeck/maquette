@@ -83,10 +83,13 @@ const VIEW_POINTS: &[(&str, [&[&str]; 3])] = &[
 const NECK_BASE: [&[&str]; 3] = [&["neck_half_width"], &["neck_base_drop"], &["neck_depth"]];
 
 /// The proportions a point of a view rests on, coordinate by coordinate, or none where it
-/// rests on nothing of its own.
-fn rests_on(point: &str) -> Option<[Vec<&'static str>; 3]> {
-    if let Some(on) = head_model::rests_on(point) {
-        return Some(on);
+/// rests on nothing of its own. A landmark's are the head model's; `profile` is what
+/// [`head_model::Head::profile`] is for the set. A view point may share its name with a point
+/// of the profile that a set may give, as the ends of the neck's lines do: it rests on its
+/// form.
+fn rests_on(point: &str, is_landmark: bool, profile: &[String]) -> Option<[Vec<&'static str>; 3]> {
+    if is_landmark {
+        return head_model::rests_on(point, profile);
     }
     let of_form = if point.starts_with("neck-") && point.ends_with("-base") {
         Some(&NECK_BASE)
@@ -161,6 +164,12 @@ pub fn overlay(
     landmarks_text: &str,
 ) -> Result<Overlay> {
     let sources = sources_of(set_path, set_text)?;
+    // The proportions of the profile the set gives, as the head model draws from them.
+    let profile: Vec<String> = head_model::PROFILE
+        .iter()
+        .filter(|(_, names)| names.iter().all(|name| sources.contains_key(*name)))
+        .flat_map(|(_, names)| names.iter().map(|name| name.to_string()))
+        .collect();
     let in_file = |why: String| Error::new(format!("{landmarks_path}: {why}"));
     let file: toml::Table = landmarks_text
         .parse()
@@ -214,7 +223,12 @@ pub fn overlay(
             .flatten()
             .filter_map(toml::Value::as_str)
         {
-            let (Some(at), Some(on)) = (placed.get(name), rests_on(name)) else {
+            let is_landmark = file
+                .get("landmarks")
+                .and_then(toml::Value::as_table)
+                .is_some_and(|landmarks| landmarks.contains_key(name));
+            let (Some(at), Some(on)) = (placed.get(name), rests_on(name, is_landmark, &profile))
+            else {
                 continue;
             };
             let Some(kind) = shown

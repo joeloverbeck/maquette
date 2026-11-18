@@ -42,7 +42,7 @@ pub fn draw(set: &Set, placement: &Placement) -> Result<Vec<File>> {
         });
         files.push(File {
             name: format!("{}.landmarks.toml", view.name()),
-            text: landmark_file(&seen, &built, &svg_name),
+            text: landmark_file(&seen, &built, &svg_name, head.profile()),
         });
     }
     Ok(files)
@@ -173,7 +173,11 @@ fn svg(seen: &Seen, built: &Guides) -> String {
     out
 }
 
-fn landmark_file(seen: &Seen, built: &Guides, svg_name: &str) -> String {
+/// One view's landmark file. The side view's says which proportions of the profile the head
+/// is drawn with, where the set gives any: the side view draws its forehead, bridge, jaw's
+/// angle and neck from them, and the bridge is a landmark of every head, so its file alone
+/// cannot say whether its depth was given or built by the skull's rule.
+fn landmark_file(seen: &Seen, built: &Guides, svg_name: &str, profile: &[String]) -> String {
     let position = |value: f64| toml_number(value, 3);
     let mut out = String::new();
     out.push_str(
@@ -188,6 +192,11 @@ fn landmark_file(seen: &Seen, built: &Guides, svg_name: &str) -> String {
         "turn_degrees = {}\n",
         toml_number(seen.turn_degrees, 3)
     ));
+    if seen.view == View::Side && !profile.is_empty() {
+        out.push_str("# The proportions of the profile the set gives, which this view draws its forehead, bridge,\n# jaw's angle and neck from. A head drawn from a set that gives none has no such line.\n");
+        let named: Vec<String> = profile.iter().map(|name| quoted(name)).collect();
+        out.push_str(&format!("profile = [{}]\n", named.join(", ")));
+    }
 
     out.push_str("\n[frame]\n");
     out.push_str(&format!("width = {}\n", position(seen.width)));
@@ -420,6 +429,25 @@ pub fn read_placement(text: &str) -> Result<Placed> {
 /// A correction is drawn in the side view only, so this is the one file that states it, and a
 /// file of another view is refused. Whether the names are a correction's and its amounts' is
 /// for the list of proportions to say: [`Set::with_correction`] checks them.
+/// The proportions of the profile a side view's landmark file says the head is drawn with:
+/// its `profile` line. None where it has no such line, as a head drawn from a set that gives
+/// none has not.
+pub fn read_side_view_profile(text: &str) -> Result<Vec<String>> {
+    let table = parsed(text)?;
+    let Some(named) = table.get("profile") else {
+        return Ok(Vec::new());
+    };
+    named
+        .as_array()
+        .and_then(|named| {
+            named
+                .iter()
+                .map(|name| name.as_str().map(str::to_string))
+                .collect::<Option<Vec<_>>>()
+        })
+        .ok_or_else(|| Error::new("the landmark file's `profile` is not a list of names"))
+}
+
 pub fn read_side_view_corrections(
     text: &str,
 ) -> Result<std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>> {

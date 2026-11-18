@@ -114,10 +114,10 @@ guide = "hair-volume"
 rule = "A plain envelope, a convention: a half-ellipse dome from the hair's top down to the height of the skull's centre, then straight sides down to the height of the chin. Seen from above the envelope is an ellipse, so its half-width in a view is the root of (half-width times the cosine of the turn) squared plus (half-depth times the sine of the turn) squared. In the side view that is the hair's half-depth, and the dome stands over the middle of the hair. Behind the head its side runs straight down to the height of the chin. In front it stops where the dome ends, at the height of the skull's centre: a straight side there would run down across the face, and how far the hair comes down over the face is the painter's."
 [[construction]]
 guide = "face-outline"
-rule = "At the top, the eye line, the nose level and the mouth level the head has a cheek point and a jaw-line point on each side, at one half-width and two depths. On each side the outline runs through whichever of the two stands further out in the view, then through the jaw point and the chin: a smooth curve that at each point runs parallel to the line joining its two neighbours. Above the nose level nothing is drawn behind the jaw line, and it keeps its depth at the nose level: a convention. In the side view the outline's front is the centre line: it runs from the skull's front, level with the skull's centre, through the centre line's point at the eye line, the tip of the nose and the mouth line's centre to the chin, and then back and up through the jaw-line points at the mouth level, the nose level, the eye line and the top. The jaw point beside the chin belongs to the front of the face and is not on it. Nothing in the list says how far the nose, the lips or the brow stand out from that line, so the side view draws none of them."
+rule = "At the top, the eye line, the nose level and the mouth level the head has a cheek point and a jaw-line point on each side, at one half-width and two depths. On each side the outline runs through whichever of the two stands further out in the view, then through the jaw point and the chin: a smooth curve that at each point runs parallel to the line joining its two neighbours. Above the nose level nothing is drawn behind the jaw line, and it keeps its depth at the nose level: a convention. In the side view the outline's front is the centre line: it runs from the skull's front, level with the skull's centre, through the centre line's point at the eye line, the tip of the nose and the mouth line's centre to the chin, and then back and up through the jaw-line points at the mouth level, the nose level, the eye line and the top. Where the set gives the points of the profile, the front runs through the forehead at the brow's height before the eye line, and the centre line's point at the eye line is the bridge of the nose at its own depth; and from the chin the underside of the jaw runs back through the top of the neck's front and then the angle of the jaw before it turns up through the jaw-line points. A point the set leaves out is left out of the outline, which then runs on to the next. The jaw point beside the chin belongs to the front of the face and is not on it. Nothing in the list says how far the nose, the lips or the brow stand out from that line, so the side view draws none of them."
 [[construction]]
 guide = "centre-line"
-rule = "From the skull's top it follows the skull's surface forward and down to the eye line: a convention, because nothing is drawn there. Below the eye line it runs smoothly through the tip of the nose, the mouth line's centre and the chin. In a front view the tip stands straight above the nose mark's bottom, on the same upright line. In the side view it is not drawn: above the skull's front it is the skull's circle, and below it is the front of the face outline."
+rule = "From the skull's top it follows the skull's surface forward and down to the eye line: a convention, because nothing is drawn there. Where the set gives the forehead, it runs through it below the skull's front, and where it gives the bridge of the nose, its point at the eye line stands at the bridge's depth and not on the skull. Below the eye line it runs smoothly through the tip of the nose, the mouth line's centre and the chin. In a front view the tip stands straight above the nose mark's bottom, on the same upright line. In the side view it is not drawn: above the skull's front it is the skull's circle, and below it is the front of the face outline."
 [[construction]]
 guide = "level lines"
 rule = "The eye level line is drawn on the eye line, the nose level line midway between the nose mark's corners and its bottom, and the mouth level line at the mouth line's centre. Each spans the face outline at its height. In the side view that is from the jaw-line point at that level to the front of the outline; at the nose level the front is where the outline crosses that height."
@@ -135,7 +135,7 @@ guide = "ears"
 rule = "A flat upright lobe standing on its two base points: the top and the two side extents take the depth of the straight line through the base points at their offset, a convention. The outline is a smooth curve from the outer base point round the outer extent, the top and the inner extent to the inner base point, upright at the extents and level at the top. In the side view it is the same curve through the same points at their depths, for the near ear only: the lobe is seen as far round as its two base points differ in depth, and edge on if they do not."
 [[construction]]
 guide = "neck"
-rule = "An upright round column, as wide in every view. Each of its two lines starts at the lowest point where it crosses the face outline and ends at the neck's base. A line that passes outside the face starts where it crosses the lower half of the skull, and one that misses both starts at the chin's height. In the side view the two lines are the neck's back and its front, and they are named so: left and right in a name are the character's own, and these are neither."
+rule = "An upright round column, as wide in every view. Each of its two lines starts at the lowest point where it crosses the face outline and ends at the neck's base. A line that passes outside the face starts where it crosses the lower half of the skull, and one that misses both starts at the chin's height. In the side view the two lines are the neck's back and its front, and they are named so: left and right in a name are the character's own, and these are neither. Where the set gives a point of the profile at an end of one of them, the top or the base of the neck's front or back, that end of the line is that point, and the column gives only the ends the set leaves out. The neck's depth is then still the column's, which the front and the three-quarter views draw; a side view gives it as the midpoint of the two bases, so a set that gives both bases and another depth draws a side view whose neck stands elsewhere than its column."
 [[construction]]
 guide = "shoulder-line"
 rule = "A straight line between the two shoulder points, which turn with the head. In the side view it is seen end on: the two shoulder points stand at one place, and a line between them has no length. So that it shows, it is drawn as a level tick through that place, half the neck's width to each side: a convention. The tick marks the shoulders' height and depth and says nothing of their width."
@@ -832,7 +832,13 @@ side = "The depth of the near shoulder point."
 # the jaw one run from the chin to the jaw line, and the neck the front view's column, and that
 # is where it read wrong. A height here is the side view's own, in its own unit, since a front
 # view does not show these points. A set may leave each of them out; `when_left_out` says what
-# a head drawn from a set that does is drawn with.
+# a head drawn from a set that does is drawn with. Where a set gives one, it is a landmark of
+# the head, the same point in every view, and the side view draws through it, as the face
+# outline's and the neck's constructions say. The forehead stands on the centre line at the
+# height of the brow line's inner end, and the neck's four points on the centre line. The angle
+# of the jaw is a pair whose offset nothing measures: it stands at the half-width of the face
+# outline at the mouth level, a convention, and no guide of a front or a three-quarter view
+# runs through it. A set that gives none of them is drawn as before they were asked for.
 
 [[proportion]]
 name = "forehead_depth"
@@ -862,7 +868,7 @@ what = "How far below the eye line the angle of the jaw is: going back along the
 front = "Not taken: a front view is read for no angle of the jaw."
 three_quarter = "Not taken: a three-quarter view is read for no angle of the jaw."
 side = "The height of the near jaw angle minus the eye line's height, in the side view's own unit."
-when_left_out = "the side view's jaw runs from the chin to the jaw line at the mouth level with no angle between."
+when_left_out = "the side view's jaw runs from the chin, or from the top of the neck's front where the set gives it, to the jaw line at the mouth level with no angle between."
 
 [[proportion]]
 name = "jaw_angle_depth"
@@ -872,7 +878,7 @@ what = "The depth of the angle of the jaw."
 front = "Not seen."
 three_quarter = "Not taken: a three-quarter view is read for no angle of the jaw."
 side = "The depth of the near jaw angle."
-when_left_out = "the side view's jaw runs from the chin to the jaw line at the mouth level with no angle between."
+when_left_out = "the side view's jaw runs from the chin, or from the top of the neck's front where the set gives it, to the jaw line at the mouth level with no angle between."
 
 [[proportion]]
 name = "neck_front_top_drop"
