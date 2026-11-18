@@ -1,6 +1,6 @@
 # maquette
 
-Maquette generates armatures for anime-style characters from proportions measured on published drawings: the construction guide for a head and body, as SVG with named landmarks, for an agent to draw and paint over. It does not draw the finished character.
+Maquette generates armatures for anime-style characters from proportions measured on good drawings Jon rates: the construction guide for a head and body, as SVG with named landmarks, for an agent to draw and paint over. It does not draw the finished character.
 
 In an animation studio a maquette is the sculpted reference model that keeps a character on model from every angle.
 

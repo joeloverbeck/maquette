@@ -22,7 +22,7 @@ Six parts, run on one small batch before any wide gathering (`EVID-3`).
 1. **The list of proportions.** Every named proportion a head needs in the three views, each with a definition. A proportion is defined on features that are drawn in a reference. A guide with nothing drawn behind it, such as the skull under the hair, is built by a stated rule and labelled as a convention.
 2. **The measuring method.** Separate agents read each reference twice, and a disagreement above 1% of head height is shown. The agent states the view, the turn and whether the head is level. Jon checks each character on a reference check sheet.
 3. **A first batch of references.** Adult women, one character per work, from at least six works by six character designers, in official publications only. An agent proposes the works and Jon strikes any he does not rate.
-4. **The table and its valid ranges.** For each proportion, the lowest, middle and highest value measured and the number of works behind it.
+4. **The table and its valid ranges.** For each proportion, the lowest, middle and highest value measured and the number of characters behind it, with the works they come from.
 5. **The generator.** It draws any set of proportions as a head in front, three-quarter and side views: an SVG of named guides for each, with a landmark file beside it. Every landmark is one point in space, and each view shows the same points from another side. The three-quarter view is turned as far as Saffi's hand-made armature, about 30°.
 6. **The comparison with Saffi.** The generator draws her from her own proportions, laid over the hand-made views. Each of her proportions is then set against the table's valid range. Her numbers never enter a table.
 

@@ -2,7 +2,7 @@
 
 ## What maquette is
 
-Maquette generates armatures for anime-style characters from proportions measured on good published drawings. An armature is the construction guide a drawing is built on: the skull, the face outline, guides for the eyes, brows, nose, mouth and ears, the neck, and later the volumes of the body. It comes as SVG, with a file giving the coordinates of every named landmark. An agent then draws and paints the character over it, and the armature is hidden in the finished art.
+Maquette generates armatures for anime-style characters from proportions measured on good drawings that Jon rates. An armature is the construction guide a drawing is built on: the skull, the face outline, guides for the eyes, brows, nose, mouth and ears, the neck, and later the volumes of the body. It comes as SVG, with a file giving the coordinates of every named landmark. An agent then draws and paints the character over it, and the armature is hidden in the finished art.
 
 ## Purpose (`PURP-1`)
 
@@ -14,7 +14,7 @@ Maquette generates armatures for anime-style characters from proportions measure
 
 ## Primary outcome (`PURP-2`)
 
-Jon builds a character's armature inside proportions measured on good published drawings, in front, three-quarter and side views that he accepts on sight, and the agent that paints over it produces a drawing whose proportions he does not send back.
+Jon builds a character's armature inside proportions measured on good drawings he rates, in front, three-quarter and side views that he accepts on sight, and the agent that paints over it produces a drawing whose proportions he does not send back.
 
 Jon selected the form on 2026-11-16: a character creator, in which he or an agent moves controls for the face shape, the eyes, nose, mouth, ears and other parts. He ruled the same day that measured references are its base, and that Saffi's accepted armature tests what the creator allows and never feeds it. Those selections are part of the outcome. They waive the comparison of mechanisms in `PURP-4` and nothing else. Whether an armature improves what is painted over it is still to be shown (`SEARCH-4`, `SIM-2`), and everything inside the creator stays replaceable.
 
@@ -32,7 +32,7 @@ The one consumer is mudsong's character art. Its next use of an armature is the 
 
 There are two real inputs.
 
-- **References:** published drawings from works Jon rates as competent, by several hands, each checked for its view and tilt (`04-evidence-and-references.md`). They fill the proportion tables.
+- **References:** drawings Jon rates, whatever their source, by several hands, each checked for its view and tilt (`04-evidence-and-references.md`). They fill the proportion tables.
 - **Saffi,** as mudsong has settled her: an adult woman of the cat-folk, human-faced, with round ears set on the skull. Her hand-made armature, a front view and a three-quarter view from mudsong's portrait study, is the comparison case.
 
 Mudsong is private, so a ticket here restates the facts it needs and says where they came from.
@@ -68,7 +68,7 @@ Jon ruled on 2026-11-16 that both stay here. The tables have no consumer but the
 
 ## Authority
 
-Jon is the acceptance authority. Only he decides whether an armature looks right, which published work counts as a competent reference, whether a reference is level and in the view stated, which style family a character is drawn in, where a character sits between human and animal, and what is published.
+Jon is the acceptance authority. Only he decides whether an armature looks right, which drawing counts as a reference, whether a reference is level and in the view stated, which style family a character is drawn in, where a character sits between human and animal, and what is published.
 
 ## Limits
 
