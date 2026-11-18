@@ -120,6 +120,8 @@ b649da5927cddcefa88028ce84e11523b9d9664063a24bc6cffc5c5da523629c  side.sources-o
    - Second row: the same places 1120 further down, with Saffi's three files.
    - Third row: the same places 2240 further down, with the drawn head's files again and each view's overlay over it at the same place.
    Replace a drawing by importing the new file (`file.import`), moving it into the sheet frame or its window (`node.reparent`) and setting its place.
+   - Find a layer's id by its name with `node.find {name}`. `get_node` on the sheet frame lists every layer, about 42,000 characters at look 8.
+   - Delete the old drawing with `edit.delete {ids}`; there is no `node.delete`. `node.create` takes a frame's fill and clipping inside `props`, not as its own parameters.
 3. If a height in a landmark file changed, move the level lines of each row to that row's top plus the height. If a number changed, retype the captions, the ranges and the counts.
 4. Export the sheet frame at 2400 pixels wide and at scale 1.
 

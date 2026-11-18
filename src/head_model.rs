@@ -142,7 +142,7 @@ pub const BRIDGE: &str = "centre-line-at-eye-level";
 /// pair whose offset nothing measures: it stands at the half-width of the face outline at the
 /// mouth level, a convention, and no guide of a front or a three-quarter view runs through
 /// it. The neck's four points are on the centre line, at its front and its back.
-pub const PROFILE: &[(&str, &[&str])] = &[
+const PROFILE: &[(&str, &[&str])] = &[
     (FOREHEAD, &["forehead_depth"]),
     (BRIDGE, &["bridge_depth"]),
     (JAW_ANGLE, &["jaw_angle_drop", "jaw_angle_depth"]),
