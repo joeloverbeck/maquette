@@ -2205,3 +2205,36 @@ fn the_points_of_the_necks_profile_a_structure_reference_gives_stand_apart_from_
     assert_close(top.x - chin.x, -100.0, 1e-3, "behind the chin");
     assert_close(top.y, 590.0, 1e-3, "below the eye line");
 }
+
+#[test]
+fn a_line_of_the_necks_profile_is_taken_from_both_its_ends_or_not_at_all() {
+    // Made up: work 1's side view places the top of the neck's front, and not its base. The
+    // borrowed set has no points of the profile, so the line is left out whole: its top end
+    // alone would draw a line to the borrowed column's front, which is neither's.
+    let mut works = six_works();
+    works[0].side_points = vec![("neck-front-top", [670.0, 395.0])];
+    let folder = folder("table-structure-reference-half-a-line", &works);
+    checked(&folder, &[]);
+    let (_, set) = set_from_structure_reference(&folder, "work-1", true, &[]);
+    for name in [
+        "neck_front_top_drop",
+        "neck_front_top_depth",
+        "neck_front_base_drop",
+        "neck_front_base_depth",
+    ] {
+        let source = set["sources"][name].as_str().expect("a source");
+        assert!(
+            source.starts_with(
+                "left out: the neck's front line is taken whole, from both its ends, and the structure reference does not give both"
+            ) || source.starts_with("left out: the structure reference does not give it"),
+            "{name}: {source}"
+        );
+        assert!(
+            !set["proportions"]
+                .as_table()
+                .expect("[proportions]")
+                .contains_key(name),
+            "{name}"
+        );
+    }
+}

@@ -31,7 +31,7 @@ pub const RULES: &[(&str, &str)] = &[
     ),
     (
         "taken_whole",
-        "An ear and the neck are each taken whole, from one source. An ear is one form built on its two base points, and the neck one column: its width, where it ends and how far back it stands belong together, and a width from one source on a depth from another sets the head forward on a post. So unless one source gives every one of a form's proportions, all of them are borrowed. The points of the neck's profile, where its front and its back meet the head and end, stand apart from the column: each is the structure reference's where it gives it, since the front's top is where the underside of the jaw turns down into the neck, and is borrowed otherwise. Taken whole with a borrowed column that has none, they would be left out, and the jaw would run straight from the chin to its angle, which the reference does not draw.",
+        "An ear and the neck are each taken whole, from one source. An ear is one form built on its two base points, and the neck one column: its width, where it ends and how far back it stands belong together, and a width from one source on a depth from another sets the head forward on a post. So unless one source gives every one of a form's proportions, all of them are borrowed. The points of the neck's profile, where its front and its back meet the head and end, stand apart from the column: each is the structure reference's where it gives it, since the front's top is where the underside of the jaw turns down into the neck, and is borrowed otherwise. Taken whole with a borrowed column that has none, they would be left out, and the jaw would run straight from the chin to its angle, which the reference does not draw. Each line of the profile, the front and the back, is taken whole from one source, both its ends, or borrowed whole: one end from one source and the other from another draws a line that is neither's.",
     ),
     (
         "hangs_on",
@@ -46,6 +46,43 @@ pub const RULES: &[(&str, &str)] = &[
 /// The starts of the names of the points of the neck's profile, which stand apart from the
 /// neck's column in the rule `taken_whole`.
 const NECK_PROFILE: &[&str] = &["neck_front_", "neck_back_"];
+
+/// The lines of the neck's profile, each by the start of its two ends' names, with what it is
+/// called: the rule `taken_whole`.
+const NECK_LINES: &[(&str, &str)] = &[
+    ("neck_front_", "the neck's front line"),
+    ("neck_back_", "the neck's back line"),
+];
+
+/// Takes each line of the neck's profile from one source, both its ends, or borrows it whole:
+/// one end from one source and the other from another, or left out, draws a line that is
+/// neither's.
+fn whole_lines(
+    mut made: Vec<(String, Option<f64>, Source)>,
+    borrowed: &proportions::Set,
+) -> Vec<(String, Option<f64>, Source)> {
+    for (start, line) in NECK_LINES {
+        let ends: Vec<&(String, Option<f64>, Source)> = made
+            .iter()
+            .filter(|(name, _, _)| name.starts_with(start))
+            .collect();
+        let one_source = ends.iter().all(|(_, value, source)| {
+            value.is_some() && std::mem::discriminant(source) == std::mem::discriminant(&ends[0].2)
+        });
+        if one_source {
+            continue;
+        }
+        let why = format!(
+            "{line} is taken whole, from both its ends, and the structure reference does not give both"
+        );
+        for (name, value, source) in &mut made {
+            if name.starts_with(start) && !source.is_borrowed() && !source.is_left_out() {
+                (*value, *source) = table::borrow(borrowed, name, why.clone());
+            }
+        }
+    }
+    made
+}
 
 /// A whole set of proportions made from one structure reference, with where each number comes
 /// from.
@@ -110,7 +147,8 @@ pub fn set(
             };
             (name.to_string(), value, source)
         })
-        .collect();
+        .collect::<Vec<_>>();
+    let made = whole_lines(made, borrowed);
     // The points of the neck's profile stand apart from its column: the rule `taken_whole`.
     let finished = table::finish(made, borrowed, "the structure reference does", NECK_PROFILE)?;
     Ok(SetFromReference {
