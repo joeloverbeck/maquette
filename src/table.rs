@@ -6,7 +6,7 @@
 //! `maquette set-against-table` sets a set of proportions against a table.
 //!
 //! It also hides how a whole set of proportions is made from a table for a head to be drawn:
-//! the table's middle values where it has a range, the average of the works where two to
+//! the table's middle values where it has a range, the average of the characters where two to
 //! four give a proportion, and another set's own numbers for the rest, each marked as what it
 //! is. `maquette set-from-table` writes one.
 //!
@@ -15,12 +15,12 @@
 
 use std::collections::BTreeMap;
 
-use crate::jons_check::{Accepted, Outcome, Review, WORKS_FOR_A_TABLE};
+use crate::jons_check::{CHARACTERS_FOR_A_TABLE, Count, Outcome, Review, Works, counts};
 use crate::known_positions::{NOT_A_READER, dimension};
-use crate::measuring::{self, Given};
+use crate::measuring::{self, Given, Proportions};
 use crate::number::{counted, median, toml as toml_number};
 use crate::proportions::{self, Kind};
-use crate::readings::Drawing;
+use crate::readings::{self, Drawing};
 use crate::toml_text::{quoted, quoted_lines, tables, words};
 use crate::views::View;
 use crate::{Error, Result};
@@ -29,23 +29,35 @@ use crate::{Error, Result};
 pub const RULES: &[(&str, &str)] = &[
     (
         "built_from",
-        "A table is built from the record of Jon's check and from nothing else: the readings of each character he accepted, each drawing as the record rules it, with what he marked as off left out. A drawing that is set aside or not called level is left out, and so is a character he rejected.",
+        "A table is built from the records of Jon's checks and from nothing else: the readings of each character he accepted, each drawing as its record rules it, with what he marked as off left out. A drawing that is set aside or not called level is left out, and so is a character he rejected. A record names its readings from the folder it is in, so the records of several batches, each in its own folder, can build one table.",
     ),
     (
-        "a_work",
-        "Each accepted character is one work, and a table counts works. Heights and widths are taken from a work's front view, so a work with no measured front view gives nothing. Depth is taken from its side view where one is measured, and otherwise from its three-quarter view at the turn the readings show.",
+        "read_again",
+        "A label that several records name is one character, and its readings must say the same reference in each; a character accepted in one record and rejected in another builds no table. One drawing may be read again under a later revision of the reading instructions, which asks for points the earlier did not: the earlier readings, which Jon accepted first, give every proportion they give, and the later ones only what the earlier were not asked for. Two measured drawings of a view that are two pictures, or one picture read twice under one revision, build no table.",
+    ),
+    (
+        "a_character",
+        "A table counts characters: one drawing of each accepted character in each view. Heights and widths are taken from a character's front view, so a character with no measured front view gives nothing. Depth is taken from its side view where one is measured, and otherwise from its three-quarter view at the turn the readings show.",
+    ),
+    (
+        "works",
+        "Beside each count of characters stands the number of works they come from, and how many of them the work that gives the most gives, so that a range resting on one hand can be seen: several characters of one work's sheets are drawn by one hand or a few. A work is what the characters' readings name as their work, word for word, with its designer where it is known. Characters whose work is not known are counted under the words their readings give, so they may join drawings by different hands, or part drawings by one.",
     ),
     (
         "values",
-        "For each proportion: the number of works that give it and, where it has a range, the lowest, the middle and the highest value among them. The middle is the median: the middle value in order, or midway between the two middle values of an even number of works. Every value is in units, a length over the height from the eye line down to the chin.",
+        "For each proportion: the number of characters that give it and, where it has a range, the lowest, the middle and the highest value among them. The middle is the median: the middle value in order, or midway between the two middle values of an even number of characters. Every value is in units, a length over the height from the eye line down to the chin.",
     ),
     (
         "floor",
-        "A proportion with five works or more behind it is given: its valid range runs from its lowest value to its highest. A proportion with fewer is too thin: the table says how many works stand behind it and why the others do not give it, and states no number, because the values of one to four works are those works' own numbers. It has no range, and nothing is set against it. The floor is held proportion by proportion. In a view that has five works, a proportion that hair or a mark of Jon's leaves with fewer is too thin all the same: the floor is there so that no range is one hand's habit, and a range is backed only by the works that show that feature. A view with fewer than five works is reported as too thin and is not a table.",
+        "A proportion with five characters or more behind it is given: its valid range runs from its lowest value to its highest. A proportion with fewer is too thin: the table says how many characters stand behind it and why the others do not give it, and states no number, because the values of one to four characters are those characters' own numbers. It has no range, and nothing is set against it. The floor is held proportion by proportion. In a view that has five characters, a proportion that hair or a mark of Jon's leaves with fewer is too thin all the same, because a range is backed only by the characters that show that feature. A view with fewer than five characters is reported as too thin and is not a table. The floor counts characters and not works; how many works stand behind a range is stated beside it, and is not a floor.",
+    ),
+    (
+        "age_bands",
+        "Where the characters are of more than one age band, as their readings give it, each proportion also states each band's own count of characters and, where five or more of a band give it, that band's own lowest, middle and highest value, with whether the ranges of every two bands overlap. The table's own range is of every character, whatever its band. Ranges that overlap may still be of bands that differ, and ranges that do not overlap may rest on few characters of few works: this states what was measured, and tests nothing of whether the bands differ.",
     ),
     (
         "conventions",
-        "A convention is built by a stated rule and is never a measurement: it has no valid range, however many works the rule could be run on, and the table states no number for it.",
+        "A convention is built by a stated rule and is never a measurement: it has no valid range, however many characters the rule could be run on, and the table states no number for it.",
     ),
     (
         "separate_ranges",
@@ -72,22 +84,24 @@ fn rule(name: &str) -> &'static str {
 /// Where a proportion stands in a table.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Standing {
-    /// Five works or more: its lowest and highest value are its valid range.
+    /// Five characters or more: its lowest and highest value are its valid range.
     Given,
-    /// One to four works: what they give is stated and is no range.
+    /// One to four characters: what they give is stated and is no range.
     TooThin,
-    /// No work gives it.
-    NoWork,
+    /// No character gives it.
+    NoCharacter,
     /// Built by rule and never measured: no range.
     Convention,
 }
 
 impl Standing {
-    fn of(kind: Kind, works: usize) -> Standing {
-        match (kind, works) {
+    fn of(kind: Kind, characters: usize) -> Standing {
+        match (kind, characters) {
             (Kind::Convention, _) => Standing::Convention,
-            (Kind::Measured, 0) => Standing::NoWork,
-            (Kind::Measured, works) if works < WORKS_FOR_A_TABLE => Standing::TooThin,
+            (Kind::Measured, 0) => Standing::NoCharacter,
+            (Kind::Measured, characters) if characters < CHARACTERS_FOR_A_TABLE => {
+                Standing::TooThin
+            }
             (Kind::Measured, _) => Standing::Given,
         }
     }
@@ -96,7 +110,7 @@ impl Standing {
         match self {
             Standing::Given => "given",
             Standing::TooThin => "too thin",
-            Standing::NoWork => "no work",
+            Standing::NoCharacter => "no character",
             Standing::Convention => "convention",
         }
     }
@@ -105,7 +119,7 @@ impl Standing {
         [
             Standing::Given,
             Standing::TooThin,
-            Standing::NoWork,
+            Standing::NoCharacter,
             Standing::Convention,
         ]
         .into_iter()
@@ -113,15 +127,37 @@ impl Standing {
     }
 }
 
-/// One work a table was measured on, as the table lists it.
+/// One character a table was measured on, as the table lists it.
 #[derive(Debug, Clone)]
-struct Work {
+struct Character {
+    label: String,
     /// What its readings say the reference is, field by field.
     reference: BTreeMap<String, String>,
-    /// The views measured of it.
+    /// The views it gives its proportions from: its front view, and the view depth is from.
+    /// The counts of each view are of these.
     views: Vec<View>,
     /// Where its depth is taken from, in words.
     depth_from: &'static str,
+}
+
+impl Character {
+    fn said(&self, field: &str) -> &str {
+        self.reference.get(field).map_or("", String::as_str)
+    }
+
+    fn work(&self) -> &str {
+        self.said("work")
+    }
+}
+
+/// One character's value of a proportion.
+#[derive(Debug, Clone)]
+struct Value {
+    value: f64,
+    /// The work it comes from, as the character's readings name it.
+    work: String,
+    /// The character's age band, as its readings give it.
+    band: String,
 }
 
 /// One proportion of a table.
@@ -129,15 +165,62 @@ struct Work {
 struct Line {
     name: String,
     kind: Kind,
-    /// The values the works give, in order from the lowest.
-    values: Vec<f64>,
-    /// Why the other works do not give it, each reason with the number of works it is said of.
+    /// The values the characters give, in order from the lowest.
+    values: Vec<Value>,
+    /// Why the other characters do not give it, each reason with the number of characters
+    /// it is said of.
     not_given: Vec<(String, usize)>,
 }
 
 impl Line {
     fn standing(&self) -> Standing {
         Standing::of(self.kind, self.values.len())
+    }
+
+    fn numbers(&self) -> Vec<f64> {
+        self.values.iter().map(|value| value.value).collect()
+    }
+
+    fn works(&self) -> Works {
+        Works::of(self.values.iter().map(|value| value.work.as_str()))
+    }
+
+    /// The values the characters of one age band give, in order from the lowest.
+    fn of_band(&self, band: &str) -> Vec<f64> {
+        self.values
+            .iter()
+            .filter(|value| value.band == band)
+            .map(|value| value.value)
+            .collect()
+    }
+
+    /// Each band's lowest and highest value, where it has a range: the rule `age_bands`.
+    fn band_ranges(&self, bands: &[String]) -> Vec<Option<[f64; 2]>> {
+        bands
+            .iter()
+            .map(|band| {
+                let numbers = self.of_band(band);
+                match (
+                    Standing::of(self.kind, numbers.len()),
+                    numbers.first(),
+                    numbers.last(),
+                ) {
+                    (Standing::Given, Some(lowest), Some(highest)) => Some([*lowest, *highest]),
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+
+    /// Whether the ranges of every two bands overlap, where two bands or more have a range of
+    /// their own: the rule `age_bands`. None where fewer do.
+    fn bands_overlap(&self, bands: &[String]) -> Option<bool> {
+        let ranges: Vec<[f64; 2]> = self.band_ranges(bands).into_iter().flatten().collect();
+        (ranges.len() >= 2).then(|| {
+            ranges
+                .iter()
+                .all(|a| ranges.iter().all(|b| a[0] <= b[1] && b[0] <= a[1]))
+        })
     }
 }
 
@@ -146,156 +229,323 @@ impl Line {
 pub struct Table {
     /// The record it was built from, as [`Review::named`] says it.
     built_from: String,
-    works: Vec<Work>,
-    /// The number of accepted works for each view and each route to depth.
-    views: Vec<(String, usize)>,
+    characters: Vec<Character>,
+    /// The number of accepted characters for each view and each route to depth.
+    views: Vec<Count>,
     /// What was accepted and gives nothing, in words: a drawing that is not measured.
     left_out: Vec<String>,
     lines: Vec<Line>,
+    /// The age bands of the characters, with how many characters each has: adult first,
+    /// then teenage, then any other in order.
+    bands: Vec<(String, usize)>,
 }
 
-/// The fields of a reference a table lists a work by. Two are left in the readings: where a
-/// picture was taken from, since an address can name a character and a table is written to
-/// be published, and the reader's own account of the manner it is drawn in, which is one
-/// reading's.
-const WORK_FIELDS: [&str; 5] = ["work", "designer", "age_band", "sex", "species"];
+/// The age bands of some characters, with how many characters each has.
+fn bands_of(characters: &[Character]) -> Vec<(String, usize)> {
+    let mut bands: Vec<(String, usize)> = Vec::new();
+    for character in characters {
+        let band = character.said("age_band");
+        match bands.iter_mut().find(|(known, _)| known == band) {
+            Some((_, count)) => *count += 1,
+            None => bands.push((band.to_string(), 1)),
+        }
+    }
+    let rank = |band: &str| match band {
+        "adult" => 0,
+        "teenage" => 1,
+        _ => 2,
+    };
+    bands.sort_by(|(a, _), (b, _)| rank(a).cmp(&rank(b)).then_with(|| a.cmp(b)));
+    bands
+}
 
-/// The one measured drawing of a view among a character's, or none. Two are refused: which
-/// of them gives the character's proportions is not decided anywhere.
-fn of_view<'a>(accepted: &Accepted<'a>, view: View) -> Result<Option<(Vec<&'a str>, &'a Drawing)>> {
-    let mut found = None;
-    for (checked, outcome) in &accepted.drawings {
-        let Outcome::Measured { drawing, .. } = outcome else {
-            continue;
-        };
-        if drawing.view != view {
-            continue;
+/// The fields of a reference a table lists a character by. Two are left in the readings:
+/// where a picture was taken from, since an address can name a character and a table is
+/// written to be published, and the reader's own account of the manner it is drawn in, which
+/// is one reading's.
+const CHARACTER_FIELDS: [&str; 5] = ["work", "designer", "age_band", "sex", "species"];
+
+fn view_counts(characters: &[Character]) -> Vec<Count> {
+    let given: Vec<(&str, &[View])> = characters
+        .iter()
+        .map(|character| (character.work(), character.views.as_slice()))
+        .collect();
+    counts(&given)
+}
+
+/// A character as the records of Jon's checks give it, gathered by its label: a label that
+/// several records name is one character, such as one whose side view a later batch read
+/// again.
+struct Gathered<'a> {
+    label: &'a str,
+    reference: &'a BTreeMap<String, String>,
+    /// The proportions Jon marked as off for it, in any record.
+    proportions_off: Vec<String>,
+    /// Each drawing measured of it, with the paths of its readings, in the records' order.
+    measured: Vec<(String, &'a Drawing)>,
+}
+
+/// The characters the records give, each gathered by its label, and what was accepted and
+/// gives nothing: the rule `read_again`. A character rejected in one record and accepted in
+/// another, or one label whose readings say two different references, is refused.
+fn gathered<'a>(reviews: &'a [Review]) -> Result<(Vec<Gathered<'a>>, Vec<String>)> {
+    let mut gathered: Vec<Gathered<'a>> = Vec::new();
+    let mut left_out = Vec::new();
+    let mut not_measured = Vec::new();
+    for (at, review) in reviews.iter().enumerate() {
+        for accepted in review.accepted() {
+            let label = accepted.character.label.as_str();
+            if let Some(other) = reviews
+                .iter()
+                .enumerate()
+                .find(|(other, review)| *other != at && review.rejected().contains(&label))
+            {
+                return Err(Error::new(format!(
+                    "the character `{label}` is accepted in the record of Jon's check {} and rejected in the record {}: which verdict stands is not decided, so no table is built",
+                    review.named(),
+                    other.1.named()
+                )));
+            }
+            let mut measured = Vec::new();
+            for (checked, outcome) in &accepted.drawings {
+                match outcome {
+                    Outcome::NotMeasured(_) => not_measured.push((label, checked.counts_as(), at)),
+                    Outcome::Measured { drawing, .. } => {
+                        if drawing.readers.iter().any(|reader| reader == NOT_A_READER) {
+                            return Err(Error::new(format!(
+                                "the {} view of `{label}` is not a reading: it is the positions of a record of known positions, written as a reading, and nobody read them from a drawing. A table is measured on readings of references. What is known beforehand, as a comparison case's numbers are, never enters one",
+                                drawing.view.name()
+                            )));
+                        }
+                        let paths: Vec<&str> = checked
+                            .readings
+                            .iter()
+                            .map(|named| named.path.as_str())
+                            .collect();
+                        measured.push((paths.join(","), drawing.as_ref()));
+                    }
+                }
+            }
+            match gathered.iter_mut().find(|known| known.label == label) {
+                Some(known) => {
+                    if let Some(field) = CHARACTER_FIELDS
+                        .into_iter()
+                        .find(|field| known.reference.get(*field) != accepted.reference.get(*field))
+                    {
+                        let said = |reference: &BTreeMap<String, String>| {
+                            reference.get(field).cloned().unwrap_or_default()
+                        };
+                        return Err(Error::new(format!(
+                            "the label `{label}` is named in two records whose readings say two things of it: its {field} is \"{}\" in one and \"{}\" in the other. A label names one character in every record",
+                            said(known.reference),
+                            said(accepted.reference)
+                        )));
+                    }
+                    for name in &accepted.character.proportions_off {
+                        if !known.proportions_off.contains(name) {
+                            known.proportions_off.push(name.clone());
+                        }
+                    }
+                    known.measured.extend(measured);
+                }
+                None => gathered.push(Gathered {
+                    label,
+                    reference: accepted.reference,
+                    proportions_off: accepted.character.proportions_off.clone(),
+                    measured,
+                }),
+            }
         }
-        if found.is_some() {
-            return Err(Error::new(format!(
-                "the character `{}` has two measured {} views in the record of Jon's check: a table takes one drawing of a view from a work, and which of the two it is has not been decided",
-                accepted.character.label,
-                view.name()
-            )));
-        }
-        let paths: Vec<&str> = checked
-            .readings
+    }
+    // A drawing not measured in one record whose view another record measures: the readings
+    // of that record give the view.
+    for (label, view, at) in not_measured {
+        let elsewhere = gathered
             .iter()
-            .map(|named| named.path.as_str())
-            .collect();
-        found = Some((paths, drawing.as_ref()));
+            .find(|known| known.label == label)
+            .is_some_and(|known| {
+                known
+                    .measured
+                    .iter()
+                    .any(|(_, drawing)| drawing.view == view)
+            });
+        left_out.push(match elsewhere {
+            true => format!(
+                "the {} view of `{label}` is not measured by the record of Jon's check {}, and another record's readings of it are",
+                view.name(),
+                reviews[at].named()
+            ),
+            false => format!("the {} view of `{label}` is not measured", view.name()),
+        });
+    }
+    Ok((gathered, left_out))
+}
+
+/// The drawings of a view that give a character's proportions: none, the one measured, or
+/// one drawing read again under later revisions of the reading instructions, the earliest
+/// first: the rule `read_again`. Two drawings of a view that are two pictures, or one
+/// picture read twice under one revision, are refused: which gives the character's
+/// proportions is not decided.
+fn of_view<'a>(character: &Gathered<'a>, view: View) -> Result<Vec<(String, &'a Drawing)>> {
+    let mut found: Vec<(String, &'a Drawing)> = character
+        .measured
+        .iter()
+        .filter(|(_, drawing)| drawing.view == view)
+        .cloned()
+        .collect();
+    let label = character.label;
+    if let Some((_, first)) = found.first()
+        && found
+            .iter()
+            .any(|(_, other)| other.picture.sha256 != first.picture.sha256)
+    {
+        return Err(Error::new(format!(
+            "the character `{label}` has two measured {} views of two pictures: a table takes one drawing of a character in each view, and which of the two it is has not been decided",
+            view.name()
+        )));
+    }
+    found.sort_by(|(_, a), (_, b)| readings::revisions_in_order(&a.instructions, &b.instructions));
+    if found
+        .windows(2)
+        .any(|pair| pair[0].1.instructions == pair[1].1.instructions)
+    {
+        return Err(Error::new(format!(
+            "the {} view of the character `{label}` is measured twice under one revision of the reading instructions: a drawing read again gives what its earlier readings were not asked for, and which of two readings under one revision gives it has not been decided",
+            view.name()
+        )));
     }
     Ok(found)
 }
 
-/// Builds a table from a record of Jon's check that is complete: the rules `built_from`,
-/// `a_work`, `values` and `floor`.
-pub fn build(review: &Review) -> Result<Table> {
-    if !review.complete() {
-        return Err(Error::new(format!(
-            "the record of Jon's check is not complete, so no table is built from it: {}",
-            review.problems.join("; ")
-        )));
+/// Fills `taken` with what `later` gives and it does not: the rule `read_again`.
+fn fill(taken: &mut Proportions, later: &Proportions) {
+    for (name, value) in &later.taken.values {
+        if !taken.taken.values.contains_key(name) {
+            taken.taken.values.insert(name.clone(), *value);
+            taken.taken.not_given.retain(|(given, _)| given != name);
+        }
+    }
+}
+
+/// The records a table is built from, as the table names them: which look each is of, and
+/// the day he checked.
+fn records_named(reviews: &[Review]) -> String {
+    let named: Vec<String> = reviews.iter().map(Review::named).collect();
+    match named.as_slice() {
+        [one] => format!("the record of Jon's check {one}"),
+        [first @ .., last] => format!(
+            "the records of Jon's checks {}, and {last}",
+            first.join(", ")
+        ),
+        [] => "no record".to_string(),
+    }
+}
+
+/// Builds a table from records of Jon's check that are complete: the rules `built_from`,
+/// `a_character`, `values` and `floor`.
+pub fn build(reviews: &[Review]) -> Result<Table> {
+    if reviews.is_empty() {
+        return Err(Error::new(
+            "no record of Jon's check is named, and a table is built from the records of his checks and from nothing else",
+        ));
+    }
+    for review in reviews {
+        if !review.complete() {
+            return Err(Error::new(format!(
+                "the record of Jon's check is not complete, so no table is built from it: {}",
+                review.problems.join("; ")
+            )));
+        }
     }
     let list = proportions::list()?;
-    let mut works: Vec<Work> = Vec::new();
-    let mut left_out = Vec::new();
-    // For each proportion, the values the works give and why the others do not.
-    let mut values: BTreeMap<&str, Vec<f64>> = BTreeMap::new();
+    let mut characters: Vec<Character> = Vec::new();
+    let (gathered, mut left_out) = gathered(reviews)?;
+    // For each proportion, the values the characters give and why the others do not.
+    let mut values: BTreeMap<&str, Vec<Value>> = BTreeMap::new();
     let mut not_given: BTreeMap<&str, Vec<(String, usize)>> = BTreeMap::new();
 
-    for accepted in review.accepted() {
-        let label = &accepted.character.label;
+    for character in &gathered {
+        let label = character.label;
         let of_character = |error: Error| Error::new(format!("the character `{label}`: {error}"));
-        for (checked, outcome) in &accepted.drawings {
-            match outcome {
-                Outcome::NotMeasured(_) => left_out.push(format!(
-                    "the {} view of `{label}` is not measured",
-                    checked.counts_as().name()
-                )),
-                Outcome::Measured { drawing, .. } => {
-                    if drawing.readers.iter().any(|reader| reader == NOT_A_READER) {
-                        return Err(Error::new(format!(
-                            "the {} view of `{label}` is not a reading: it is the positions of a record of known positions, written as a reading, and nobody read them from a drawing. A table is measured on readings of references. What is known beforehand, as a comparison case's numbers are, never enters one",
-                            drawing.view.name()
-                        )));
-                    }
-                }
-            }
-        }
-        let Some((front_paths, front)) = of_view(&accepted, View::Front)? else {
+        let fronts = of_view(character, View::Front)?;
+        let Some((front_named, front)) = fronts.first() else {
             left_out.push(format!(
                 "`{label}` has no measured front view, and heights and widths are the front view's: nothing is taken from it"
             ));
             continue;
         };
-        let side = of_view(&accepted, View::Side)?;
-        let three_quarter = of_view(&accepted, View::ThreeQuarter)?;
-        let front_named = front_paths.join(",");
-        let front_given = Given {
-            named: &front_named,
-            drawing: front,
-        };
-        let mut views = vec![View::Front];
-        let (mut taken, depth_from) = match (side, three_quarter) {
-            (Some((paths, side)), three_quarter) => {
-                views.push(View::Side);
-                if three_quarter.is_some() {
+        let sides = of_view(character, View::Side)?;
+        let three_quarters = of_view(character, View::ThreeQuarter)?;
+        // Depth is taken from the side view where one is measured, and otherwise from the
+        // three-quarter view.
+        let (beside, depth_from) = match (sides.is_empty(), three_quarters.is_empty()) {
+            (false, three_quarter_too) => {
+                if !three_quarter_too {
                     left_out.push(format!(
                         "the three-quarter view of `{label}` is not used: its depth is taken from its side view"
                     ));
                 }
-                let named = paths.join(",");
-                let side = Given {
-                    named: &named,
-                    drawing: side,
-                };
-                (
-                    measuring::proportions(&front_given, None, Some(&side))
-                        .map_err(of_character)?,
-                    "its side view",
-                )
+                (Some((View::Side, &sides)), "its side view")
             }
-            (None, Some((paths, three_quarter))) => {
-                views.push(View::ThreeQuarter);
-                let named = paths.join(",");
-                let three_quarter = Given {
-                    named: &named,
-                    drawing: three_quarter,
-                };
-                (
-                    measuring::proportions(&front_given, Some(&three_quarter), None)
-                        .map_err(of_character)?,
-                    "its three-quarter view, at the turn the readings show",
-                )
-            }
-            (None, None) => (
-                measuring::proportions(&front_given, None, None).map_err(of_character)?,
-                "no view: it gives no depth",
+            (true, false) => (
+                Some((View::ThreeQuarter, &three_quarters)),
+                "its three-quarter view, at the turn the readings show",
             ),
+            (true, true) => (None, "no view: it gives no depth"),
         };
-        taken.leave_out(&accepted.character.proportions_off);
-
-        let reference = accepted.reference.clone();
-        let said = |field: &str| reference.get(field).cloned().unwrap_or_default();
-        if said("work").is_empty() {
-            return Err(Error::new(format!(
-                "the readings of `{label}` do not say which work the drawing is from: a table lists the works it was measured on"
-            )));
+        let take = |(front_named, front): &(String, &Drawing),
+                    beside_drawing: Option<&(String, &Drawing)>|
+         -> Result<Proportions> {
+            let front = Given {
+                named: front_named,
+                drawing: front,
+            };
+            let beside_given = beside_drawing.map(|(named, drawing)| Given { named, drawing });
+            match (beside.map(|(view, _)| view), beside_given.as_ref()) {
+                (Some(View::Side), Some(side)) => measuring::proportions(&front, None, Some(side)),
+                (Some(View::ThreeQuarter), Some(turned)) => {
+                    measuring::proportions(&front, Some(turned), None)
+                }
+                _ => measuring::proportions(&front, None, None),
+            }
+            .map_err(of_character)
+        };
+        let first_beside = beside.and_then(|(_, drawings)| drawings.first());
+        let mut taken = take(&(front_named.clone(), *front), first_beside)?;
+        // A drawing read again under a later revision gives what the earlier readings of it
+        // were not asked for.
+        for later in fronts.iter().skip(1) {
+            fill(&mut taken, &take(later, first_beside)?);
         }
-        if works
-            .iter()
-            .any(|work| work.reference.get("work") == reference.get("work"))
-        {
+        if let Some((_, drawings)) = beside {
+            for later in drawings.iter().skip(1) {
+                fill(
+                    &mut taken,
+                    &take(&(front_named.clone(), *front), Some(later))?,
+                );
+            }
+        }
+        taken.leave_out(&character.proportions_off);
+        let mut views = vec![View::Front];
+        if let Some((view, _)) = beside {
+            views.push(view);
+        }
+
+        let reference = character.reference.clone();
+        let work = reference.get("work").cloned().unwrap_or_default();
+        if work.is_empty() {
             return Err(Error::new(format!(
-                "`{label}` is a second accepted character of the work \"{}\": a batch takes one character from a work, and a table counts works",
-                said("work")
+                "the readings of `{label}` do not say which work the drawing is from: a table says how many works stand behind each count of characters, so the readings of a character name its work, or say that it is not known"
             )));
         }
         for proportion in &list.proportions {
             let name = proportion.name.as_str();
             if let Some(value) = taken.taken.values.get(name) {
-                values.entry(name).or_default().push(*value);
+                values.entry(name).or_default().push(Value {
+                    value: *value,
+                    work: work.clone(),
+                    band: reference.get("age_band").cloned().unwrap_or_default(),
+                });
             }
         }
         for (name, why) in &taken.taken.not_given {
@@ -308,7 +558,8 @@ pub fn build(review: &Review) -> Result<Table> {
                 None => reasons.push((why.clone(), 1)),
             }
         }
-        works.push(Work {
+        characters.push(Character {
+            label: label.to_string(),
             reference,
             views,
             depth_from,
@@ -320,7 +571,7 @@ pub fn build(review: &Review) -> Result<Table> {
         .iter()
         .map(|proportion| {
             let mut values = values.remove(proportion.name.as_str()).unwrap_or_default();
-            values.sort_by(f64::total_cmp);
+            values.sort_by(|a, b| a.value.total_cmp(&b.value));
             Line {
                 name: proportion.name.clone(),
                 kind: proportion.kind,
@@ -332,9 +583,10 @@ pub fn build(review: &Review) -> Result<Table> {
         })
         .collect();
     Ok(Table {
-        built_from: review.named(),
-        works,
-        views: review.counts(),
+        built_from: records_named(reviews),
+        bands: bands_of(&characters),
+        views: view_counts(&characters),
+        characters,
         left_out,
         lines,
     })
@@ -357,26 +609,28 @@ impl Table {
         let mut out = String::from(
             "\
 # A proportion table, by `maquette table-from-readings`: for each proportion of the list, the
-# number of works whose accepted readings give it and, where five or more do, the lowest, the
-# middle and the highest value among them. `maquette list-proportions` defines each proportion.
+# number of characters whose accepted readings give it, the works they come from and, where
+# five or more characters do, the lowest, the middle and the highest value among them.
+# `maquette list-proportions` defines each proportion.
 #
-# It is a proposal until Jon has accepted it. [rules] says what it is built from, when a
-# proportion has a valid range, and what the table does not say.
+# It is a proposal until Jon has accepted it. [rules] says what it is built from, what it
+# counts, when a proportion has a valid range, and what the table does not say.
 ",
         );
         out.push_str("\n[table]\n");
+        out.push_str(&format!("built_from = {}\n", quoted(&self.built_from)));
+        let works = Works::of(self.characters.iter().map(Character::work));
+        out.push_str(&format!("characters = {}\n", self.characters.len()));
+        out.push_str(&format!("works = {}\n", works.works));
         out.push_str(&format!(
-            "built_from = {}\n",
-            quoted(&format!("the record of Jon's check {}", self.built_from))
+            "characters_for_a_table = {CHARACTERS_FOR_A_TABLE}\n"
         ));
-        out.push_str(&format!("works = {}\n", self.works.len()));
-        out.push_str(&format!("works_for_a_table = {WORKS_FOR_A_TABLE}\n"));
         out.push_str(&format!(
-            "proportions = {}\ngiven = {}\ntoo_thin = {}\nno_work = {}\nconventions = {}\n",
+            "proportions = {}\ngiven = {}\ntoo_thin = {}\nno_character = {}\nconventions = {}\n",
             self.lines.len(),
             self.count(Standing::Given),
             self.count(Standing::TooThin),
-            self.count(Standing::NoWork),
+            self.count(Standing::NoCharacter),
             self.count(Standing::Convention)
         ));
         if !self.left_out.is_empty() {
@@ -385,6 +639,14 @@ impl Table {
                 quoted_lines(&self.left_out)
             ));
         }
+        let bands: Vec<String> = self
+            .bands
+            .iter()
+            .map(|(band, characters)| {
+                format!("{{ band = {}, characters = {characters} }}", quoted(band))
+            })
+            .collect();
+        out.push_str(&format!("bands = [{}]\n", bands.join(", ")));
 
         out.push_str("\n[rules]\n");
         for (name, text) in RULES {
@@ -392,13 +654,16 @@ impl Table {
         }
 
         out.push_str(
-            "\n# The accepted works behind each view, and behind depth, which takes two views of one\n# character. A view with fewer than five is too thin, and is not a table.\n",
+            "\n# The accepted characters whose view the table takes, for each view and for depth, which\n# takes two views of one character, with the works they come from. A view with fewer than\n# five characters is too thin, and is not a table.\n",
         );
-        for (what, count) in &self.views {
+        for count in &self.views {
             out.push_str(&format!(
-                "[[view]]\nview = {}\nworks = {count}\nstanding = {}\n",
-                quoted(what),
-                quoted(if *count < WORKS_FOR_A_TABLE {
+                "[[view]]\nview = {}\ncharacters = {}\nworks = {}\nmost_from_one_work = {}\nstanding = {}\n",
+                quoted(&count.what),
+                count.characters,
+                count.works.works,
+                count.works.most_from_one,
+                quoted(if count.characters < CHARACTERS_FOR_A_TABLE {
                     "too thin: not a table"
                 } else {
                     "a table"
@@ -407,18 +672,23 @@ impl Table {
         }
 
         out.push_str(
-            "\n# The works the table was measured on, as their readings name them. Where each picture\n# was taken from is in its readings, in the reference folder.\n",
+            "\n# The characters the table was measured on, as their readings name their work and its\n# designer. Where each picture was taken from is in its readings, in the reference folder.\n",
         );
-        for work in &self.works {
-            out.push_str("[[work]]\n");
-            for field in WORK_FIELDS {
-                if let Some(said) = work.reference.get(field) {
+        for character in &self.characters {
+            out.push_str("[[character]]\n");
+            out.push_str(&format!("label = {}\n", quoted(&character.label)));
+            for field in CHARACTER_FIELDS {
+                if let Some(said) = character.reference.get(field) {
                     out.push_str(&format!("{field} = {}\n", quoted(said)));
                 }
             }
-            let views: Vec<String> = work.views.iter().map(|view| quoted(view.name())).collect();
+            let views: Vec<String> = character
+                .views
+                .iter()
+                .map(|view| quoted(view.name()))
+                .collect();
             out.push_str(&format!("views = [{}]\n", views.join(", ")));
-            out.push_str(&format!("depth_from = {}\n", quoted(work.depth_from)));
+            out.push_str(&format!("depth_from = {}\n", quoted(character.depth_from)));
         }
 
         out.push_str(
@@ -432,51 +702,143 @@ impl Table {
                 "dimension = {}\n",
                 quoted(dimension(&line.name).trim_end_matches('s'))
             ));
-            out.push_str(&format!("works = {}\n", line.values.len()));
+            out.push_str(&format!("characters = {}\n", line.values.len()));
+            let works = line.works();
+            out.push_str(&format!(
+                "works = {}\nmost_from_one_work = {}\n",
+                works.works, works.most_from_one
+            ));
             out.push_str(&format!("standing = {}\n", quoted(line.standing().word())));
-            // Only a range is stated in numbers: the values of a few works are those works'
-            // own numbers.
+            // Only a range is stated in numbers: the values of a few characters are those
+            // characters' own numbers.
+            let numbers = line.numbers();
             if let (Standing::Given, Some(lowest), Some(highest)) =
-                (line.standing(), line.values.first(), line.values.last())
+                (line.standing(), numbers.first(), numbers.last())
             {
                 out.push_str(&format!("lowest = {}\n", six(*lowest)));
-                out.push_str(&format!("middle = {}\n", six(median(&line.values))));
+                out.push_str(&format!("middle = {}\n", six(median(&numbers))));
                 out.push_str(&format!("highest = {}\n", six(*highest)));
             }
             if !line.not_given.is_empty() {
                 let reasons: Vec<String> = line
                     .not_given
                     .iter()
-                    .map(|(why, count)| format!("{}: {why}", counted(*count, "work")))
+                    .map(|(why, count)| format!("{}: {why}", counted(*count, "character")))
                     .collect();
                 out.push_str(&format!("not_given_by = {}\n", quoted_lines(&reasons)));
             }
+            out.push_str(&self.bands_of_line(line));
         }
         out
     }
 
+    /// The names of the table's age bands, in its order.
+    fn band_names(&self) -> Vec<String> {
+        self.bands.iter().map(|(band, _)| band.clone()).collect()
+    }
+
+    /// Each age band's own count and range of a proportion, where the characters are of more
+    /// than one band, and whether the bands' ranges overlap: the rule `age_bands`.
+    fn bands_of_line(&self, line: &Line) -> String {
+        if self.bands.len() < 2 {
+            return String::new();
+        }
+        let names = self.band_names();
+        let mut out = String::new();
+        if let Some(overlap) = line.bands_overlap(&names) {
+            out.push_str(&format!("bands_overlap = {overlap}\n"));
+        }
+        let bands: Vec<String> = names
+            .iter()
+            .map(|band| {
+                let numbers = line.of_band(band);
+                let range = match (
+                    Standing::of(line.kind, numbers.len()),
+                    numbers.first(),
+                    numbers.last(),
+                ) {
+                    (Standing::Given, Some(lowest), Some(highest)) => format!(
+                        ", lowest = {}, middle = {}, highest = {}",
+                        six(*lowest),
+                        six(median(&numbers)),
+                        six(*highest)
+                    ),
+                    _ => String::new(),
+                };
+                format!(
+                    "{{ band = {}, characters = {}{range} }}",
+                    quoted(band),
+                    numbers.len()
+                )
+            })
+            .collect();
+        out.push_str(&format!("bands = [{}]\n", bands.join(", ")));
+        out
+    }
+
+    /// What the bands' ranges show, for a person: in how many proportions each band has a
+    /// range of its own, and in which of them the ranges do not overlap.
+    fn bands_said(&self) -> String {
+        if self.bands.len() < 2 {
+            return String::new();
+        }
+        let names = self.band_names();
+        let counts: Vec<String> = self
+            .bands
+            .iter()
+            .map(|(band, characters)| format!("{band}, {}", counted(*characters, "character")))
+            .collect();
+        let compared: Vec<(&str, bool)> = self
+            .lines
+            .iter()
+            .filter_map(|line| Some((line.name.as_str(), line.bands_overlap(&names)?)))
+            .collect();
+        let apart: Vec<&str> = compared
+            .iter()
+            .filter(|(_, overlap)| !overlap)
+            .map(|(name, _)| *name)
+            .collect();
+        let apart_said = match apart.as_slice() {
+            [] => "overlap in every one.".to_string(),
+            names => format!(
+                "overlap in {}, and do not overlap in {}: {}.",
+                compared.len() - names.len(),
+                names.len(),
+                names.join(", ")
+            ),
+        };
+        format!(
+            "Age bands, side by side: {}. Every band has a range of its own in {}; there the bands' ranges {apart_said}\n",
+            counts.join("; "),
+            counted(compared.len(), "proportion")
+        )
+    }
+
     /// What was built, in a few lines, for a person.
     pub fn summary(&self) -> String {
+        let works = Works::of(self.characters.iter().map(Character::work));
         let mut out = format!(
-            "A table of {} proportions from {}, by the record of Jon's check {}.\n",
+            "A table of {} proportions from {} of {}, by {}.\n",
             self.lines.len(),
-            counted(self.works.len(), "work"),
+            counted(self.characters.len(), "character"),
+            counted(works.works, "work"),
             self.built_from
         );
         out.push_str(&format!(
-            "  {} given: five works or more, with a valid range.\n  {} too thin: one to four works, and no range.\n  {} with no work.\n  {}, built by rule and never measured: no range.\n",
+            "  {} given: five characters or more, with a valid range.\n  {} too thin: one to four characters, and no range.\n  {} with no character.\n  {}, built by rule and never measured: no range.\n",
             self.count(Standing::Given),
             self.count(Standing::TooThin),
-            self.count(Standing::NoWork),
+            self.count(Standing::NoCharacter),
             counted(self.count(Standing::Convention), "convention")
         ));
-        out.push_str("Accepted works for each view:\n");
-        for (what, count) in &self.views {
-            out.push_str(&format!("  {what}: {}\n", crate::jons_check::works(*count)));
+        out.push_str("Accepted characters for each view:\n");
+        for count in &self.views {
+            out.push_str(&format!("  {}: {}\n", count.what, count.said()));
         }
         for left_out in &self.left_out {
             out.push_str(&format!("Left out: {left_out}.\n"));
         }
+        out.push_str(&self.bands_said());
         out.push_str(&format!(
             "{}\n{}\n",
             rule("separate_ranges"),
@@ -493,15 +855,15 @@ impl Table {
 pub const SET_RULES: &[(&str, &str)] = &[
     (
         "the_table",
-        "A proportion with a valid range takes the table's middle value: the median of the works that give it.",
+        "A proportion with a valid range takes the table's middle value: the median of the characters that give it.",
     ),
     (
         "a_thin_average",
-        "A proportion that two to four works give takes the average of those works, and is marked as thin: it has no range. It is the average and not the middle, because the middle of three works is one work's own number.",
+        "A proportion that two to four characters give takes the average of those characters, and is marked as thin: it has no range. It is the average and not the middle, because the middle of three characters is one character's own number.",
     ),
     (
         "borrowed",
-        "Every other proportion is borrowed from the set named as `borrowed_from`, as it stands there unless the rule `hangs_on` places it: one that a single work gives, since that is one reference's number; one that no work gives; and a convention, which is never measured.",
+        "Every other proportion is borrowed from the set named as `borrowed_from`, as it stands there unless the rule `hangs_on` places it: one that a single character gives, since that is one reference's number; one that no character gives; and a convention, which is never measured.",
     ),
     (
         "taken_whole",
@@ -522,11 +884,11 @@ pub const SET_RULES: &[(&str, &str)] = &[
 const TAKEN_WHOLE: &[(&str, &str)] = &[
     (
         "ear_",
-        "the ear is taken whole, and the works do not give all of it",
+        "the ear is taken whole, and the characters do not give all of it",
     ),
     (
         "neck_",
-        "the neck is taken whole, and the works do not give all of it",
+        "the neck is taken whole, and the characters do not give all of it",
     ),
 ];
 
@@ -549,16 +911,16 @@ const HANGS_ON: &[(&str, Option<&str>, &str)] = &[
 /// Where a proportion of a set made from a table comes from.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Source {
-    /// The table's middle value, with the works behind it.
+    /// The table's middle value, with the characters behind it.
     Table(usize),
-    /// The average of two to four works.
+    /// The average of two to four characters.
     ThinAverage(usize),
     /// The borrowed set's own number, and why.
     Borrowed(&'static str),
     /// Borrowed as an offset from the point it hangs on, by the rule `hangs_on`: how it
     /// hangs, and why it is borrowed at all.
     BorrowedOffset(&'static str, &'static str),
-    /// Left out of the set: a proportion a set may leave out, which the works do not give to
+    /// Left out of the set: a proportion a set may leave out, which the characters do not give to
     /// draw and the borrowed set leaves out too. Why it would have been borrowed.
     LeftOut(&'static str),
 }
@@ -576,8 +938,12 @@ impl Source {
     /// [`Source::kind_of`] reads back.
     fn words(&self) -> String {
         match self {
-            Source::Table(works) => format!("the table: the middle of {works} works"),
-            Source::ThinAverage(works) => format!("a thin average: of {works} works"),
+            Source::Table(characters) => {
+                format!("the table: the middle of {characters} characters")
+            }
+            Source::ThinAverage(characters) => {
+                format!("a thin average: of {characters} characters")
+            }
             Source::Borrowed(why) => format!("borrowed: {why}"),
             Source::BorrowedOffset(how, why) => format!("borrowed: {how}; {why}"),
             Source::LeftOut(why) => {
@@ -612,7 +978,7 @@ pub struct SetFromTable {
 
 impl Table {
     /// Makes a whole set of proportions from the table: the rules of [`SET_RULES`].
-    /// `borrowed` is the set whose numbers stand in where the works give none to draw, and
+    /// `borrowed` is the set whose numbers stand in where the characters give none to draw, and
     /// `borrowed_from` is what the file calls it.
     pub fn set_with(
         &self,
@@ -631,18 +997,19 @@ impl Table {
             .lines
             .iter()
             .map(|line| {
-                let works = line.values.len();
+                let numbers = line.numbers();
+                let characters = numbers.len();
                 let (value, source) = match line.standing() {
-                    Standing::Given => (Some(median(&line.values)), Source::Table(works)),
-                    Standing::TooThin if works >= 2 => (
-                        Some(line.values.iter().sum::<f64>() / works as f64),
-                        Source::ThinAverage(works),
+                    Standing::Given => (Some(median(&numbers)), Source::Table(characters)),
+                    Standing::TooThin if characters >= 2 => (
+                        Some(numbers.iter().sum::<f64>() / characters as f64),
+                        Source::ThinAverage(characters),
                     ),
                     Standing::TooThin => borrow(
                         &line.name,
-                        "one work gives it, and one reference's number is not drawn",
+                        "one character gives it, and one reference's number is not drawn",
                     ),
-                    Standing::NoWork => borrow(&line.name, "no work gives it"),
+                    Standing::NoCharacter => borrow(&line.name, "no character gives it"),
                     Standing::Convention => {
                         borrow(&line.name, "a convention, which is never measured")
                     }
@@ -736,7 +1103,7 @@ impl SetFromTable {
         let mut opening = String::from(
             "\
 # A whole set of proportions made from a proportion table, by `maquette set-from-table`: the
-# table's middle values where it has a range, the average of the works where two to four give
+# table's middle values where it has a range, the average of the characters where two to four give
 # a proportion, and another set's own numbers for the rest. [sources] says which each is.
 #
 # It is one head to be drawn and looked at. It is no proportion table and no part of one, and
@@ -747,10 +1114,7 @@ impl SetFromTable {
         opening.push_str("\n[source]\n");
         opening.push_str(&format!(
             "table = {}\n",
-            quoted(&format!(
-                "built from the record of Jon's check {}",
-                self.built_from
-            ))
+            quoted(&format!("built from {}", self.built_from))
         ));
         opening.push_str(&format!(
             "borrowed_from = {}\n",
@@ -779,7 +1143,7 @@ impl SetFromTable {
     pub fn summary(&self) -> String {
         let left_out = self.count(Source::is_left_out);
         format!(
-            "A set of {} proportions: {} from the table's middle values, {} thin averages of two to four works, {} borrowed from `{}`.{}\n{}\n",
+            "A set of {} proportions: {} from the table's middle values, {} thin averages of two to four characters, {} borrowed from `{}`.{}\n{}\n",
             self.sources.len() - left_out,
             self.count(|source| matches!(source, Source::Table(_))),
             self.count(|source| matches!(source, Source::ThinAverage(_))),
@@ -788,7 +1152,7 @@ impl SetFromTable {
             match left_out {
                 0 => String::new(),
                 left_out => format!(
-                    " {} left out: a set may leave them out, and neither the works nor `{}` give them.",
+                    " {} left out: a set may leave them out, and neither the characters nor `{}` give them.",
                     counted(left_out, "proportion"),
                     self.borrowed_from
                 ),
@@ -813,7 +1177,7 @@ pub const AGAINST_RULES: &[(&str, &str)] = &[
     ),
     (
         "no_range",
-        "A proportion has no range to be set against when the table has fewer than five works behind it, or none, or when it is a convention. What the few works give stands beside a thin one, and is no verdict.",
+        "A proportion has no range to be set against when the table has fewer than five characters behind it, or none, or when it is a convention. What the few characters give stands beside a thin one, and is no verdict.",
     ),
     (
         "a_finding",
@@ -829,7 +1193,7 @@ pub const AGAINST_RULES: &[(&str, &str)] = &[
 #[derive(Debug, Clone)]
 struct Stated {
     standing: Standing,
-    works: usize,
+    characters: usize,
     /// The lowest, the middle and the highest value, where any work gives it.
     values: Option<[f64; 3]>,
 }
@@ -843,7 +1207,7 @@ fn number_of(table: &toml::Table, key: &str) -> Option<f64> {
 }
 
 /// Reads a table's file: what it was built from, and each proportion of the list as it
-/// states it. A file that calls a proportion given without five works and a range behind it
+/// states it. A file that calls a proportion given without five characters and a range behind it
 /// is refused: a range is never taken from a thin proportion, whatever a file says.
 fn read_table(path: &str, text: &str) -> Result<(String, BTreeMap<String, Stated>)> {
     let not_a_table = |why: String| {
@@ -872,13 +1236,13 @@ fn read_table(path: &str, text: &str) -> Result<(String, BTreeMap<String, Stated
                 words(entry, "standing")
             )));
         };
-        let works = entry
-            .get("works")
+        let characters = entry
+            .get("characters")
             .and_then(toml::Value::as_integer)
-            .and_then(|works| usize::try_from(works).ok())
+            .and_then(|characters| usize::try_from(characters).ok())
             .ok_or_else(|| {
                 not_a_table(format!(
-                    "`{name}` does not say how many works stand behind it"
+                    "`{name}` does not say how many characters stand behind it"
                 ))
             })?;
         let values = match (
@@ -889,14 +1253,14 @@ fn read_table(path: &str, text: &str) -> Result<(String, BTreeMap<String, Stated
             (Some(lowest), Some(middle), Some(highest)) => Some([lowest, middle, highest]),
             _ => None,
         };
-        // What the file calls a proportion is what its kind and its count of works make it.
-        if standing != Standing::of(proportion.kind, works) {
+        // What the file calls a proportion is what its kind and its count of characters make it.
+        if standing != Standing::of(proportion.kind, characters) {
             return Err(not_a_table(format!(
                 "it calls `{name}` \"{}\" with {} behind it, and a {} proportion with that many is \"{}\"",
                 standing.word(),
-                counted(works, "work"),
+                counted(characters, "character"),
                 proportion.kind.word(),
-                Standing::of(proportion.kind, works).word()
+                Standing::of(proportion.kind, characters).word()
             )));
         }
         if standing == Standing::Given
@@ -910,7 +1274,7 @@ fn read_table(path: &str, text: &str) -> Result<(String, BTreeMap<String, Stated
             name,
             Stated {
                 standing,
-                works,
+                characters,
                 values,
             },
         );
@@ -922,8 +1286,8 @@ fn read_table(path: &str, text: &str) -> Result<(String, BTreeMap<String, Stated
             stated.insert(
                 proportion.name.clone(),
                 Stated {
-                    standing: Standing::NoWork,
-                    works: 0,
+                    standing: Standing::NoCharacter,
+                    characters: 0,
                     values: None,
                 },
             );
@@ -961,7 +1325,7 @@ struct Against {
     name: String,
     value: f64,
     verdict: Verdict,
-    works: usize,
+    characters: usize,
     values: Option<[f64; 3]>,
 }
 
@@ -1038,21 +1402,21 @@ pub fn set_against(
                     .to_string(),
             ),
             (Standing::TooThin, _) => Verdict::NoRange(format!(
-                "too thin: {} behind it, and a range needs {WORKS_FOR_A_TABLE}",
-                match stated.works {
-                    1 => "1 work stands".to_string(),
-                    works => format!("{works} works stand"),
+                "too thin: {} behind it, and a range needs {CHARACTERS_FOR_A_TABLE}",
+                match stated.characters {
+                    1 => "1 character stands".to_string(),
+                    characters => format!("{characters} characters stand"),
                 }
             )),
-            (Standing::NoWork | Standing::Given, _) => {
-                Verdict::NoRange("no work gives it".to_string())
+            (Standing::NoCharacter | Standing::Given, _) => {
+                Verdict::NoRange("no character gives it".to_string())
             }
         };
         lines.push(Against {
             name: name.clone(),
             value,
             verdict,
-            works: stated.works,
+            characters: stated.characters,
             values: stated.values,
         });
     }
@@ -1162,7 +1526,7 @@ impl SetAgainst {
                     out.push_str(&format!("why = {}\n", quoted(why)));
                 }
             }
-            out.push_str(&format!("works = {}\n", line.works));
+            out.push_str(&format!("characters = {}\n", line.characters));
             if let Some([lowest, middle, highest]) = line.values {
                 out.push_str(&format!(
                     "lowest = {}\nmiddle = {}\nhighest = {}\n",

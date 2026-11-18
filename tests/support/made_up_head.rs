@@ -84,6 +84,11 @@ pub struct MadeUp {
     pub points: BTreeMap<String, [f64; 2]>,
     /// The work the reading says the drawing is from: made up, as everything here.
     pub work: String,
+    /// The age band the reading gives the character: "adult" or "teenage".
+    pub age_band: String,
+    /// The landmarks the reading's revision of the instructions did not ask for, where it is
+    /// an earlier one: neither placed nor stated as not seen.
+    pub not_asked: Vec<String>,
 }
 
 impl MadeUp {
@@ -99,6 +104,8 @@ impl MadeUp {
             set_aside: false,
             points,
             work: "a made-up work".to_string(),
+            age_band: "adult".to_string(),
+            not_asked: Vec::new(),
         }
     }
 
@@ -114,6 +121,8 @@ impl MadeUp {
             set_aside: false,
             points,
             work: "a made-up work".to_string(),
+            age_band: "adult".to_string(),
+            not_asked: Vec::new(),
         }
     }
 
@@ -173,8 +182,8 @@ impl MadeUp {
             super::said_by(&template, "sha256")
         ));
         out.push_str(&format!(
-            "\n[reference]\nwork = \"{}\"\ndesigner = \"a made-up designer\"\nsource = \"a made-up source\"\nage_band = \"adult\"\nsex = \"woman\"\nspecies = \"human\"\nmanner = \"made up\"\n",
-            self.work
+            "\n[reference]\nwork = \"{}\"\ndesigner = \"a made-up designer\"\nsource = \"a made-up source\"\nage_band = \"{}\"\nsex = \"woman\"\nspecies = \"human\"\nmanner = \"made up\"\n",
+            self.work, self.age_band
         ));
         out.push_str(&format!(
             "\n[judgement]\nview = \"{}\"\nview_why = \"made up: the view\"\n",
@@ -191,7 +200,11 @@ impl MadeUp {
         ));
         // A drawing that is set aside has nothing placed.
         if !self.set_aside {
-            for (name, at) in &self.points {
+            for (name, at) in self
+                .points
+                .iter()
+                .filter(|(name, _)| !self.not_asked.contains(name))
+            {
                 out.push_str(&format!(
                     "{name} = {{ x = {:?}, y = {:?} }}\n",
                     at[0], at[1]
@@ -199,7 +212,7 @@ impl MadeUp {
             }
             out.push_str("\n[not_seen]\n");
             for asked in super::asked_by(&template) {
-                if !self.points.contains_key(&asked) {
+                if !self.points.contains_key(&asked) && !self.not_asked.contains(&asked) {
                     out.push_str(&format!("{asked} = \"made up: not in the made-up head\"\n"));
                 }
             }

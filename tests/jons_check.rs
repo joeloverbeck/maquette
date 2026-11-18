@@ -1,5 +1,5 @@
 //! The record of Jon's check of a reference check sheet, through the command line: starting
-//! it, saying what it does, the count of accepted works for each view, and the measuring
+//! it, saying what it does, the count of accepted characters for each view, and the measuring
 //! commands taking only what he accepted.
 //!
 //! Everything here is made up: the pictures are plain grey, the readings are of a made-up
@@ -21,13 +21,15 @@ fn side_points() -> std::collections::BTreeMap<String, [f64; 2]> {
         .collect()
 }
 
+/// Writes a made-up reading. Characters 4 and 5 are two characters of one made-up work, as
+/// several characters of one work's sheets can be.
 fn write(folder: &Path, mut made_up: MadeUp, work: usize, picture: &str, name: &str) {
-    made_up.work = format!("made-up work {work}");
+    made_up.work = format!("made-up work {}", if work == 5 { 4 } else { work });
     made_up.picture = format!("pictures/{picture}");
     made_up.write(folder, name);
 }
 
-/// A made-up reference folder with six characters of six made-up works, and the sheet
+/// A made-up reference folder with six characters of five made-up works, and the sheet
 /// description that names them.
 ///
 /// - work-1: a front and a side view, each read by two readers.
@@ -115,10 +117,10 @@ fn started(folder: &Path) -> String {
             "--sheet",
             "sheet.toml",
             "--out",
-            "checks/check.toml",
+            "check.toml",
         ],
     );
-    text(&folder.join("checks/check.toml"))
+    text(&folder.join("check.toml"))
 }
 
 /// Writes into a started record what the test has Jon say of one character: its verdict,
@@ -152,14 +154,11 @@ fn filled(folder: &Path, record: &str) {
         .replace("look = \"\"", "look = \"Look 4 of 8, made up\"")
         .replace("checked_on = \"\"", "checked_on = \"a made-up day\"")
         .replace("recorded_by = \"\"", "recorded_by = \"a test\"");
-    std::fs::write(folder.join("checks/check.toml"), record).expect("written");
+    std::fs::write(folder.join("check.toml"), record).expect("written");
 }
 
 fn what_is_said(folder: &Path) -> (String, bool) {
-    let output = maquette_in(
-        Some(folder),
-        &["jons-check", "--check", "checks/check.toml"],
-    );
+    let output = maquette_in(Some(folder), &["jons-check", "--check", "check.toml"]);
     (
         String::from_utf8_lossy(&output.stdout).into_owned()
             + &String::from_utf8_lossy(&output.stderr),
@@ -201,10 +200,29 @@ fn a_record_is_started_from_a_sheet_and_says_what_it_lacks_until_jon_has_spoken(
             "--sheet",
             "sheet.toml",
             "--out",
-            "checks/check.toml",
+            "check.toml",
         ],
     );
     assert!(failure(&again).contains("not written over"));
+
+    // A record names its readings, and they their pictures, from the folder it is in: one
+    // started in a folder below the one its sheet's readings are named from is refused.
+    let below = maquette_in(
+        Some(&folder),
+        &[
+            "start-jons-check",
+            "--sheet",
+            "sheet.toml",
+            "--out",
+            "checks/check.toml",
+        ],
+    );
+    let message = failure(&below);
+    assert!(
+        message.contains("from the folder it is in") && message.contains("checks/check.toml"),
+        "{message}"
+    );
+    assert!(!folder.join("checks/check.toml").exists());
 
     // As started it gives no verdict, so nothing is accepted and the record is not complete.
     let (said, complete) = what_is_said(&folder);
@@ -212,11 +230,11 @@ fn a_record_is_started_from_a_sheet_and_says_what_it_lacks_until_jon_has_spoken(
     assert!(said.contains("work-1: not yet checked"), "{said}");
     assert!(said.contains("`work-6` has no verdict"), "{said}");
     assert!(said.contains("`look` is empty"), "{said}");
-    assert!(said.contains("front: 0 works: too thin"), "{said}");
+    assert!(said.contains("front: 0 characters: too thin"), "{said}");
 }
 
 #[test]
-fn a_record_says_what_it_does_and_counts_the_accepted_works_for_each_view() {
+fn a_record_says_what_it_does_and_counts_the_accepted_characters_for_each_view() {
     let folder = folder("jons-check-said");
     let mut record = started(&folder);
     // Made up: work-1 accepted, with one point of its front view marked as off and the
@@ -277,20 +295,24 @@ fn a_record_says_what_it_does_and_counts_the_accepted_works_for_each_view() {
         said.contains("work-6: rejected: \"made up: no reason\". Nothing of it is measured."),
         "{said}"
     );
-    // Five accepted works have a measured front view, which is what a table needs. One has
-    // a measured side view, and so one gives depth: both too thin.
-    assert!(said.contains("Accepted works for each view, of 6 characters on the sheet:"));
-    assert!(said.contains("  front: 5 works\n"), "{said}");
+    // Five accepted characters have a measured front view, which is what a table needs, and
+    // two of them are of one work. One has a measured side view, and so one gives depth: both
+    // too thin.
+    assert!(said.contains("Accepted characters for each view, of 6 characters on the sheet:"));
     assert!(
-        said.contains("  three-quarter: 0 works: too thin, a view needs 5\n"),
+        said.contains("  front: 5 characters, of 4 works, 2 of them from one work\n"),
         "{said}"
     );
     assert!(
-        said.contains("  side: 1 work: too thin, a view needs 5\n"),
+        said.contains("  three-quarter: 0 characters: too thin, a view needs 5\n"),
         "{said}"
     );
     assert!(
-        said.contains("  depth, from a front and a side view of one character: 1 work: too thin"),
+        said.contains("  side: 1 character, of 1 work: too thin, a view needs 5\n"),
+        "{said}"
+    );
+    assert!(
+        said.contains("  depth, from a front and a side view of one character: 1 character, of 1 work: too thin"),
         "{said}"
     );
 
@@ -321,7 +343,7 @@ fn taken(folder: &Path, views: &[&str], out: &str) -> std::process::Output {
 /// `proportions-from-readings` with the record of Jon's check.
 fn taken_with_check(folder: &Path, views: &[&str], out: &str) -> std::process::Output {
     let mut arguments = views.to_vec();
-    arguments.extend(["--check", "checks/check.toml"]);
+    arguments.extend(["--check", "check.toml"]);
     taken(folder, &arguments, out)
 }
 
@@ -450,7 +472,7 @@ fn measuring_takes_only_what_jon_accepted_and_leaves_out_what_he_marked() {
     record = say(&record, "work-6", "rejected", &[]);
     filled(&folder, &record);
     let front = |work: usize| format!("first/work-{work}-front.toml,second/work-{work}-front.toml");
-    let check = ["--check", "checks/check.toml"];
+    let check = ["--check", "check.toml"];
     let with_check = |views: &[&str], out: &str| {
         let mut arguments = views.to_vec();
         arguments.extend(check);

@@ -35,6 +35,20 @@ struct Work {
     neck: bool,
     /// Whether both readers set its side view aside.
     side_set_aside: bool,
+    /// The work its readings name, where it is not a made-up work of its own: two made-up
+    /// characters can name one work.
+    work: Option<String>,
+    /// The age band its readings give: "adult" or "teenage".
+    age_band: &'static str,
+    /// Whether this batch has a front view of it: a character read again in a later batch
+    /// may have only the view read again.
+    front: bool,
+    /// More points its side view's readers place, in the side view's pixels, where it has
+    /// one: the eye line shows at y = 300, depth zero at x = 700, and a unit is 100 pixels.
+    side_points: Vec<(&'static str, [f64; 2])>,
+    /// The revision of the reading instructions its side view was read under, where it is an
+    /// earlier one, which asked for none of the points of the profile asked for since.
+    side_read_under: Option<&'static str>,
 }
 
 impl Work {
@@ -47,8 +61,32 @@ impl Work {
             neck: false,
             front_set_aside: false,
             side_set_aside: false,
+            work: None,
+            age_band: "adult",
+            front: true,
+            side_points: Vec::new(),
+            side_read_under: None,
         }
     }
+}
+
+/// The points of the profile a side view is asked for since revision 2026-11-17.4 of the
+/// reading instructions, and was not before.
+const PROFILE: [&str; 5] = [
+    "centre-line-at-eye-level",
+    "centre-line-at-brow-level",
+    "jaw-right-angle",
+    "neck-front-top",
+    "neck-back-top",
+];
+
+/// Made-up characters labelled `work-<n>`, numbered from `first`.
+fn labelled(works: &[Work], first: usize) -> Vec<(String, Work)> {
+    works
+        .iter()
+        .enumerate()
+        .map(|(at, work)| (format!("work-{}", first + at), work.clone()))
+        .collect()
 }
 
 /// The six made-up works most tests build a table from. Their numbers are chosen so that
@@ -90,14 +128,29 @@ fn folder(name: &str, works: &[Work]) -> PathBuf {
 /// its own files into the folder and returns the lines of its characters.
 fn folder_with(name: &str, works: &[Work], more: &dyn Fn(&Path) -> String) -> PathBuf {
     let folder = references(name);
+    write_batch(&folder, &labelled(works, 1), more);
+    folder
+}
+
+/// Writes a made-up batch into `folder`, which may be the reference folder or a folder in it:
+/// a character for each labelled made-up work, each drawing read by two readers who place the
+/// same points, the sheet description that names them, and the record of the check started
+/// from it at the top of the batch's folder, with nothing said in it yet. The batch's own
+/// folder is the reference folder each of its commands is run in.
+fn write_batch(folder: &Path, characters: &[(String, Work)], more: &dyn Fn(&Path) -> String) {
+    std::fs::create_dir_all(folder).expect("the batch's folder can be made");
     let mut description = String::from(
         "note = \"Made up for a test: the grey pictures show no drawing.\"\nlook = \"No look is asked: a made-up sheet\"\n",
     );
-    for (at, work) in works.iter().enumerate() {
-        let number = at + 1;
-        description.push_str(&format!("\n[[character]]\nlabel = \"work-{number}\"\n"));
+    for (label, work) in characters {
+        let number = label.trim_start_matches("work-");
+        let work_named = work
+            .work
+            .clone()
+            .unwrap_or_else(|| format!("made-up work {number}"));
+        description.push_str(&format!("\n[[character]]\nlabel = \"{label}\"\n"));
         let named = |view: &str| -> [String; 2] {
-            ["first", "second"].map(|reader| format!("{reader}/work-{number}-{view}.toml"))
+            ["first", "second"].map(|reader| format!("{reader}/{label}-{view}.toml"))
         };
         let mut drawing = |view: &str, readings: &[String; 2]| {
             description.push_str(&format!(
@@ -134,16 +187,22 @@ fn folder_with(name: &str, works: &[Work], more: &dyn Fn(&Path) -> String) -> Pa
         }
         let front = named("front");
         for (reader, path) in ["first", "second"].into_iter().zip(&front) {
+            if !work.front {
+                break;
+            }
             let mut made_up = MadeUp::front(reader, points.clone());
             if work.front_set_aside && reader == "first" {
                 made_up.level = false;
                 made_up.set_aside = true;
             }
-            made_up.work = format!("made-up work {number}");
-            made_up.picture = format!("pictures/work-{number}-front.png");
-            made_up.write(&folder, path);
+            made_up.work = work_named.clone();
+            made_up.age_band = work.age_band.to_string();
+            made_up.picture = format!("pictures/{label}-front.png");
+            made_up.write(folder, path);
         }
-        drawing("front", &front);
+        if work.front {
+            drawing("front", &front);
+        }
 
         if let Some(chin_depth) = work.chin_depth {
             // The made-up head's side view at half the front view's size, the near side only.
@@ -160,6 +219,9 @@ fn folder_with(name: &str, works: &[Work], more: &dyn Fn(&Path) -> String) -> Pa
                 points.insert("neck-front-base".to_string(), [705.0, 475.0]);
                 points.insert("neck-back-base".to_string(), [615.0, 445.0]);
             }
+            for (name, at) in &work.side_points {
+                points.insert(name.to_string(), *at);
+            }
             let side = named("side");
             for (reader, path) in ["first", "second"].into_iter().zip(&side) {
                 let mut made_up = MadeUp::turned(reader, points.clone());
@@ -169,32 +231,36 @@ fn folder_with(name: &str, works: &[Work], more: &dyn Fn(&Path) -> String) -> Pa
                     made_up.level = false;
                     made_up.set_aside = true;
                 }
-                made_up.work = format!("made-up work {number}");
-                made_up.picture = format!("pictures/work-{number}-side.png");
-                made_up.write(&folder, path);
+                made_up.work = work_named.clone();
+                made_up.age_band = work.age_band.to_string();
+                made_up.picture = format!("pictures/{label}-side.png");
+                if let Some(revision) = work.side_read_under {
+                    made_up.instructions = Some(revision.to_string());
+                    made_up.not_asked = PROFILE.iter().map(|name| name.to_string()).collect();
+                }
+                made_up.write(folder, path);
             }
             drawing("side", &side);
         }
     }
-    description.push_str(&more(&folder));
+    description.push_str(&more(folder));
     std::fs::write(folder.join("sheet.toml"), description).expect("written");
     measure_ok(
-        &folder,
+        folder,
         &[
             "start-jons-check",
             "--sheet",
             "sheet.toml",
             "--out",
-            "checks/check.toml",
+            "check.toml",
         ],
     );
-    folder
 }
 
 /// Writes into the started record what the test has Jon say: every character accepted but
 /// the ones `rejected` names, and the record's own three lines filled in.
 fn checked(folder: &Path, rejected: &[&str]) {
-    let path = folder.join("checks/check.toml");
+    let path = folder.join("check.toml");
     let mut record = text(&path)
         .replace("verdict = \"\"", "verdict = \"accepted\"")
         .replace("look = \"\"", "look = \"Look 4 of 8, made up\"")
@@ -209,12 +275,19 @@ fn checked(folder: &Path, rejected: &[&str]) {
 }
 
 fn build(folder: &Path) -> std::process::Output {
+    build_from(folder, &["check.toml"])
+}
+
+/// Runs `table-from-readings` in `folder` on the records named, each named from it, with a
+/// comma between them.
+fn build_from(folder: &Path, records: &[&str]) -> std::process::Output {
+    let records = records.join(",");
     maquette_in(
         Some(folder),
         &[
             "table-from-readings",
             "--check",
-            "checks/check.toml",
+            &records,
             "--out",
             "results/table.toml",
         ],
@@ -223,7 +296,12 @@ fn build(folder: &Path) -> std::process::Output {
 
 /// The table the command writes into the made-up reference folder, and what it printed.
 fn built(folder: &Path) -> (toml::Table, String) {
-    let output = build(folder);
+    built_from(folder, &["check.toml"])
+}
+
+/// The table built from the records named, and what it printed.
+fn built_from(folder: &Path, records: &[&str]) -> (toml::Table, String) {
+    let output = build_from(folder, records);
     assert!(
         output.status.success(),
         "the table was not built:\n{}",
@@ -251,7 +329,11 @@ fn entry<'a>(table: &'a toml::Table, name: &str) -> &'a toml::Table {
 
 fn assert_values(table: &toml::Table, name: &str, expected: [f64; 3], works: i64) {
     let entry = entry(table, name);
-    assert_eq!(entry["works"].as_integer(), Some(works), "{name}: works");
+    assert_eq!(
+        entry["characters"].as_integer(),
+        Some(works),
+        "{name}: characters"
+    );
     for (key, expected) in ["lowest", "middle", "highest"].into_iter().zip(expected) {
         assert_close(
             number(&entry[key]),
@@ -265,7 +347,11 @@ fn assert_values(table: &toml::Table, name: &str, expected: [f64; 3], works: i64
 /// A proportion the table lists as too thin: with its count of works, and with no number.
 fn assert_thin(table: &toml::Table, name: &str, works: i64) {
     let entry = entry(table, name);
-    assert_eq!(entry["works"].as_integer(), Some(works), "{name}: works");
+    assert_eq!(
+        entry["characters"].as_integer(),
+        Some(works),
+        "{name}: characters"
+    );
     assert_eq!(entry["standing"].as_str(), Some("too thin"), "{name}");
     for key in ["lowest", "middle", "highest"] {
         assert!(!entry.contains_key(key), "{name} states a {key} value");
@@ -313,6 +399,283 @@ fn a_table_gives_each_proportion_its_lowest_middle_and_highest_value_and_its_cou
     assert_eq!(entries, listed);
 }
 
+#[test]
+fn a_table_counts_characters_and_says_how_many_works_stand_behind_each_proportion() {
+    // Made up: works 5 and 6 are two characters of one work, as several characters of one
+    // work's sheets can be.
+    let mut works = six_works();
+    for at in [4, 5] {
+        works[at].work = Some("one made-up work of two characters".to_string());
+    }
+    let folder = folder("table-characters", &works);
+    checked(&folder, &[]);
+    let (table, printed) = built(&folder);
+
+    // Every accepted character counts once: the six hair tops are all there.
+    assert_eq!(table["table"]["characters"].as_integer(), Some(6));
+    assert_eq!(table["table"]["works"].as_integer(), Some(5));
+    assert_values(&table, "hair_top_rise", [1.2, 1.45, 1.9], 6);
+    let hair = entry(&table, "hair_top_rise");
+    assert_eq!(hair["works"].as_integer(), Some(5));
+    assert_eq!(hair["most_from_one_work"].as_integer(), Some(2));
+    // Work 6's hair covers its ears: five characters of five works give the ears' tops.
+    let ears = entry(&table, "ear_top_rise");
+    assert_eq!(ears["characters"].as_integer(), Some(5));
+    assert_eq!(ears["works"].as_integer(), Some(5));
+    assert_eq!(ears["most_from_one_work"].as_integer(), Some(1));
+    // The view is counted in characters, with the works beside them.
+    assert_eq!(view(&table, "front")["characters"].as_integer(), Some(6));
+    assert_eq!(view(&table, "front")["works"].as_integer(), Some(5));
+
+    // The table lists each character with the work and the designer its readings name.
+    let listed = table["character"]
+        .as_array()
+        .expect("the table lists its characters");
+    assert_eq!(listed.len(), 6);
+    let of_shared: Vec<&str> = listed
+        .iter()
+        .filter(|character| {
+            character["work"].as_str() == Some("one made-up work of two characters")
+        })
+        .map(|character| character["label"].as_str().expect("a label"))
+        .collect();
+    assert_eq!(of_shared, ["work-5", "work-6"]);
+    assert!(
+        printed.contains("A table of 86 proportions from 6 characters of 5 works"),
+        "{printed}"
+    );
+}
+
+/// Has Jon say what [`checked`] has him say, at another look.
+fn checked_at(folder: &Path, look: &str, rejected: &[&str]) {
+    checked(folder, rejected);
+    let path = folder.join("check.toml");
+    let record = text(&path).replace(
+        "look = \"Look 4 of 8, made up\"",
+        &format!("look = \"{look}\""),
+    );
+    std::fs::write(path, record).expect("written");
+}
+
+#[test]
+fn a_table_is_built_from_the_records_of_several_checks_each_read_in_its_own_folder() {
+    // Made up: two batches, each in a folder of its own with its pictures, its readings, its
+    // sheet and the record of its check, all named from that folder, as a batch is laid out.
+    let folder = references("table-several-records");
+    let works = six_works();
+    write_batch(&folder.join("batch-a"), &labelled(&works[..3], 1), &|_| {
+        String::new()
+    });
+    write_batch(&folder.join("batch-b"), &labelled(&works[3..], 4), &|_| {
+        String::new()
+    });
+    checked_at(&folder.join("batch-a"), "Look 4 of 8, made up", &[]);
+    checked_at(&folder.join("batch-b"), "Look 7 of 8, made up", &[]);
+
+    // Each record says what it does when it is named from the folder that holds both.
+    let said = measure_ok(&folder, &["jons-check", "--check", "batch-b/check.toml"]);
+    assert!(said.contains("The record is complete."), "{said}");
+
+    // One table from both: the six characters, three of each batch.
+    let (table, printed) = built_from(&folder, &["batch-a/check.toml", "batch-b/check.toml"]);
+    assert_eq!(table["table"]["characters"].as_integer(), Some(6));
+    assert_values(&table, "hair_top_rise", [1.2, 1.45, 1.9], 6);
+    assert_thin(&table, "chin_depth", 2);
+    assert_eq!(
+        table["table"]["built_from"].as_str(),
+        Some(
+            "the records of Jon's checks at Look 4 of 8, made up, checked on a made-up day, and at Look 7 of 8, made up, checked on a made-up day"
+        )
+    );
+    assert!(
+        printed.contains("from 6 characters of 6 works"),
+        "{printed}"
+    );
+
+    // A table needs a record: none named is refused.
+    let message = failure(&maquette_in(
+        Some(&folder),
+        &["table-from-readings", "--out", "results/none.toml"],
+    ));
+    assert!(message.contains("--check"), "{message}");
+}
+
+/// Two made-up batches for the tests of a character named in two records: the six works in
+/// `batch-a`, their side views read under revision 2026-11-17.3, and in `batch-b` the side
+/// views of works 1 and 2 read again under the program's own revision, with no front view,
+/// the bridge of the nose at depth 0.35, and their chins placed further forward, at 0.5 and
+/// 0.6, than the first readings put them.
+fn read_again(name: &str) -> PathBuf {
+    read_again_with(name, Some("2026-11-17.3"), None)
+}
+
+/// The batches of [`read_again`], with the first side views read under `earlier`, or under
+/// the program's own revision where it is none, and the readings made again naming `work`
+/// as their work, where it is given.
+fn read_again_with(name: &str, earlier: Option<&'static str>, work: Option<&str>) -> PathBuf {
+    let folder = references(name);
+    let mut works = six_works();
+    for first in &mut works[..2] {
+        first.side_read_under = earlier;
+    }
+    write_batch(&folder.join("batch-a"), &labelled(&works, 1), &|_| {
+        String::new()
+    });
+    let again: Vec<Work> = [0.5, 0.6]
+        .into_iter()
+        .zip(&works)
+        .map(|(chin, first)| Work {
+            front: false,
+            chin_depth: Some(chin),
+            side_points: vec![("centre-line-at-eye-level", [735.0, 300.0])],
+            side_read_under: None,
+            work: work.map(str::to_string).or(first.work.clone()),
+            ..first.clone()
+        })
+        .collect();
+    write_batch(&folder.join("batch-b"), &labelled(&again, 1), &|_| {
+        String::new()
+    });
+    checked_at(&folder.join("batch-a"), "Look 4 of 8, made up", &[]);
+    checked_at(&folder.join("batch-b"), "Look 7 of 8, made up", &[]);
+    folder
+}
+
+#[test]
+fn a_drawing_read_again_under_a_later_revision_adds_what_its_first_readings_were_not_asked_for() {
+    let folder = read_again("table-read-again");
+    let (table, _) = built_from(&folder, &["batch-a/check.toml", "batch-b/check.toml"]);
+
+    // A label in both records is one character: six, as in the first batch alone.
+    assert_eq!(table["table"]["characters"].as_integer(), Some(6));
+    assert_eq!(view(&table, "side")["characters"].as_integer(), Some(2));
+    // The chin is given by the first readings, which were asked for it, and the bridge by
+    // the readings made again, which were the first asked for it.
+    assert_thin(&table, "chin_depth", 2);
+    assert_thin(&table, "bridge_depth", 2);
+    let made = maquette_in(
+        Some(&folder),
+        &[
+            "set-from-table",
+            "--check",
+            "batch-a/check.toml,batch-b/check.toml",
+            "--borrow",
+            path_text(&support::repository().join("data/saffi/proportions.toml")),
+            "--out",
+            "results/set.toml",
+        ],
+    );
+    assert!(made.status.success(), "{}", failure(&made));
+    let set: toml::Table = text(&folder.join("results/set.toml"))
+        .parse()
+        .expect("the set is TOML");
+    let value = |name: &str| number(&set["proportions"][name]);
+    assert_close(value("chin_depth"), 0.25, 1e-6, "the first readings' chins");
+    assert_close(value("bridge_depth"), 0.35, 1e-6, "the bridge read again");
+}
+
+#[test]
+fn what_two_records_say_of_one_character_must_agree() {
+    let both = ["batch-a/check.toml", "batch-b/check.toml"];
+
+    // A character rejected in one record and accepted in the other: which verdict stands
+    // is not decided, and no table is built.
+    let folder = read_again("table-two-verdicts");
+    checked_again(&folder.join("batch-b"), "work-1");
+    let message = failure(&build_from(&folder, &both));
+    assert!(
+        message.contains("`work-1`") && message.contains("rejected"),
+        "{message}"
+    );
+
+    // One label whose readings name two works is not one character.
+    let folder = read_again_with(
+        "table-two-works",
+        Some("2026-11-17.3"),
+        Some("another work"),
+    );
+    let message = failure(&build_from(&folder, &both));
+    assert!(
+        message.contains("`work-1`") && message.contains("another work"),
+        "{message}"
+    );
+
+    // One drawing read twice under one revision: which readings give it is not decided.
+    let folder = read_again_with("table-one-revision", None, None);
+    let message = failure(&build_from(&folder, &both));
+    assert!(
+        message.contains("`work-1`") && message.contains("one revision"),
+        "{message}"
+    );
+}
+
+#[test]
+fn the_ranges_of_each_age_band_stand_side_by_side_and_say_whether_they_overlap() {
+    // Made up: five adult characters whose hair tops stand 1.0 to 1.4 above the eye line,
+    // and five teenage ones at 1.5 to 1.9; the hair of the last teenage one covers its ears.
+    let works: Vec<Work> = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
+        .into_iter()
+        .enumerate()
+        .map(|(at, rise)| Work {
+            age_band: if at < 5 { "adult" } else { "teenage" },
+            ear_top_rise: (at < 9).then_some(1.25),
+            ..Work::with_hair_top(rise)
+        })
+        .collect();
+    let folder = folder("table-age-bands", &works);
+    checked(&folder, &[]);
+    let (table, printed) = built(&folder);
+
+    // The table's range is of every character, whatever its band.
+    assert_values(&table, "hair_top_rise", [1.0, 1.45, 1.9], 10);
+    // Beside it, each band's own range: here they do not overlap.
+    let band = |name: &str, band: &str| -> toml::Table {
+        entry(&table, name)["bands"]
+            .as_array()
+            .expect("the bands")
+            .iter()
+            .filter_map(toml::Value::as_table)
+            .find(|entry| entry["band"].as_str() == Some(band))
+            .unwrap_or_else(|| panic!("{name} has no {band} band"))
+            .clone()
+    };
+    for (which, expected) in [("adult", [1.0, 1.2, 1.4]), ("teenage", [1.5, 1.7, 1.9])] {
+        let of = band("hair_top_rise", which);
+        assert_eq!(of["characters"].as_integer(), Some(5), "{which}");
+        for (key, expected) in ["lowest", "middle", "highest"].into_iter().zip(expected) {
+            assert_close(number(&of[key]), expected, 1e-6, &format!("{which}: {key}"));
+        }
+    }
+    assert_eq!(
+        entry(&table, "hair_top_rise")["bands_overlap"].as_bool(),
+        Some(false)
+    );
+    // Every character draws the mouth alike, so there the two ranges overlap.
+    assert_eq!(
+        entry(&table, "mouth_centre_drop")["bands_overlap"].as_bool(),
+        Some(true)
+    );
+    // A band with fewer than five characters behind a proportion is too thin for a range of
+    // its own, and states no number.
+    let teenage_ears = band("ear_top_rise", "teenage");
+    assert_eq!(teenage_ears["characters"].as_integer(), Some(4));
+    assert!(!teenage_ears.contains_key("lowest"));
+    assert!(!entry(&table, "ear_top_rise").contains_key("bands_overlap"));
+    assert_eq!(
+        table["table"]["bands"]
+            .as_array()
+            .expect("the bands")
+            .iter()
+            .map(|band| band["band"].as_str().expect("a band"))
+            .collect::<Vec<_>>(),
+        ["adult", "teenage"]
+    );
+    assert!(
+        printed.contains("and do not overlap in 1: hair_top_rise."),
+        "{printed}"
+    );
+}
+
 /// One view's entry in a table, by what it is a count of.
 fn view<'a>(table: &'a toml::Table, what: &str) -> &'a toml::Table {
     table["view"]
@@ -332,7 +695,7 @@ fn a_view_or_a_proportion_with_fewer_than_five_works_is_too_thin_and_has_no_rang
 
     // The front view has six works, and is a table.
     let front = view(&table, "front");
-    assert_eq!(front["works"].as_integer(), Some(6));
+    assert_eq!(front["characters"].as_integer(), Some(6));
     assert_eq!(front["standing"].as_str(), Some("a table"));
     // Two made-up works have a side view, so depth has two works: too thin, and not a table.
     for what in [
@@ -340,7 +703,7 @@ fn a_view_or_a_proportion_with_fewer_than_five_works_is_too_thin_and_has_no_rang
         "depth, from a front and a side view of one character",
     ] {
         let thin = view(&table, what);
-        assert_eq!(thin["works"].as_integer(), Some(2), "{what}");
+        assert_eq!(thin["characters"].as_integer(), Some(2), "{what}");
         assert_eq!(
             thin["standing"].as_str(),
             Some("too thin: not a table"),
@@ -349,7 +712,7 @@ fn a_view_or_a_proportion_with_fewer_than_five_works_is_too_thin_and_has_no_rang
     }
     assert!(
         printed.contains(
-            "  depth, from a front and a side view of one character: 2 works: too thin, a view needs 5\n"
+            "  depth, from a front and a side view of one character: 2 characters, of 2 works: too thin, a view needs 5\n"
         ),
         "{printed}"
     );
@@ -367,7 +730,7 @@ fn a_view_or_a_proportion_with_fewer_than_five_works_is_too_thin_and_has_no_rang
         why[0]
             .as_str()
             .expect("text")
-            .starts_with("4 works: a front view shows no depth"),
+            .starts_with("4 characters: a front view shows no depth"),
         "{why:?}"
     );
 
@@ -384,8 +747,8 @@ fn a_view_or_a_proportion_with_fewer_than_five_works_is_too_thin_and_has_no_rang
     assert_eq!(table["table"]["given"].as_integer(), Some(numbered));
     // The made-up head has no jaw point: no work gives it, and the entry has no value.
     let jaw = entry(&table, "jaw_drop");
-    assert_eq!(jaw["works"].as_integer(), Some(0));
-    assert_eq!(jaw["standing"].as_str(), Some("no work"));
+    assert_eq!(jaw["characters"].as_integer(), Some(0));
+    assert_eq!(jaw["standing"].as_str(), Some("no character"));
     assert!(!jaw.contains_key("lowest") && !jaw.contains_key("middle"));
     // A convention is never a measurement, and has no range whatever the works give.
     assert_eq!(
@@ -406,10 +769,13 @@ fn a_view_or_a_proportion_with_fewer_than_five_works_is_too_thin_and_has_no_rang
     assert_eq!(stated["proportions"].as_integer(), Some(86));
     assert_eq!(stated["given"].as_integer(), Some(counted("given")));
     assert_eq!(stated["too_thin"].as_integer(), Some(counted("too thin")));
-    assert_eq!(stated["no_work"].as_integer(), Some(counted("no work")));
+    assert_eq!(
+        stated["no_character"].as_integer(),
+        Some(counted("no character"))
+    );
     assert_eq!(stated["conventions"].as_integer(), Some(3));
     assert_eq!(counted("convention"), 3);
-    assert_eq!(stated["works_for_a_table"].as_integer(), Some(5));
+    assert_eq!(stated["characters_for_a_table"].as_integer(), Some(5));
 }
 
 #[test]
@@ -424,7 +790,7 @@ fn a_drawing_that_is_set_aside_or_not_level_and_a_rejected_character_are_left_ou
     let (table, printed) = built(&folder);
 
     // Five works are left with a measured front view: 1.2, 1.3, 1.4, 1.5 and 1.6.
-    assert_eq!(view(&table, "front")["works"].as_integer(), Some(5));
+    assert_eq!(view(&table, "front")["characters"].as_integer(), Some(5));
     assert_values(&table, "hair_top_rise", [1.2, 1.4, 1.6], 5);
     assert_eq!(
         entry(&table, "hair_top_rise")["standing"].as_str(),
@@ -434,12 +800,12 @@ fn a_drawing_that_is_set_aside_or_not_level_and_a_rejected_character_are_left_ou
     assert_thin(&table, "ear_top_rise", 4);
     // Only work 1's side view is measured, so depth is one work's.
     assert_thin(&table, "chin_depth", 1);
-    // The table lists the five works it was measured on, and says what it left out.
-    let listed: Vec<&str> = table["work"]
+    // The table lists the five characters it was measured on, and says what it left out.
+    let listed: Vec<&str> = table["character"]
         .as_array()
-        .expect("the table lists its works")
+        .expect("the table lists its characters")
         .iter()
-        .map(|work| work["work"].as_str().expect("a work"))
+        .map(|character| character["work"].as_str().expect("a work"))
         .collect();
     assert_eq!(
         listed,
@@ -472,19 +838,19 @@ fn a_drawing_that_is_set_aside_or_not_level_and_a_rejected_character_are_left_ou
     checked_again(&folder, "work-6");
     let (table, printed) = built(&folder);
     let front = view(&table, "front");
-    assert_eq!(front["works"].as_integer(), Some(4));
+    assert_eq!(front["characters"].as_integer(), Some(4));
     assert_eq!(front["standing"].as_str(), Some("too thin: not a table"));
     assert_thin(&table, "hair_top_rise", 4);
     assert_eq!(table["table"]["given"].as_integer(), Some(0));
     assert!(
-        printed.contains("  front: 4 works: too thin, a view needs 5\n"),
+        printed.contains("  front: 4 characters, of 4 works: too thin, a view needs 5\n"),
         "{printed}"
     );
 }
 
 /// Has Jon reject one more character in a record that is already filled in.
 fn checked_again(folder: &Path, label: &str) {
-    let path = folder.join("checks/check.toml");
+    let path = folder.join("check.toml");
     let of = format!("label = \"{label}\"\nverdict = \"accepted\"");
     let record = text(&path);
     assert!(record.contains(&of), "the record has no accepted {label}");
@@ -496,7 +862,7 @@ fn checked_again(folder: &Path, label: &str) {
 }
 
 #[test]
-fn a_table_states_what_it_does_not_say_and_lists_the_works_it_was_measured_on() {
+fn a_table_states_what_it_does_not_say_and_lists_the_characters_it_was_measured_on() {
     let folder = folder("table-statements", &six_works());
     checked(&folder, &[]);
     let (table, printed) = built(&folder);
@@ -533,9 +899,13 @@ fn a_table_states_what_it_does_not_say_and_lists_the_works_it_was_measured_on() 
         "{file}"
     );
 
-    // The list of works: each as its readings name it, with the views measured of it.
-    let works = table["work"].as_array().expect("the table lists its works");
+    // The list of characters: each with its work as its readings name it, and the views
+    // measured of it.
+    let works = table["character"]
+        .as_array()
+        .expect("the table lists its characters");
     assert_eq!(works.len(), 6);
+    assert_eq!(works[0]["label"].as_str(), Some("work-1"));
     assert_eq!(works[0]["work"].as_str(), Some("made-up work 1"));
     assert_eq!(works[0]["designer"].as_str(), Some("a made-up designer"));
     assert_eq!(works[0]["age_band"].as_str(), Some("adult"));
@@ -558,15 +928,15 @@ fn a_table_states_what_it_does_not_say_and_lists_the_works_it_was_measured_on() 
     };
     assert_eq!(views(&works[0]), ["front", "side"]);
     assert_eq!(views(&works[5]), ["front"]);
-    // No work is tied to a number: an entry of the list holds texts and nothing else.
+    // No character is tied to a number: an entry of the list holds texts and nothing else.
     for work in works {
-        for (key, value) in work.as_table().expect("a work is a table") {
+        for (key, value) in work.as_table().expect("a character is a table") {
             assert!(
                 value.is_str()
                     || value
                         .as_array()
                         .is_some_and(|views| views.iter().all(toml::Value::is_str)),
-                "{key} of a work is not text"
+                "{key} of a character is not text"
             );
         }
     }
@@ -575,7 +945,7 @@ fn a_table_states_what_it_does_not_say_and_lists_the_works_it_was_measured_on() 
         table["table"]["built_from"].as_str(),
         Some("the record of Jon's check at Look 4 of 8, made up, checked on a made-up day")
     );
-    assert!(!file.contains("checks/check.toml"), "{file}");
+    assert!(!file.contains("check.toml"), "{file}");
     // No reading is named in it, and no picture.
     assert!(
         !file.contains("work-1-front") && !file.contains(".png"),
@@ -614,7 +984,7 @@ fn a_comparison_cases_numbers_cannot_be_handed_to_a_table() {
         &[
             "table-from-readings",
             "--check",
-            "checks/check.toml",
+            "check.toml",
             "--proportions",
             path_text(&set),
             "--out",
@@ -647,7 +1017,7 @@ fn a_comparison_cases_numbers_cannot_be_handed_to_a_table() {
     // set is still no reading: the record is then not complete, and nothing is built.
     std::fs::create_dir_all(folder.join("copied")).expect("made");
     std::fs::copy(&set, folder.join("copied/set.toml")).expect("copied");
-    let path = folder.join("checks/check.toml");
+    let path = folder.join("check.toml");
     let record = text(&path);
     let named = format!(
         "{{ path = \"first/work-6-front.toml\", sha256 = \"{}\" }}",
@@ -699,9 +1069,10 @@ fn a_comparison_cases_recorded_positions_written_as_a_reading_are_refused() {
     });
     checked(&folder, &[]);
     // The record itself is complete: the measuring commands may run on such a reading.
-    let said = measure_ok(&folder, &["jons-check", "--check", "checks/check.toml"]);
+    let said = measure_ok(&folder, &["jons-check", "--check", "check.toml"]);
     assert!(
-        said.contains("the-comparison-case: accepted") && said.contains("front: 7 works"),
+        said.contains("the-comparison-case: accepted")
+            && said.contains("front: 7 characters, of 7 works"),
         "{said}"
     );
 
@@ -792,7 +1163,7 @@ fn a_set_of_proportions_is_told_inside_outside_or_no_range_for_each_proportion()
     assert_close(number(&inside["value"]), 1.45, 1e-9, "the set's value");
     assert_close(number(&inside["lowest"]), 1.2, 1e-9, "the range's lowest");
     assert_close(number(&inside["highest"]), 1.9, 1e-9, "the range's highest");
-    assert_eq!(inside["works"].as_integer(), Some(6));
+    assert_eq!(inside["characters"].as_integer(), Some(6));
 
     // Outside, above: every made-up work draws the mouth 0.7 below the eye line, and the
     // set has it at 0.9. That is 0.2 units beyond, and 0.2 / 2.45 of head height.
@@ -816,9 +1187,9 @@ fn a_set_of_proportions_is_told_inside_outside_or_no_range_for_each_proportion()
     for (name, why) in [
         (
             "chin_depth",
-            "too thin: 2 works stand behind it, and a range needs 5",
+            "too thin: 2 characters stand behind it, and a range needs 5",
         ),
-        ("jaw_drop", "no work gives it"),
+        ("jaw_drop", "no character gives it"),
         (
             "skull_radius",
             "a convention: it is built by rule, never measured, and has no valid range",
@@ -832,7 +1203,7 @@ fn a_set_of_proportions_is_told_inside_outside_or_no_range_for_each_proportion()
     // Nothing stands beside a thin one but its count of works: the table states no number
     // for it.
     let thin = entry(&against, "chin_depth");
-    assert_eq!(thin["works"].as_integer(), Some(2));
+    assert_eq!(thin["characters"].as_integer(), Some(2));
     assert!(!thin.contains_key("lowest") && !thin.contains_key("highest"));
 
     // The counts, and what the set does not give.
@@ -913,7 +1284,7 @@ fn what_is_no_set_or_no_table_is_not_set_against_anything() {
     // A table that calls a proportion given with fewer than five works behind it is refused:
     // a range is never taken from a thin proportion, whatever a file says.
     let spoiled = scratch.join("spoiled-table.toml");
-    let thin = "name = \"chin_depth\"\nkind = \"measured\"\ndimension = \"depth\"\nworks = 2\nstanding = \"too thin\"";
+    let thin = "name = \"chin_depth\"\nkind = \"measured\"\ndimension = \"depth\"\ncharacters = 2\nworks = 2\nmost_from_one_work = 1\nstanding = \"too thin\"";
     let file = text(&table);
     assert!(file.contains(thin), "{file}");
     std::fs::write(
@@ -923,7 +1294,7 @@ fn what_is_no_set_or_no_table_is_not_set_against_anything() {
     .expect("written");
     let message = failure(&against(&set, &spoiled));
     assert!(
-        message.contains("`chin_depth`") && message.contains("2 works"),
+        message.contains("`chin_depth`") && message.contains("2 characters"),
         "{message}"
     );
 
@@ -936,10 +1307,7 @@ fn what_is_no_set_or_no_table_is_not_set_against_anything() {
         "{printed}"
     );
     // Building a table is measuring, and stops with no reference folder.
-    let output = maquette_in(
-        None,
-        &["table-from-readings", "--check", "checks/check.toml"],
-    );
+    let output = maquette_in(None, &["table-from-readings", "--check", "check.toml"]);
     assert!(
         failure(&output).contains("MAQUETTE_REFERENCES"),
         "{}",
@@ -959,7 +1327,7 @@ fn the_help_names_both_commands() {
         "{help}"
     );
     assert!(
-        help.contains("maquette set-from-table --check <check> --borrow <set>"),
+        help.contains("maquette set-from-table --check <check>[,<check>...] --borrow <set>"),
         "{help}"
     );
     assert!(
@@ -976,7 +1344,7 @@ fn set_from_table(folder: &Path) -> (String, toml::Table) {
         &[
             "set-from-table",
             "--check",
-            "checks/check.toml",
+            "check.toml",
             "--borrow",
             support::MADE_UP,
             "--out",
@@ -1005,15 +1373,21 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
     let source = |name: &str| set["sources"][name].as_str().expect("a source").to_string();
 
     // A proportion with a range takes the table's middle value.
-    assert_eq!(source("hair_top_rise"), "the table: the middle of 6 works");
+    assert_eq!(
+        source("hair_top_rise"),
+        "the table: the middle of 6 characters"
+    );
     assert_close(value("hair_top_rise"), 1.45, 1e-6, "the table's middle");
     // One that two to four works give takes their average, not their middle, and is thin.
-    assert_eq!(source("chin_depth"), "a thin average: of 3 works");
+    assert_eq!(source("chin_depth"), "a thin average: of 3 characters");
     assert_close(value("chin_depth"), 0.4, 1e-6, "the average of three works");
-    assert_eq!(source("brow_inner_end_rise"), "a thin average: of 4 works");
+    assert_eq!(
+        source("brow_inner_end_rise"),
+        "a thin average: of 4 characters"
+    );
     assert_close(value("brow_inner_end_rise"), 0.3, 1e-6, "the brows");
     // What no work gives, and a convention, are borrowed as they stand.
-    assert_eq!(source("face_top_rise"), "borrowed: no work gives it");
+    assert_eq!(source("face_top_rise"), "borrowed: no character gives it");
     assert_close(
         value("face_top_rise"),
         borrowed["face_top_rise"],
@@ -1026,8 +1400,7 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
     // eye line and on the centre line in every head, so the jaw point's height and its
     // half-width come over as they stand. Its depth does not: this head's chin stands at
     // 0.4, the borrowed set's at 0.1875 with its jaw point at 0.1621, 0.0254 behind it.
-    let hangs =
-        "borrowed: as its offset from the chin, on which the jaw point hangs; no work gives it";
+    let hangs = "borrowed: as its offset from the chin, on which the jaw point hangs; no character gives it";
     for name in ["jaw_drop", "jaw_half_width", "jaw_depth"] {
         assert_eq!(source(name), hangs, "{name}");
     }
@@ -1062,20 +1435,23 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
     // ends is drawn as the front view's column, from the other three.
     assert_eq!(
         source("neck_half_width"),
-        "the table: the middle of 6 works"
+        "the table: the middle of 6 characters"
     );
     assert_close(value("neck_half_width"), 0.45, 1e-6, "the neck's width");
-    assert_eq!(source("neck_base_drop"), "the table: the middle of 6 works");
+    assert_eq!(
+        source("neck_base_drop"),
+        "the table: the middle of 6 characters"
+    );
     assert_close(value("neck_base_drop"), 1.6, 1e-6, "where the neck ends");
-    assert_eq!(source("neck_depth"), "a thin average: of 3 works");
+    assert_eq!(source("neck_depth"), "a thin average: of 3 characters");
     assert_close(value("neck_depth"), -0.4, 1e-6, "the neck's depth");
     assert_eq!(
         source("neck_front_base_depth"),
-        "a thin average: of 3 works"
+        "a thin average: of 3 characters"
     );
     for name in ["neck_back_top_drop", "neck_back_top_depth"] {
         assert!(
-            source(name).starts_with("left out: no work gives it"),
+            source(name).starts_with("left out: no character gives it"),
             "{name}: {}",
             source(name)
         );
@@ -1084,7 +1460,7 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
     // gives its base, so the top is borrowed with the rest of it.
     assert_eq!(
         source("ear_top_rise"),
-        "borrowed: the ear is taken whole, and the works do not give all of it"
+        "borrowed: the ear is taken whole, and the characters do not give all of it"
     );
     assert_close(
         value("ear_top_rise"),
@@ -1123,7 +1499,7 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
     // The points of the profile that only a side view gives: no made-up work gives them, and
     // the made-up set they would be borrowed from leaves them out, so the made set does too.
     assert!(
-        source("jaw_angle_depth").starts_with("left out: no work gives it"),
+        source("jaw_angle_depth").starts_with("left out: no character gives it"),
         "{}",
         source("jaw_angle_depth")
     );
@@ -1173,7 +1549,7 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
     let (_, set) = set_from_table(&one_work);
     assert_eq!(
         set["sources"]["chin_depth"].as_str(),
-        Some("borrowed: one work gives it, and one reference's number is not drawn")
+        Some("borrowed: one character gives it, and one reference's number is not drawn")
     );
     assert_close(
         number(&set["proportions"]["chin_depth"]),

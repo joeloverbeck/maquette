@@ -266,29 +266,35 @@ turned or mirrored, by an EXIF orientation, is refused, and so is one whose EXIF
   maquette jons-check --check <check>
       Say what a record of Jon's check does and what it lacks: each character accepted or
       rejected, each drawing measured or not and from which readings, what his marks leave
-      out, and the number of accepted works for each view, with a view under five reported
-      as too thin. Exit status 0 when the record is complete, 1 when it is not.
+      out, and the number of accepted characters for each view, with the works they come
+      from, and a view under five characters reported as too thin. Exit status 0 when the
+      record is complete, 1 when it is not.
 
-  maquette table-from-readings --check <check> [--out <table>]
-      Build a proportion table from a record of Jon's check that is complete, and from
-      nothing else: for each proportion of the list, the lowest, the middle (the median)
-      and the highest value among the works whose readings he accepted, and the number of
-      works behind it. A drawing that is set aside or not called level is left out, and so
-      is a rejected character. A proportion with five works or more behind it is given, and
-      has a valid range; one with fewer is too thin, also in a view that has five works,
-      and is listed with its count of works and why the others do not give it, and with no
-      number; a convention has no range. A view with fewer than five works is reported as
-      too thin and is not called a table. The table lists the works it was measured on, and
-      states that its ranges are separate and do not rule on which combinations go
-      together, and that a lowest and a highest value is one reference's number. It takes
-      no set of proportions, and refuses a record's positions written as a reading: a
-      comparison case's numbers never enter a table. A table is a proposal until Jon has
-      accepted it.
+  maquette table-from-readings --check <check>[,<check>...] [--out <table>]
+      Build a proportion table from records of Jon's checks that are complete, with a comma
+      between them, and from nothing else: for each proportion of the list, the lowest, the
+      middle (the median) and the highest value among the characters whose readings he
+      accepted, one drawing of each in each view, and the number of characters behind it,
+      with the works they come from and how many the work that gives the most gives. A
+      drawing that is set aside or not called level is left out, and so is a rejected
+      character. A label several records name is one character, and a drawing read again
+      under a later revision gives only what its earlier readings were not asked for. A
+      proportion with five characters or more behind it is given, and has a valid range;
+      one with fewer is too thin, also in a view that has five, and is listed with its count
+      and why the others do not give it, and with no number; a convention has no range. A
+      view with fewer than five characters is reported as too thin and is not called a
+      table. Where the characters are of more than one age band, each band's own range
+      stands beside the table's, with whether they overlap. The table lists the characters
+      it was measured on, and states that its ranges are separate and do not rule on which
+      combinations go together, and that a lowest and a highest value is one reference's
+      number. It takes no set of proportions, and refuses a record's positions written as a
+      reading: a comparison case's numbers never enter a table. A table is a proposal until
+      Jon has accepted it.
 
-  maquette set-from-table --check <check> --borrow <set> [--out <file>]
-      Make a whole set of proportions for one head to be drawn, from the table the record
-      of Jon's check gives: the table's middle value where a proportion has a range; the
-      average of the works where two to four give it, marked as thin; and for the rest the
+  maquette set-from-table --check <check>[,<check>...] --borrow <set> [--out <file>]
+      Make a whole set of proportions for one head to be drawn, from the table the records
+      of Jon's checks give: the table's middle value where a proportion has a range; the
+      average of the characters where two to four give it, marked as thin; and for the rest the
       number of the set named by --borrow, marked as borrowed. An ear and the neck are each taken whole: unless
       the works give every one of a form's proportions, all are borrowed. A borrowed point that
       hangs on a measured one keeps its offset from it: the jaw point is placed from this
@@ -298,12 +304,12 @@ turned or mirrored, by an EXIF orientation, is refused, and so is one whose EXIF
       borrowed from is read from where it is named; the set made is no table.
 
 turn-from-readings, fit-of-views and proportions-from-readings take `--check <check>`, the
-record of Jon's check. A record that is not complete measures nothing. With a complete one
-only the readings of a character he accepted are measured, each drawing from all the
-readings the record lists for it and as it rules, with what he marked as off left out; a
-reading that has changed since the record was started is refused. Without it the readings
-are measured as their readers judged them, and what is written says that Jon has not
-checked them.
+record of Jon's check, which names its readings from the folder it is in. A record that is
+not complete measures nothing. With a complete one only the readings of a character he
+accepted are measured, each drawing from all the readings the record lists for it and as
+it rules, with what he marked as off left out; a reading that has changed since the record
+was started is refused. Without it the readings are measured as their readers judged them,
+and what is written says that Jon has not checked them.
 ";
 
 /// How a command ended, when nothing went wrong in running it.
@@ -844,9 +850,11 @@ fn views_given<'a>(
         Some(path) => Some((*path, check_record(folder, path)?)),
         None => None,
     };
+    // The folder the record names its readings from: the folder it is in.
+    let recorded_in = check.as_ref().map(|(_, (_, own))| own);
     let review = match &check {
-        Some((path, check)) => {
-            let review = check.review(path, &|reading| reading_now(folder, reading));
+        Some((path, (check, own))) => {
+            let review = check.review(path, &|reading| reading_now(own, reading));
             if !review.complete() {
                 return Err(Error::new(format!(
                     "the record of Jon's check `{path}` is not complete, so nothing is measured by it: {}. `maquette jons-check --check {path}` says what it does and lacks",
@@ -871,9 +879,11 @@ fn views_given<'a>(
         let view = option.trim_start_matches("--");
         let paths: Vec<&str> = named.split(',').map(str::trim).collect();
         separate_files(folder, &paths)?;
+        // A path the record names is named from the record's folder, and one given from the
+        // reference folder.
+        let own = recorded_in.unwrap_or(folder);
         let same = |recorded: &str, given: &str| {
-            folder
-                .path(recorded)
+            own.path(recorded)
                 .is_ok_and(|recorded| folder.path(given).is_ok_and(|given| given == recorded))
         };
         let measured = review.measured(&paths, &same)?;
@@ -886,9 +896,10 @@ fn views_given<'a>(
             }
             _ => character = Some(measured.character),
         }
-        // Each reading is still held to what `check-reading` checks, against its picture.
+        // Each reading is still held to what `check-reading` checks, against its picture,
+        // which it names from the record's folder as the record names the reading.
         for path in &paths {
-            checked_reading(folder, path)?;
+            checked_reading(own, &own.name_of(&folder.path(path)?))?;
         }
         notes.push(format!("the {view} view is {}", measured.said));
         drawings.insert(*option, (named, measured.drawing.clone()));
@@ -1108,6 +1119,13 @@ fn start_jons_check(arguments: &[String]) -> Result<()> {
     let (folder, found) = measuring(arguments, &["--sheet", "--out"])?;
     let sheet = required(&found, "--sheet")?;
     let out = required(&found, "--out")?;
+    // A record names its readings from the folder it is in, and the sheet's readings are
+    // named from the reference folder, whose pictures they name from there in turn.
+    if folder.of_file(out)?.root() != folder.root() {
+        return Err(Error::new(format!(
+            "`{out}` is in a folder below the reference folder. A record of Jon's check names its readings, and they their pictures, from the folder it is in, and the sheet's readings are named from the reference folder: name it by a file name alone, at the top of the reference folder"
+        )));
+    }
     let (description, characters, _) = sheet_readings(&folder, sheet)?;
     let mut digests = BTreeMap::new();
     for read in characters.iter().flatten().flatten() {
@@ -1148,18 +1166,19 @@ fn start_jons_check(arguments: &[String]) -> Result<()> {
     Ok(())
 }
 
-/// A record of Jon's check of the reference folder, read. Its path is named in what goes
-/// wrong.
-fn check_record(folder: &Folder, path: &str) -> Result<jons_check::Check> {
-    jons_check::Check::read(&folder.read_text(path)?)
-        .map_err(|error| Error::new(format!("{path}: {error}")))
+/// A record of Jon's check of the reference folder, read, with the folder it names its
+/// readings from: the folder it is in. Its path is named in what goes wrong.
+fn check_record(folder: &Folder, path: &str) -> Result<(jons_check::Check, Folder)> {
+    let check = jons_check::Check::read(&folder.read_text(path)?)
+        .map_err(|error| Error::new(format!("{path}: {error}")))?;
+    Ok((check, folder.of_file(path)?))
 }
 
 fn jons_check_command(arguments: &[String]) -> Result<Ended> {
     let (folder, found) = measuring(arguments, &["--check"])?;
     let path = required(&found, "--check")?;
-    let check = check_record(&folder, path)?;
-    let review = check.review(path, &|reading| reading_now(&folder, reading));
+    let (check, own) = check_record(&folder, path)?;
+    let review = check.review(path, &|reading| reading_now(&own, reading));
     print!("{}", review.said());
     Ok(if review.complete() {
         Ended::Well
@@ -1203,29 +1222,37 @@ fn overlay_sources(arguments: &[String]) -> Result<()> {
     Ok(())
 }
 
-/// The table a complete record of Jon's check gives, with each measured reading still held
-/// to what `check-reading` checks.
-fn table_by(folder: &Folder, path: &str) -> Result<table::Table> {
-    let check = check_record(folder, path)?;
-    let review = check.review(path, &|reading| reading_now(folder, reading));
-    if !review.complete() {
-        return Err(Error::new(format!(
-            "the record of Jon's check `{path}` is not complete, so no table is built from it: {}. `maquette jons-check --check {path}` says what it does and lacks",
-            review.problems.join("; ")
-        )));
-    }
-    // Each reading that is measured is still held to what `check-reading` checks, against
-    // its picture as it is now.
-    for accepted in review.accepted() {
-        for (drawing, outcome) in &accepted.drawings {
-            if matches!(outcome, jons_check::Outcome::Measured { .. }) {
-                for named in &drawing.readings {
-                    checked_reading(folder, &named.path)?;
+/// The table the complete records of Jon's checks give, named with a comma between them,
+/// with each measured reading still held to what `check-reading` checks.
+fn table_by(folder: &Folder, named: &str) -> Result<table::Table> {
+    let paths: Vec<&str> = named.split(',').map(str::trim).collect();
+    let records = paths
+        .iter()
+        .map(|path| check_record(folder, path))
+        .collect::<Result<Vec<_>>>()?;
+    let mut reviews = Vec::new();
+    for (path, (check, own)) in paths.iter().zip(&records) {
+        let review = check.review(path, &|reading| reading_now(own, reading));
+        if !review.complete() {
+            return Err(Error::new(format!(
+                "the record of Jon's check `{path}` is not complete, so no table is built from it: {}. `maquette jons-check --check {path}` says what it does and lacks",
+                review.problems.join("; ")
+            )));
+        }
+        // Each reading that is measured is still held to what `check-reading` checks,
+        // against its picture as it is now.
+        for accepted in review.accepted() {
+            for (drawing, outcome) in &accepted.drawings {
+                if matches!(outcome, jons_check::Outcome::Measured { .. }) {
+                    for named in &drawing.readings {
+                        checked_reading(own, &named.path)?;
+                    }
                 }
             }
         }
+        reviews.push(review);
     }
-    table::build(&review)
+    table::build(&reviews)
 }
 
 fn set_against_table(arguments: &[String]) -> Result<()> {

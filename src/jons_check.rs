@@ -25,7 +25,7 @@ use crate::{Error, Result};
 
 /// How many works a view needs behind it to be a table: a view with fewer is too thin
 /// (`docs/foundation/04-evidence-and-references.md`, "Reference drawings", point 6).
-pub const WORKS_FOR_A_TABLE: usize = 5;
+pub const CHARACTERS_FOR_A_TABLE: usize = 5;
 
 /// What the record does, by name, as `maquette jons-check` states it.
 pub const RULES: &[(&str, &str)] = &[
@@ -791,7 +791,7 @@ impl Check {
                 of_character.push(outcome);
             }
             outcomes.push(of_character);
-            // A character with no work named still counts as a work of its own.
+            // A character with no work named is counted as of a work of its own.
             if work.is_empty() {
                 work = format!("the work of `{label}`");
             }
@@ -810,8 +810,8 @@ impl Check {
     }
 }
 
-/// What a count of accepted works is of: a view, or depth from a front view and the view
-/// beside it.
+/// What a count of accepted characters is of: a view, or depth from a front view and the
+/// view beside it.
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Counted {
     View(View),
@@ -846,15 +846,75 @@ impl Counted {
     }
 }
 
-/// A count of accepted works as it is said of a view: with fewer than a table needs, the
-/// view is too thin.
-pub fn works(count: usize) -> String {
-    let thin = if count < WORKS_FOR_A_TABLE {
-        format!(": too thin, a view needs {WORKS_FOR_A_TABLE}")
-    } else {
-        String::new()
-    };
-    format!("{}{thin}", counted(count, "work"))
+/// How many works some characters come from, by what their readings name as their work,
+/// and how many of them the work that gives the most gives.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Works {
+    pub works: usize,
+    pub most_from_one: usize,
+}
+
+impl Works {
+    pub fn of<'a>(works: impl IntoIterator<Item = &'a str>) -> Works {
+        let mut counted: BTreeMap<&str, usize> = BTreeMap::new();
+        for work in works {
+            *counted.entry(work).or_default() += 1;
+        }
+        Works {
+            works: counted.len(),
+            most_from_one: counted.values().copied().max().unwrap_or(0),
+        }
+    }
+}
+
+/// The accepted characters behind a view, or behind a route to depth.
+#[derive(Debug, Clone)]
+pub struct Count {
+    /// What is counted, in words.
+    pub what: String,
+    pub characters: usize,
+    pub works: Works,
+}
+
+impl Count {
+    /// The count as it is said of a view: the characters and the works they come from, and
+    /// with fewer characters than a table needs, that the view is too thin.
+    pub fn said(&self) -> String {
+        let of = match (self.characters, self.works.most_from_one) {
+            (0, _) => String::new(),
+            (_, 0..=1) => format!(", of {}", counted(self.works.works, "work")),
+            (_, most) => format!(
+                ", of {}, {most} of them from one work",
+                counted(self.works.works, "work")
+            ),
+        };
+        let thin = if self.characters < CHARACTERS_FOR_A_TABLE {
+            format!(": too thin, a view needs {CHARACTERS_FOR_A_TABLE}")
+        } else {
+            String::new()
+        };
+        format!("{}{of}{thin}", counted(self.characters, "character"))
+    }
+}
+
+/// The accepted characters for each view, and for each route to depth: one drawing of each
+/// character in each view. Each character is given by its work and the views measured of it.
+pub fn counts<'a>(characters: &[(&'a str, &'a [View])]) -> Vec<Count> {
+    Counted::ALL
+        .iter()
+        .map(|what| {
+            let behind: Vec<&str> = characters
+                .iter()
+                .filter(|(_, views)| what.counts(views))
+                .map(|(work, _)| *work)
+                .collect();
+            Count {
+                what: what.words(),
+                characters: behind.len(),
+                works: Works::of(behind),
+            }
+        })
+        .collect()
 }
 
 impl Review<'_> {
@@ -873,20 +933,24 @@ impl Review<'_> {
         )
     }
 
-    /// The number of accepted works for each view, and for each route to depth, by the rule
-    /// `counted`: what is counted, in words, and how many works.
-    pub fn counts(&self) -> Vec<(String, usize)> {
-        Counted::ALL
+    /// The number of accepted characters for each view, and for each route to depth, with
+    /// the works they come from.
+    pub fn counts(&self) -> Vec<Count> {
+        let characters: Vec<(&str, &[View])> = self
+            .measured_views
             .iter()
-            .map(|what| {
-                let mut behind: Vec<&str> = Vec::new();
-                for (work, views) in &self.measured_views {
-                    if what.counts(views) && !behind.contains(&work.as_str()) {
-                        behind.push(work);
-                    }
-                }
-                (what.words(), behind.len())
-            })
+            .map(|(work, views)| (work.as_str(), views.as_slice()))
+            .collect();
+        counts(&characters)
+    }
+
+    /// The labels of the characters Jon rejected, in the record's order.
+    pub fn rejected(&self) -> Vec<&str> {
+        self.check
+            .characters
+            .iter()
+            .filter(|character| character.verdict == Some(Verdict::Rejected))
+            .map(|character| character.label.as_str())
             .collect()
     }
 
@@ -907,15 +971,15 @@ impl Review<'_> {
     }
 
     /// What the record says and does, for a person: each character and drawing, the count
-    /// of accepted works for each view, and what the record lacks or gets wrong.
+    /// of accepted characters for each view, and what the record lacks or gets wrong.
     pub fn said(&self) -> String {
         let mut out = self.lines.clone();
         out.push_str(&format!(
-            "\nAccepted works for each view, of {} on the sheet:\n",
+            "\nAccepted characters for each view, of {} on the sheet:\n",
             counted(self.check.characters.len(), "character")
         ));
-        for (what, count) in self.counts() {
-            out.push_str(&format!("  {what}: {}\n", works(count)));
+        for count in self.counts() {
+            out.push_str(&format!("  {}: {}\n", count.what, count.said()));
         }
         if self.complete() {
             out.push_str("\nThe record is complete.\n");

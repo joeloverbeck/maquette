@@ -184,6 +184,19 @@ impl Folder {
             .ok_or_else(outside)
     }
 
+    /// The folder that holds a file named in this one, as a reference folder of its own,
+    /// inside this one. A record of Jon's check names its readings, and they their pictures,
+    /// from the folder the record is in: a batch is laid out in a folder of its own, and the
+    /// records of several batches can then be named from the folder that holds them all.
+    pub fn of_file(&self, given: &str) -> Result<Folder> {
+        let path = self.path(given)?;
+        let root = path
+            .parent()
+            .filter(|parent| parent.starts_with(&self.root))
+            .map_or_else(|| self.root.clone(), Path::to_path_buf);
+        Ok(Folder { root })
+    }
+
     /// A path [`Folder::path`] gave, as a reading or a sheet names it: from the folder, so
     /// that nothing written says where the folder is on this machine.
     pub fn name_of(&self, path: &Path) -> String {

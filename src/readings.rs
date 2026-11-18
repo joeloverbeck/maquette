@@ -394,6 +394,12 @@ fn revision_order(revision: &str) -> Option<(&str, u32)> {
     Some((date, number.parse().ok()?))
 }
 
+/// How two revisions of the reading instructions stand in time, by [`revision_order`]. Two
+/// revisions not written that way are told apart by their words, so that one order holds.
+pub fn revisions_in_order(first: &str, second: &str) -> std::cmp::Ordering {
+    (revision_order(first), first).cmp(&(revision_order(second), second))
+}
+
 /// Whether a reading made under `revision` was asked for what a view asks for since `since`.
 fn asked_since(revision: &str, since: &str) -> bool {
     match (revision_order(revision), revision_order(since)) {
