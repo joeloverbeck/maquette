@@ -448,6 +448,12 @@ fn build_side(head: &Head, seen: &Seen) -> Guides {
     // way back to a neck that meets the jaw above the chin's height.
     let mut directions = vec![None; outline.len()];
     directions[chin_at] = LEVEL;
+    // The underside of the jaw runs on from the chin through the top of the neck's front, so
+    // the curve keeps that line's direction there and turns up toward the ear after it.
+    if outline_anchors.get(chin_at + 1).map(String::as_str) == Some("neck-front-top") {
+        let (chin, throat) = (outline[chin_at], outline[chin_at + 1]);
+        directions[chin_at + 1] = Some(unit_vector([throat[0] - chin[0], throat[1] - chin[1]]));
+    }
     let outline_stretches = smooth(&outline, &directions);
     guides.add(
         "face-outline",
