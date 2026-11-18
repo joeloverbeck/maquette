@@ -1,0 +1,7 @@
+#!/bin/sh
+# Formatting and lints before every commit. A spec's integration branch stays unpushed until
+# Jon accepts its work, so the checks of .github/workflows/checks.yml do not see its commits.
+# Turned on in a checkout with: git config core.hooksPath .githooks
+set -e
+cargo fmt --check
+cargo clippy --all-targets --locked --quiet -- -D warnings

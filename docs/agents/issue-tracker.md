@@ -21,9 +21,11 @@ Before the first write of a session, verify that the target resolves to `joelove
 
 For multiline bodies and comments, write the exact text to a temporary file and use `--body-file`. Read back the changed issue, comment or labels after a write.
 
+Every number in a comment (a count, a total, a share, a cost) comes from a command run for it in the session, and is checked against that command's output in the read-back before the next step. Comments are the project's record and are public; three figures written from memory in one session of #18 were wrong and had to be corrected.
+
 ## Publication
 
-A pull request lists exactly what it publishes. It merges once its checks pass and Jon has accepted every armature and every table in it; the agent then merges it. No hosted CI is set up at founding; the first ticket that adds code decides it.
+A pull request lists exactly what it publishes. It merges once its checks pass and Jon has accepted every armature and every table in it; the agent then merges it. The checks are `.github/workflows/checks.yml`: formatting, lints and tests, on every pull request and on `main`.
 
 **PRs as a request surface: no.**
 
