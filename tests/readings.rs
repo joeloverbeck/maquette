@@ -420,6 +420,58 @@ fn a_reading_is_started_of_a_jpeg_as_it_is_and_checked_against_it() {
 }
 
 #[test]
+fn a_reading_is_started_of_a_webp_as_it_is_and_checked_against_it() {
+    let folder = references("readings-webp");
+    support::made_up_webp(&folder.join("picture.webp"), 248, 240);
+    let as_made = std::fs::read(folder.join("picture.webp")).expect("read");
+
+    measure_ok(
+        &folder,
+        &[
+            "start-reading",
+            "--image",
+            "picture.webp",
+            "--view",
+            "front",
+            "--reader",
+            "first made-up reader",
+            "--out",
+            "front.toml",
+        ],
+    );
+    let template = text(&folder.join("front.toml"));
+
+    // The digest is of the file as it is: the picture is not converted to be read.
+    assert_eq!(
+        std::fs::read(folder.join("picture.webp")).expect("read"),
+        as_made,
+        "the picture was changed"
+    );
+    let digest = support::sha256_hex(&as_made);
+    assert!(
+        template.contains(&format!("sha256 = \"{digest}\"")),
+        "{template}"
+    );
+    assert!(template.contains("file = \"picture.webp\""), "{template}");
+    assert!(template.contains("width = 248"), "{template}");
+    assert!(template.contains("height = 240"), "{template}");
+
+    // Filled in, the reading passes its check against the WebP.
+    let filled = filled_in(&template, 0.0, &|name| {
+        Some([124.0, 20.0 + name.len() as f64 * 5.0])
+    });
+    std::fs::write(folder.join("front.toml"), &filled).expect("written");
+    let printed = measure_ok(&folder, &["check-reading", "--reading", "front.toml"]);
+    assert!(printed.contains("60 landmarks placed"), "{printed}");
+
+    // And not once the WebP has changed.
+    support::made_up_webp(&folder.join("picture.webp"), 249, 240);
+    let output = maquette_in(Some(&folder), &["check-reading", "--reading", "front.toml"]);
+    let said = String::from_utf8_lossy(&output.stdout).into_owned() + &failure(&output);
+    assert!(said.contains("digest"), "{said}");
+}
+
+#[test]
 fn a_jpeg_whose_file_says_it_is_shown_turned_is_refused() {
     // A browser shows such a picture turned, and maquette reads its pixels as they are
     // stored: a reader's positions, an enlargement and a sheet would not agree.
@@ -473,6 +525,69 @@ fn a_jpeg_whose_file_says_it_is_shown_turned_is_refused() {
     support::made_up_jpeg_with_orientation(&folder.join("upright.jpg"), 248, 240, 1);
     let output = starting("upright.jpg");
     assert!(output.status.success(), "{}", failure(&output));
+}
+
+#[test]
+fn a_webp_whose_exif_says_it_is_shown_turned_is_refused_with_or_without_the_exif_prefix() {
+    // A WebP keeps its EXIF in a chunk of its own. WebP's specification has the chunk begin
+    // with the TIFF header; every WebP of the second batch begins it with "Exif" and two zero
+    // bytes first, as a JPEG's segment does. A turned picture is refused in either form.
+    use support::{EXIF_PREFIX, exif_orientation, made_up_webp_with_exif};
+    let folder = references("readings-webp-turned");
+    let starting = |image: &str| {
+        maquette_in(
+            Some(&folder),
+            &[
+                "start-reading",
+                "--image",
+                image,
+                "--view",
+                "front",
+                "--reader",
+                "first made-up reader",
+                "--out",
+                "front.toml",
+            ],
+        )
+    };
+    let turned = exif_orientation(6);
+    for (name, exif) in [
+        ("turned-as-specified.webp", turned.clone()),
+        ("turned-with-prefix.webp", [EXIF_PREFIX, &turned].concat()),
+    ] {
+        made_up_webp_with_exif(&folder.join(name), 248, 240, &exif);
+        let message = failure(&starting(name));
+        assert!(
+            message.contains(name) && message.contains("shown turned or mirrored"),
+            "{message}"
+        );
+        assert!(!folder.join("front.toml").exists());
+    }
+
+    // EXIF that is not a TIFF directory says nothing that can be read about how the picture
+    // is shown, so whether it is turned cannot be told: it is refused, and the message says so.
+    let unreadable = [EXIF_PREFIX, b"made up: not a TIFF header"].concat();
+    made_up_webp_with_exif(&folder.join("unreadable.webp"), 248, 240, &unreadable);
+    let message = failure(&starting("unreadable.webp"));
+    assert!(
+        message.contains("unreadable.webp") && message.contains("EXIF cannot be read"),
+        "{message}"
+    );
+    assert!(!folder.join("front.toml").exists());
+
+    // One whose EXIF says it is upright is read as ever, in either form.
+    for (name, exif) in [
+        ("upright-as-specified.webp", exif_orientation(1)),
+        (
+            "upright-with-prefix.webp",
+            [EXIF_PREFIX, &exif_orientation(1)].concat(),
+        ),
+    ] {
+        made_up_webp_with_exif(&folder.join(name), 248, 240, &exif);
+        let output = starting(name);
+        assert!(output.status.success(), "{name}: {}", failure(&output));
+        std::fs::remove_file(folder.join("front.toml")).expect("the started reading");
+    }
 }
 
 #[test]
@@ -543,6 +658,81 @@ fn a_drawing_whose_set_aside_was_overruled_is_read_and_every_landmark_is_asked_f
     assert!(message.contains("eye line"), "{message}");
 }
 
+/// The points of a profile that a side view was first asked for after look 6, where the side
+/// view drawn without them failed: the bridge of the nose and the forehead on the front of the
+/// face, the jaw's angle, and the top of the neck's two lines.
+const PROFILE_SINCE_LOOK_6: [&str; 5] = [
+    "centre-line-at-eye-level",
+    "centre-line-at-brow-level",
+    "jaw-right-angle",
+    "neck-front-top",
+    "neck-back-top",
+];
+
+#[test]
+fn a_side_view_asks_for_the_bridge_the_forehead_the_jaws_angle_and_the_necks_top_ends() {
+    let folder = folder_with_picture("readings-side-profile");
+    let side = start(&folder, "side", &["--faces", "right"], "side.toml");
+    let said_of = |landmark: &str| -> String {
+        let lines: Vec<&str> = side.lines().collect();
+        let at = lines
+            .iter()
+            .position(|line| *line == format!("# {landmark} = {{ x = , y = }}"))
+            .unwrap_or_else(|| panic!("a side view does not ask for {landmark}"));
+        lines[at - 1].to_string()
+    };
+    assert!(said_of("centre-line-at-eye-level").contains("eye line"));
+    assert!(said_of("centre-line-at-brow-level").contains("brow"));
+    assert!(said_of("jaw-right-angle").contains("toward the ear"));
+    assert!(said_of("neck-front-top").contains("underside of the jaw"));
+    assert!(said_of("neck-back-top").contains("back of the neck"));
+    // The near side only: the head faces the viewer's right, so the near side is the right.
+    assert!(!asked(&side).contains(&"jaw-left-angle".to_string()));
+
+    // A front view and a three-quarter view ask for none of them.
+    let front = asked(&start(&folder, "front", &[], "front.toml"));
+    let turned = asked(&start(
+        &folder,
+        "three-quarter",
+        &["--faces", "right"],
+        "three-quarter.toml",
+    ));
+    for landmark in PROFILE_SINCE_LOOK_6 {
+        assert!(!front.contains(&landmark.to_string()), "{landmark}");
+        assert!(!turned.contains(&landmark.to_string()), "{landmark}");
+    }
+
+    // A side reading made under revision 2026-11-17.3, the revision the first batch's side
+    // views were read at, was not asked for them, and is not held to them now.
+    let earlier: String = filled_in(&side, 90.0, &|name| {
+        Some([300.0 + name.len() as f64, 100.0 + name.len() as f64 * 4.0])
+    })
+    .lines()
+    .filter(|line| {
+        !PROFILE_SINCE_LOOK_6
+            .iter()
+            .any(|landmark| line.starts_with(&format!("{landmark} = ")))
+    })
+    .map(|line| match line.starts_with("instructions = ") {
+        true => "instructions = \"2026-11-17.3\"\n".to_string(),
+        false => format!("{line}\n"),
+    })
+    .collect();
+    std::fs::write(folder.join("earlier.toml"), &earlier).expect("written");
+    let output = maquette_in(
+        Some(&folder),
+        &["check-reading", "--reading", "earlier.toml"],
+    );
+    let said = String::from_utf8_lossy(&output.stdout).into_owned()
+        + &String::from_utf8_lossy(&output.stderr);
+    assert!(said.contains("2026-11-17.3"), "{said}");
+    assert!(
+        !said.contains("neither placed nor stated as not seen"),
+        "{said}"
+    );
+    assert!(!said.contains("not a landmark"), "{said}");
+}
+
 #[test]
 fn a_side_reading_is_started_with_what_each_landmark_is_in_a_profile() {
     let folder = folder_with_picture("readings-side-words");
@@ -578,8 +768,8 @@ fn a_side_reading_is_started_with_what_each_landmark_is_in_a_profile() {
 }
 
 #[test]
-fn a_file_in_neither_format_is_refused_and_the_message_names_the_two_that_are_read() {
-    let folder = references("readings-neither-format");
+fn a_file_in_none_of_the_formats_is_refused_and_the_message_names_the_three_that_are_read() {
+    let folder = references("readings-none-of-the-formats");
     // The header of a GIF and nothing after it, and a file that is no picture at all.
     std::fs::write(
         folder.join("picture.gif"),
@@ -625,7 +815,7 @@ fn a_file_in_neither_format_is_refused_and_the_message_names_the_two_that_are_re
         for (command, output) in [("start-reading", started), ("enlarge-image", enlarged)] {
             let message = failure(&output);
             assert!(
-                message.contains("a PNG or a JPEG, the two formats maquette reads"),
+                message.contains("a PNG, a JPEG or a WebP, the three formats maquette reads"),
                 "{command} of {image}: {message}"
             );
         }
@@ -763,7 +953,8 @@ fn a_path_that_leaves_the_reference_folder_is_refused() {
     assert!(failure(&output).contains("outside the reference folder"));
 }
 
-/// References are kept outside every repository, so that none can be committed. A scratch
+/// References are kept outside every repository but a private store of references, so that none
+/// can be committed where it may be published. A scratch
 /// folder under `target/` is inside this one.
 #[test]
 fn a_reference_folder_inside_a_git_repository_is_refused() {
@@ -823,6 +1014,68 @@ fn a_reference_folder_inside_a_git_repository_is_refused() {
     .expect("written");
     std::fs::create_dir(outside.join(".git")).expect("made");
     start(&outside, "front", &[], "front.toml");
+}
+
+/// A private repository of references declares itself with a file at its root, and a folder in
+/// it is a reference folder: at its root, or deeper, as a reader's own folder is. A checkout of
+/// maquette is never one, whatever file it holds: maquette is public.
+#[test]
+fn a_private_repository_that_declares_itself_a_reference_store_holds_reference_folders() {
+    let store = references("readings-folder-in-a-store");
+    std::fs::create_dir_all(store.join(".git")).expect("made");
+    std::fs::write(store.join(".git/HEAD"), "ref: refs/heads/made-up\n").expect("written");
+    std::fs::write(
+        store.join(".maquette-reference-store"),
+        "made up for a test: a private repository of references\n",
+    )
+    .expect("written");
+    made_up_image(&store.join("picture.png"), 800, 900);
+    start(&store, "front", &[], "front.toml");
+    let deeper = store.join("readers/first-reader");
+    made_up_image(&deeper.join("picture.png"), 800, 900);
+    start(&deeper, "front", &[], "front.toml");
+
+    // The same file in a checkout of maquette, which has the list of proportions, is refused.
+    let checkout = references("readings-folder-in-a-marked-checkout");
+    std::fs::create_dir_all(checkout.join(".git")).expect("made");
+    std::fs::write(checkout.join(".git/HEAD"), "ref: refs/heads/made-up\n").expect("written");
+    std::fs::write(
+        checkout.join(".maquette-reference-store"),
+        "made up for a test\n",
+    )
+    .expect("written");
+    std::fs::create_dir_all(checkout.join("proportions")).expect("made");
+    std::fs::write(
+        checkout.join("proportions/list.toml"),
+        "# made up for a test\n",
+    )
+    .expect("written");
+    made_up_image(&checkout.join("picture.png"), 800, 900);
+    let output = maquette_in(
+        Some(&checkout),
+        &["check-reading", "--reading", "front.toml"],
+    );
+    let message = failure(&output);
+    assert!(
+        message.contains("is a Git repository") && message.contains("a checkout of maquette"),
+        "{message}"
+    );
+
+    // Nor is a store that sits inside a checkout of maquette, which Git could then take in.
+    let nested = checkout.join("inside");
+    std::fs::create_dir_all(nested.join(".git")).expect("made");
+    std::fs::write(nested.join(".git/HEAD"), "ref: refs/heads/made-up\n").expect("written");
+    std::fs::write(
+        nested.join(".maquette-reference-store"),
+        "made up for a test\n",
+    )
+    .expect("written");
+    let output = maquette_in(Some(&nested), &["check-reading", "--reading", "front.toml"]);
+    let message = failure(&output);
+    assert!(
+        message.contains("inside a checkout of maquette"),
+        "{message}"
+    );
 }
 
 /// A link inside the reference folder that leads out of it is a way out of it like any other.

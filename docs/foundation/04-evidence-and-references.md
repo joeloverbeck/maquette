@@ -24,19 +24,19 @@ Matching measured sources and helping Jon are separate claims with separate evid
 
 ## Reference drawings
 
-A reference is a published drawing whose proportions are measured for a table.
+A reference is a drawing whose proportions are measured for a table. Jon ruled on 2026-11-17 that it is a drawing he rates, whatever its source (comment on #3).
 
-1. **Jon decides which work is competent.** He has named Delicious in Dungeon and Studio Ghibli's films. For a batch he has selected, an agent proposes works with what each official source shows, and he strikes any he does not rate (`EVID-7`).
-2. **The view is stated and checked.** Each reference is front, three-quarter or side, with the head level and upright and the expression neutral. Only official publications are sources, and official model sheets are preferred, because they are drawn that way on purpose. Jon looks before a reference's numbers count: he saw mudsong's agent measure heads that looked slightly down as if they were level.
+1. **Jon decides which drawing counts.** A drawing goes in when it looks good to him as something he would want in a character. It need not be official art or come from an official source: fan art in the anime and manga manner can go in. He gathers a batch himself, or an agent proposes works with what each source shows and he strikes any he does not rate (`EVID-7`).
+2. **The view is stated and checked.** Each reference is front, three-quarter or side, with the head level and upright and the expression neutral; an open mouth lowers the chin and is not read. Model sheets are preferred, because they are drawn that way on purpose. Jon looks before a reference's numbers count: he saw mudsong's agent measure heads that looked slightly down as if they were level.
 3. **A tilted or turned head is rejected, or measured as what it is.** It is never averaged in as level. A three-quarter drawing is measured at the turn it actually shows.
-4. **What each reference is, is noted:** the work, the view, and the character's age band, sex and species.
+4. **What each reference is, is noted:** the work and its designer where they are known, the view, and the character's age band, sex and species.
 5. **An agent's reading is an artificial evaluation** (`EVAL-2`). It is trusted only as far as it has matched drawings whose positions are known and references Jon has checked. Separate agents read every reference twice, and Jon is shown where they disagree.
-6. **A table is measured over several works by several hands.** One series, one artist or one character is not a table, and a view backed by fewer than five works is too thin to be one. Family A's proportions in mudsong came from three faces of one series, so they are not a table and are not brought here.
+6. **A table is measured over many characters by several hands.** It counts characters, one drawing of each in each view, and a view or a proportion backed by fewer than five is too thin to have a range. Beside each count it states how many works the characters come from and how many the work that gives the most gives, so that a range resting on one hand can be seen. One series, one artist or one character is not a table. Family A's proportions in mudsong came from three faces of one series, so they are not a table and are not brought here.
 7. **The comparison case stays out.** Saffi's numbers never enter a table.
 
 ## What is committed, and what never is
 
-Committed: the tables, and the list of works each was measured from. A table gives each proportion's lowest, middle and highest value and the number of works behind it.
+Committed: the tables, and the list of characters each was measured from, with their works and designers where they are known. A table gives each proportion's lowest, middle and highest value, the number of characters behind it and the works they come from.
 
 Also committed, as numbers only: the landmark positions of Saffi's hand-made views, in `data/saffi/`. She is Jon's own character, so the rule below against a landmark set of one identifiable character does not reach her (`02-first-table.md`, "The handoff"). Her numbers never enter a table.
 

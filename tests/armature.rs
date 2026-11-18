@@ -981,6 +981,184 @@ fn the_side_views_guides_are_built_as_the_list_states_for_that_view() {
     stands("hair-front-extent", at(-0.7113) + 232.58, 400.0 - 72.46);
 }
 
+/// The lowest point of the side view's face outline as drawn, in the SVG's y: every curve
+/// sampled, not only its anchors.
+fn outline_lowest(folder: &Path) -> f64 {
+    let svg = svg_text(folder, "side");
+    let document = roxmltree::Document::parse(&svg).expect("the side view is an SVG");
+    let outline = document
+        .descendants()
+        .find(|node| node.attribute("id") == Some("face-outline"))
+        .expect("the face outline");
+    let mut lowest = f64::MIN;
+    let mut at = [0.0, 0.0];
+    for (command, values) in path_commands(outline.attribute("d").expect("d")) {
+        match command {
+            'M' | 'L' => {
+                at = [values[0], values[1]];
+                lowest = lowest.max(at[1]);
+            }
+            'C' => {
+                for step in 0..=64 {
+                    let t = step as f64 / 64.0;
+                    let s = 1.0 - t;
+                    let y = s * s * s * at[1]
+                        + 3.0 * s * s * t * values[1]
+                        + 3.0 * s * t * t * values[3]
+                        + t * t * t * values[5];
+                    lowest = lowest.max(y);
+                }
+                at = [values[4], values[5]];
+            }
+            _ => {}
+        }
+    }
+    lowest
+}
+
+#[test]
+fn a_set_that_gives_the_points_of_the_profile_draws_the_side_views_forehead_bridge_jaw_and_neck_through_them()
+ {
+    let set = support::made_up_profile_set("profile", &[]);
+    let folder = draw("profile", path_text(&set), &[]);
+    let side = landmark_file(&folder, "side");
+    // As in the side view's own test: a point at a depth stands at x = 500 + 200 * (depth +
+    // 0.6375), and at a drop at y = 400 + 200 * drop.
+    let at = |depth: f64| 500.0 + 200.0 * (depth + 0.6375);
+    let down = |drop: f64| 400.0 + 200.0 * drop;
+    let through = |guide: &str| -> Vec<&str> {
+        side.guides[guide]
+            .passes_through
+            .iter()
+            .map(String::as_str)
+            .collect()
+    };
+    let stands = |name: &str, x: f64, y: f64| {
+        let point = &side.landmarks[name];
+        assert_close(point.x, x, 0.0011, &format!("the x of {name}"));
+        assert_close(point.y, y, 0.0011, &format!("the y of {name}"));
+    };
+
+    // The front of the face runs through the forehead at the brow's height and the bridge at
+    // the eye line; under the chin, the underside of the jaw runs back through the top of the
+    // neck's front and the angle of the jaw before it turns up through the jaw line.
+    assert_eq!(
+        through("face-outline"),
+        [
+            "skull-front",
+            "centre-line-at-brow-level",
+            "centre-line-at-eye-level",
+            "nose-tip",
+            "mouth-line-centre",
+            "chin",
+            "neck-front-top",
+            "jaw-right-angle",
+            "jaw-line-right-at-mouth-level",
+            "jaw-line-right-at-nose-level",
+            "jaw-line-right-at-eye-level",
+            "jaw-line-right-top",
+        ]
+    );
+    // brow_inner_end_rise 0.2129, and the points of the profile as the set gives them.
+    stands("centre-line-at-brow-level", at(0.2311), down(-0.2129));
+    stands("centre-line-at-eye-level", at(0.2127), down(0.0));
+    stands("neck-front-top", at(-0.1873), down(0.9631));
+    stands("jaw-right-angle", at(-0.4627), down(0.8873));
+    // The neck's two lines run through their own two points.
+    assert_eq!(through("neck-front"), ["neck-front-top", "neck-front-base"]);
+    assert_eq!(through("neck-back"), ["neck-back-top", "neck-back-base"]);
+    stands("neck-front-base", at(-0.2371), down(1.3127));
+    stands("neck-back-top", at(-1.2129), down(0.6373));
+    stands("neck-back-base", at(-1.3373), down(1.0871));
+
+    // Each is a point in space: every view's landmark file holds it at the same height. The
+    // three-quarter view's centre line runs through the forehead too.
+    let front = landmark_file(&folder, "front");
+    let three_quarter = landmark_file(&folder, "three-quarter");
+    for name in [
+        "centre-line-at-brow-level",
+        "jaw-right-angle",
+        "jaw-left-angle",
+        "neck-front-top",
+        "neck-front-base",
+        "neck-back-top",
+        "neck-back-base",
+    ] {
+        let y = front.landmarks[name].y;
+        for file in [&three_quarter, &side] {
+            assert_close(file.landmarks[name].y, y, 0.0011, name);
+        }
+    }
+    let centre_line: Vec<&str> = three_quarter.guides["centre-line"]
+        .passes_through
+        .iter()
+        .map(String::as_str)
+        .collect();
+    assert_eq!(
+        centre_line[..4],
+        [
+            "skull-top",
+            "skull-front",
+            "centre-line-at-brow-level",
+            "centre-line-at-eye-level"
+        ]
+    );
+    // The angle of the jaw stands at the half-width of the outline at the mouth level,
+    // 0.5371 to each side, a convention: nothing measures its offset.
+    let offset = |name: &str| front.landmarks[name].x - front.frame("turn_axis_x");
+    assert_close(
+        offset("jaw-left-angle"),
+        200.0 * 0.5371,
+        0.0011,
+        "the offset",
+    );
+    assert_close(
+        offset("jaw-right-angle"),
+        -200.0 * 0.5371,
+        0.0011,
+        "the offset",
+    );
+
+    // The chin is the outline's lowest point, as the reading instructions define it in a side
+    // view: where the outline stops running down and turns back under the jaw. The top of the
+    // neck's front stands above it here, at 0.9631, so nothing of the outline is lower, with
+    // the angle of the jaw and without it.
+    assert_close(
+        outline_lowest(&folder),
+        down(1.0),
+        0.0011,
+        "the outline's lowest point",
+    );
+    let without_angle = scratch("profile-no-angle-set").join("proportions.toml");
+    let lines: String = text(&set)
+        .lines()
+        .filter(|line| !line.starts_with("jaw_angle_"))
+        .map(|line| format!("{line}\n"))
+        .collect();
+    std::fs::write(&without_angle, lines).expect("written");
+    let no_angle = draw("profile-no-angle", path_text(&without_angle), &[]);
+    assert_close(
+        outline_lowest(&no_angle),
+        down(1.0),
+        0.0011,
+        "the outline's lowest point with no angle of the jaw",
+    );
+
+    // The side view's landmark file says which proportions of the profile it is drawn with.
+    let profile: Vec<&str> = side.table["profile"]
+        .as_array()
+        .expect("the proportions of the profile")
+        .iter()
+        .map(|name| name.as_str().expect("a name"))
+        .collect();
+    assert_eq!(profile.len(), 12);
+    assert!(profile.contains(&"bridge_depth") && profile.contains(&"neck_back_base_depth"));
+    // A set that gives none of them has no such line, as Saffi's accepted files do not.
+    let plain = landmark_file(&draw("profile-none", MADE_UP, &[]), "side");
+    assert!(!plain.table.contains_key("profile"));
+    assert!(!plain.landmarks.contains_key("centre-line-at-brow-level"));
+}
+
 #[test]
 fn the_front_view_is_symmetric_left_to_right() {
     let folder = draw("front-symmetry", MADE_UP, &["--unit", "173.3"]);
@@ -1415,6 +1593,45 @@ fn take_back(folder: &Path, with_side: bool) -> PathBuf {
 }
 
 #[test]
+fn the_proportions_of_the_profile_are_taken_back_from_the_side_view_that_names_them() {
+    let set = support::made_up_profile_set("taken-back-profile", &[]);
+    let folder = draw("taken-back-profile", path_text(&set), &[]);
+    let given = support::proportions(&set);
+    let profile: Vec<&str> = support::MADE_UP_PROFILE
+        .lines()
+        .filter_map(|line| line.split(" = ").next())
+        .collect();
+    assert_eq!(profile.len(), 12);
+
+    // With the side view's landmark file every proportion comes back, those of the profile
+    // with the rest. Positions are written to three decimals at 200 to the unit.
+    let with_side = support::proportions(&take_back(&folder, true));
+    for (name, value) in &given {
+        let came_back = with_side
+            .get(name)
+            .unwrap_or_else(|| panic!("{name} did not come back"));
+        assert_close(*came_back, *value, 0.00001, name);
+    }
+    // Without it, none of the profile does: the front and three-quarter views do not draw it.
+    let without = support::proportions(&take_back(&folder, false));
+    for name in &profile {
+        assert!(
+            !without.contains_key(*name),
+            "{name} came back without the side view"
+        );
+    }
+    // A head drawn with none of them gives none back, though its side view has a bridge.
+    let plain = draw("taken-back-no-profile", MADE_UP, &[]);
+    let plain_back = support::proportions(&take_back(&plain, true));
+    for name in &profile {
+        assert!(
+            !plain_back.contains_key(*name),
+            "{name} came back from a plain head"
+        );
+    }
+}
+
+#[test]
 fn a_correction_the_side_view_carries_is_taken_back_with_the_proportions() {
     // The made-up set with its made-up correction: the chin set back by 0.0625 of a unit and
     // the mouth by 0.0375. At a unit of 173.3 the side view's landmark file gives them as
@@ -1640,4 +1857,130 @@ fn a_correction_the_list_does_not_define_or_with_a_wrong_amount_is_refused_in_pl
             "{name}: files were written for a refused set"
         );
     }
+}
+
+/// Draws the made-up set with the tip of the nose given a height of its own: a tenth of a
+/// unit above the nose mark's bottom, which stands 0.4629 below the eye line.
+fn draw_with_a_nose_tip(name: &str) -> PathBuf {
+    let set = scratch(&format!("{name}-set")).join("proportions.toml");
+    let made_up = text(&support::repository().join(MADE_UP));
+    assert!(made_up.contains("\nnose_tip_drop = 0.4629\n"));
+    std::fs::write(
+        &set,
+        made_up.replace("\nnose_tip_drop = 0.4629\n", "\nnose_tip_drop = 0.3629\n"),
+    )
+    .expect("the set is written");
+    draw(name, path_text(&set), &[])
+}
+
+#[test]
+fn a_nose_tip_of_its_own_is_drawn_in_the_turned_views_and_the_front_view_keeps_its_nose_mark() {
+    let plain = draw("nose-tip-at-the-nose-mark", MADE_UP, &[]);
+    let folder = draw_with_a_nose_tip("nose-tip-of-its-own");
+
+    // The tip is one point in space: on the centre line, at its own height, 0.3629 units
+    // below the eye line, and at the depth the nose mark's bottom is given. Every view
+    // lists it, and the nose mark's bottom stays where it was.
+    for view in VIEWS {
+        let file = landmark_file(&folder, view);
+        let tip = file.landmarks["nose-tip"];
+        let bottom = file.landmarks["nose-mark-bottom"];
+        assert_close(
+            tip.y,
+            400.0 + 0.3629 * 200.0,
+            0.0011,
+            &format!("{view}: the tip"),
+        );
+        assert_close(
+            bottom.y,
+            400.0 + 0.4629 * 200.0,
+            0.0011,
+            &format!("{view}: the mark"),
+        );
+        assert_close(
+            tip.x,
+            bottom.x,
+            1e-9,
+            &format!("{view}: on one upright line"),
+        );
+        assert_eq!(tip.depth, bottom.depth, "{view}");
+    }
+    // In the side view a point stands sideways at its depth: 0.3377 in front of the eyes,
+    // from an axis at the skull's centre, 0.6375 behind them.
+    let side = landmark_file(&folder, "side");
+    assert_close(
+        side.landmarks["nose-tip"].x,
+        500.0 + (0.3377 + 0.6375) * 200.0,
+        0.0011,
+        "the tip in the side view",
+    );
+
+    // The turned views run through the tip: the side view's face outline and nose mark, and
+    // the three-quarter view's centre line and nose mark. No guide of theirs runs through
+    // the nose mark's bottom.
+    let through = |file: &LandmarkFile, guide: &str| file.guides[guide].passes_through.clone();
+    assert_eq!(
+        through(&side, "nose-mark"),
+        ["nose-mark-right-corner", "nose-tip"]
+    );
+    assert!(through(&side, "face-outline").contains(&"nose-tip".to_string()));
+    let three_quarter = landmark_file(&folder, "three-quarter");
+    assert_eq!(
+        through(&three_quarter, "nose-mark"),
+        [
+            "nose-mark-right-corner",
+            "nose-tip",
+            "nose-mark-left-corner"
+        ]
+    );
+    assert!(through(&three_quarter, "centre-line").contains(&"nose-tip".to_string()));
+    for file in [&side, &three_quarter] {
+        for (name, guide) in &file.guides {
+            assert!(
+                !guide
+                    .passes_through
+                    .contains(&"nose-mark-bottom".to_string()),
+                "{name} runs through the nose mark's bottom in a turned view"
+            );
+        }
+    }
+    // The front view marks the base of the nose, and is drawn as it was: the same bytes.
+    let front = landmark_file(&folder, "front");
+    assert_eq!(
+        through(&front, "nose-mark"),
+        [
+            "nose-mark-right-corner",
+            "nose-mark-bottom",
+            "nose-mark-left-corner"
+        ]
+    );
+    assert_eq!(svg_text(&folder, "front"), svg_text(&plain, "front"));
+    // The turned views are not: the tip stands 20 units higher than the mark's bottom.
+    assert_ne!(svg_text(&folder, "side"), svg_text(&plain, "side"));
+    assert_ne!(
+        svg_text(&folder, "three-quarter"),
+        svg_text(&plain, "three-quarter")
+    );
+
+    // A set that gives the tip the height of the nose mark's bottom has one point for both:
+    // none of its files names a tip.
+    for view in VIEWS {
+        let file = landmark_file(&plain, view);
+        assert!(!file.landmarks.contains_key("nose-tip"), "{view}");
+        assert!(
+            !text(&plain.join(format!("{view}.landmarks.toml"))).contains("nose-tip"),
+            "{view}"
+        );
+    }
+
+    // Taken back from the landmark files, the tip has its own height and the mark its own.
+    let taken_back = take_back(&folder, false);
+    let came_back = support::proportions(&taken_back);
+    assert_close(came_back["nose_tip_drop"], 0.3629, 1e-4, "the tip");
+    assert_close(came_back["nose_mark_bottom_drop"], 0.4629, 1e-4, "the mark");
+    let plain_back = support::proportions(&take_back(&plain, false));
+    assert_eq!(
+        plain_back["nose_tip_drop"],
+        plain_back["nose_mark_bottom_drop"]
+    );
 }

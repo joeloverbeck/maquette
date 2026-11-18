@@ -208,6 +208,82 @@ const DEPTHS_NOT_FROM_A_SIDE_VIEW: [&str; 5] = [
     "jaw_depth",
 ];
 
+/// How far above the front view's nose mark a made-up side reading places the tip of the
+/// nose, in units: the generator draws the made-up head at 200 pixels to the unit.
+const TIP_ABOVE_THE_NOSE_MARK: f64 = 0.1;
+
+/// The points of the profile a side view is asked for since revision 2026-11-17.4, and the
+/// proportions each gives: a height where the list takes one, and a depth.
+const PROFILE: [(&str, Option<&str>, &str); 7] = [
+    ("centre-line-at-brow-level", None, "forehead_depth"),
+    ("centre-line-at-eye-level", None, "bridge_depth"),
+    ("jaw-right-angle", Some("jaw_angle_drop"), "jaw_angle_depth"),
+    (
+        "neck-front-top",
+        Some("neck_front_top_drop"),
+        "neck_front_top_depth",
+    ),
+    (
+        "neck-front-base",
+        Some("neck_front_base_drop"),
+        "neck_front_base_depth",
+    ),
+    (
+        "neck-back-top",
+        Some("neck_back_top_drop"),
+        "neck_back_top_depth",
+    ),
+    (
+        "neck-back-base",
+        Some("neck_back_base_drop"),
+        "neck_back_base_depth",
+    ),
+];
+
+/// Made up: the generator draws no point of the forehead and no angle of the jaw, so a made-up
+/// side reading places them where these say, in units: the forehead's depth, at the height of
+/// the brow's front end, and the jaw angle's drop and depth.
+const MADE_UP_FOREHEAD_DEPTH: f64 = 0.24;
+const MADE_UP_JAW_ANGLE: [f64; 2] = [0.71, -0.48];
+
+/// Where a made-up side reading places a point of the profile in the generated side view, as
+/// that view draws it, facing the viewer's right at its own size; and the drop and the depth
+/// that place gives, in units, worked out here from the landmark file's frame by the list's
+/// definitions: a drop is how far below the eye line, and depth zero shows at the turn
+/// axis's x less the axis's own depth.
+fn profile_point(file: &LandmarkFile, landmark: &str) -> ([f64; 2], f64, f64) {
+    let unit = file.frame("unit");
+    let eye_line = file.frame("eye_line_y");
+    let zero_x = file.frame("turn_axis_x") - file.frame("turn_axis_depth");
+    let at = |drop: f64, depth: f64| ([zero_x + depth * unit, eye_line + drop * unit], drop, depth);
+    match landmark {
+        "centre-line-at-brow-level" => {
+            let brow = file.point("brow-line-right-inner-end");
+            at((brow.y - eye_line) / unit, MADE_UP_FOREHEAD_DEPTH)
+        }
+        "jaw-right-angle" => at(MADE_UP_JAW_ANGLE[0], MADE_UP_JAW_ANGLE[1]),
+        _ => {
+            let point = file.point(landmark);
+            at((point.y - eye_line) / unit, (point.x - zero_x) / unit)
+        }
+    }
+}
+
+/// What a side view gives for each proportion of the profile, by [`profile_point`].
+fn profile_given() -> std::collections::BTreeMap<&'static str, f64> {
+    let generated = draw("proportions-profile-generated", MADE_UP, &[]);
+    let file = LandmarkFile::read(&generated.join("side.landmarks.toml"));
+    let mut given = std::collections::BTreeMap::new();
+    for (landmark, drop, depth) in PROFILE {
+        let (_, at_drop, at_depth) = profile_point(&file, landmark);
+        if let Some(drop) = drop {
+            given.insert(drop, at_drop);
+        }
+        given.insert(depth, at_depth);
+    }
+    given
+}
+
 /// A made-up reading of the made-up head's side view, as the generator draws it, on a
 /// picture of its own: drawn `scale` times the size of the front view and moved by `shift`,
 /// and facing the viewer's left when `faces_left`, which flips the picture left to right.
@@ -252,10 +328,28 @@ fn side_reading(folder: &Path, name: &str, scale: f64, shift: [f64; 2], faces_le
         } else {
             facing_right
         };
-        let point = file.point(&generated);
+        let point = match PROFILE.iter().any(|(profile, _, _)| *profile == generated) {
+            true => {
+                let ([x, y], _, _) = profile_point(&file, &generated);
+                support::Point {
+                    x,
+                    y,
+                    depth: None,
+                    drawn_at_depth: None,
+                }
+            }
+            false => file.point(&generated),
+        };
         let x = shift[0] + scale * point.x;
         let x = if faces_left { 1000.0 - x } else { x };
-        Some([x, shift[1] + scale * point.y])
+        // A reader of a profile places `nose-mark-bottom` under the tip of the nose, which
+        // stands above the front view's nose mark: made up here as a tenth of a unit higher.
+        let y = if landmark == "nose-mark-bottom" {
+            point.y - TIP_ABOVE_THE_NOSE_MARK * 200.0
+        } else {
+            point.y
+        };
+        Some([x, shift[1] + scale * y])
     };
     let filled = filled_in(&text(&folder.join(&out)), 90.0, &place);
     std::fs::write(folder.join(&out), filled).expect("the reading is written");
@@ -287,7 +381,20 @@ fn a_front_view_alone_gives_the_heights_and_the_widths_and_says_why_no_depth() {
         .chain(&DEPTHS_NOT_FROM_A_SIDE_VIEW)
         .copied()
         .collect();
-    assert_eq!(not_given.len(), depths.len() + SKULL.len(), "{not_given:?}");
+    // Nor the tip of the nose: a front view draws the nose mark, at the base of the nose.
+    assert_eq!(
+        not_given.len(),
+        depths.len() + SKULL.len() + 1,
+        "{not_given:?}"
+    );
+    let why = not_given["nose_tip_drop"].as_str().expect("a reason");
+    assert!(why.contains("not the tip of the nose"), "{why}");
+    // The proportions of the profile, which only a side view is asked for and a set may leave
+    // out, are neither given nor said to be missing: no view that could give them was read.
+    for name in profile_given().keys() {
+        assert!(!not_given.contains_key(*name), "{name}");
+        assert!(!given.contains_key(*name), "{name}");
+    }
     for name in &depths {
         let why = not_given[*name].as_str().expect("a reason");
         assert!(why.contains("a front view shows no depth"), "{name}: {why}");
@@ -321,6 +428,7 @@ fn a_front_and_a_side_view_give_depth_whatever_size_and_way_the_side_view_is_dra
     side_reading(&folder, "side-small-left", 0.55, [130.0, 210.0], true);
     side_reading(&folder, "side-large", 1.3, [-220.0, -100.0], false);
     let put_in = proportions(&support::repository().join(MADE_UP));
+    let profile = profile_given();
 
     for side in ["side", "side-small-left", "side-large"] {
         let found = taken_from(
@@ -357,16 +465,27 @@ fn a_front_and_a_side_view_give_depth_whatever_size_and_way_the_side_view_is_dra
             DEPTHS_NOT_FROM_A_SIDE_VIEW.len() + SKULL.len(),
             "{side}: {not_given:?}"
         );
-        // Heights and widths are the front view's.
-        assert_eq!(given.len(), put_in.len() - not_given.len());
+        // Heights and widths are the front view's. The tip of the nose is the one height of
+        // the list's first part that a side view gives of its own: where it places
+        // `nose-mark-bottom`, in its own unit, while the nose mark's bottom keeps the front
+        // view's height. The points of the profile give their heights and depths, in the side
+        // view's own unit, which the made-up set leaves out.
+        assert_eq!(
+            given.len(),
+            put_in.len() - not_given.len() + profile.len(),
+            "{side}"
+        );
         for (name, value) in given {
-            assert_close(
-                number(value),
-                put_in[name],
-                4e-4,
-                &format!("{side}: {name}"),
-            );
+            let expected = if name == "nose_tip_drop" {
+                put_in["nose_mark_bottom_drop"] - TIP_ABOVE_THE_NOSE_MARK
+            } else if let Some(profile) = profile.get(name.as_str()) {
+                *profile
+            } else {
+                put_in[name]
+            };
+            assert_close(number(value), expected, 4e-4, &format!("{side}: {name}"));
         }
+        assert!(given.contains_key("nose_tip_drop"), "{side}");
         let source = found["source"].as_table().expect("[source]");
         assert!(
             source["depth_from"]
@@ -564,4 +683,145 @@ fn the_list_states_the_skull_rule_and_keeps_the_skull_a_convention() {
         .expect("the skull's construction");
     assert!(skull.contains("ear") && skull.contains("temple"), "{skull}");
     assert!(skull.contains("hair"), "{skull}");
+}
+
+/// A made-up reading of one view of a generated head, as a reader following the reading
+/// instructions places it: in a front view every landmark where the view draws it, and in a
+/// side view by the side view's own definitions, where several are other points of the drawing
+/// than the generator's names.
+fn read_as_instructed(folder: &Path, file: &LandmarkFile, view: &str, picture_height: u32) {
+    let picture = format!("{view}.png");
+    // Pictures of two sizes: two pictures.
+    made_up_image(&folder.join(&picture), 1000, picture_height);
+    let out = format!("{view}.toml");
+    let mut arguments = vec![
+        "start-reading",
+        "--image",
+        &picture,
+        "--view",
+        view,
+        "--reader",
+        "made-up reader",
+        "--out",
+        &out,
+    ];
+    if view == "side" {
+        arguments.extend(["--faces", "right"]);
+    }
+    measure_ok(folder, &arguments);
+    let place = |landmark: &str| -> Option<[f64; 2]> {
+        let drawn = match (view, landmark) {
+            // In a profile `nose-mark-bottom` is under the tip of the nose: going down the
+            // bridge and round the tip, where the outline turns back toward the face. The
+            // generator's outline turns there at the tip.
+            ("side", "nose-mark-bottom") => "nose-tip".to_string(),
+            // In a profile these are where the back edge of the jaw crosses the levels, which
+            // the list of proportions calls the jaw line.
+            ("side", name) if name.starts_with("face-outline-right-at") => {
+                name.replace("face-outline", "jaw-line")
+            }
+            // The generator draws the iris edge on, as an upright line at its centre.
+            ("side", name) if name.starts_with("iris-right-") && name.ends_with("-extent") => {
+                "iris-right-centre".to_string()
+            }
+            (_, name) => name.to_string(),
+        };
+        let point = file.point(&drawn);
+        Some([point.x, point.y])
+    };
+    let turn = if view == "side" { 90.0 } else { 0.0 };
+    let filled = filled_in(&text(&folder.join(&out)), turn, &place);
+    std::fs::write(folder.join(&out), filled).expect("the reading is written");
+    measure_ok(folder, &["check-reading", "--reading", &out]);
+}
+
+#[test]
+fn a_made_up_head_with_a_real_nose_read_as_the_instructions_define_gives_itself_back_and_draws_again()
+ {
+    // The made-up set, with the points of the profile and a tip of the nose apart from the
+    // nose mark's bottom, as a published profile has: not flat-faced as an armature is.
+    // A side view gives the neck's depth as the midpoint of its two bases, so a set that gives
+    // both gives it there: (-0.2371 - 1.3373) / 2 = -0.7872.
+    let set = support::made_up_profile_set(
+        "read-as-instructed",
+        &[("neck_depth = -0.8879", "neck_depth = -0.7872")],
+    );
+    let put_in = proportions(&set);
+    let first = draw("read-as-instructed-first", path_text(&set), &[]);
+
+    let folder = references("read-as-instructed");
+    let file = |view: &str| LandmarkFile::read(&first.join(format!("{view}.landmarks.toml")));
+    read_as_instructed(&folder, &file("front"), "front", 1000);
+    read_as_instructed(&folder, &file("side"), "side", 990);
+    let taken = taken_from(
+        &folder,
+        &["--front", "front.toml", "--side", "side.toml"],
+        "proportions.toml",
+    );
+    let given = taken["proportions"].as_table().expect("[proportions]");
+
+    // What a front view and a side view give comes back as it was put in: the tip of the
+    // nose at its own height, above the base, and every point of the profile.
+    assert_close(number(&given["nose_tip_drop"]), 0.3627, 2e-4, "the tip");
+    assert_close(
+        number(&given["nose_mark_bottom_drop"]),
+        0.4629,
+        2e-4,
+        "the base",
+    );
+    let not_from_these: Vec<&str> = SKULL
+        .iter()
+        .chain(DEPTHS_NOT_FROM_A_SIDE_VIEW.iter())
+        .copied()
+        .collect();
+    for (name, value) in &put_in {
+        if not_from_these.contains(&name.as_str()) {
+            assert!(!given.contains_key(name), "{name} is given");
+            continue;
+        }
+        let came_back = given
+            .get(name)
+            .unwrap_or_else(|| panic!("{name} is not given"));
+        assert_close(number(came_back), *value, 2e-4, name);
+    }
+
+    // Drawn again, with what a side view cannot give taken from the set it was drawn from,
+    // every landmark of every view stands where it stood.
+    let mut again = String::from(
+        "# Made up for a test: a set taken back from made-up readings.\n[proportions]\n",
+    );
+    for (name, value) in &put_in {
+        let value = given.get(name).map_or(*value, number);
+        again.push_str(&format!("{name} = {value:?}\n"));
+    }
+    let again_path = scratch("read-as-instructed-again-set").join("proportions.toml");
+    std::fs::write(&again_path, again).expect("written");
+    let second = draw("read-as-instructed-second", path_text(&again_path), &[]);
+    for view in ["front", "three-quarter", "side"] {
+        let (before, after) = (
+            file(view),
+            LandmarkFile::read(&second.join(format!("{view}.landmarks.toml"))),
+        );
+        assert_eq!(
+            before.landmarks.keys().collect::<Vec<_>>(),
+            after.landmarks.keys().collect::<Vec<_>>(),
+            "{view}"
+        );
+        for (name, at) in &before.landmarks {
+            let moved = &after.landmarks[name];
+            // A unit is 200 here, and a proportion comes back to 2e-4 of one.
+            assert_close(
+                moved.x,
+                at.x,
+                0.05,
+                &format!("{name} across, in the {view} view"),
+            );
+            assert_close(
+                moved.y,
+                at.y,
+                0.05,
+                &format!("{name} down, in the {view} view"),
+            );
+        }
+    }
 }

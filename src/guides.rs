@@ -17,7 +17,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::head_model::{Head, OUTLINE_LEVELS};
+use crate::head_model::{BRIDGE, FOREHEAD, Head, OUTLINE_LEVELS, jaw_angle};
 use crate::number::round3;
 use crate::views::{Seen, View};
 
@@ -272,6 +272,19 @@ fn names(list: &[&str]) -> Vec<String> {
     list.iter().map(|name| name.to_string()).collect()
 }
 
+/// The centre line's landmarks from the skull's front down to the chin: through the forehead
+/// where the set gives it, the centre line at the eye line, the nose point of the view, and
+/// the mouth line's centre. Every view that draws the centre line or the front of the face
+/// outline runs through these.
+fn centre_line_from_the_skull(head: &Head, nose_point: &str) -> Vec<String> {
+    let mut anchors = names(&["skull-front"]);
+    if head.has(FOREHEAD) {
+        anchors.push(FOREHEAD.to_string());
+    }
+    anchors.extend(names(&[BRIDGE, nose_point, "mouth-line-centre", "chin"]));
+    anchors
+}
+
 /// The opening and the lid line of one eye, which every view builds alike from the eye's
 /// landmarks as that view shows them.
 fn eye_opening_and_lid_line(guides: &mut Guides, side: &str, group: &'static str) {
@@ -348,6 +361,9 @@ const NEAR: &str = "right";
 
 /// Builds every guide of the side view. `proportions/list.toml` states each construction.
 fn build_side(head: &Head, seen: &Seen) -> Guides {
+    // The nose point of a turned view: the tip of the nose, or the nose mark's bottom where
+    // the two are one point.
+    let nose_point = head.nose_point();
     let mut guides = Guides {
         guides: Vec::new(),
         view_points: Vec::new(),
@@ -421,19 +437,33 @@ fn build_side(head: &Head, seen: &Seen) -> Guides {
     }
 
     // Face outline: down the centre line's landmarks from the skull's front to the chin, then
-    // back and up through the jaw-line points.
-    let mut outline_anchors = names(&[
-        "skull-front",
-        "centre-line-at-eye-level",
-        "nose-mark-bottom",
-        "mouth-line-centre",
-        "chin",
-    ]);
+    // back and up through the jaw-line points. Where the set gives the points of the profile,
+    // the front runs through the forehead and the bridge, and the underside of the jaw runs
+    // back from the chin through the top of the neck's front and the angle of the jaw.
+    let near_angle = jaw_angle(NEAR);
+    let mut outline_anchors = centre_line_from_the_skull(head, nose_point);
+    let chin_at = outline_anchors.len() - 1;
+    for under in ["neck-front-top", near_angle.as_str()] {
+        if head.has(under) {
+            outline_anchors.push(under.to_string());
+        }
+    }
     for level in OUTLINE_LEVELS.iter().rev() {
         outline_anchors.push(format!("jaw-line-{NEAR}-{level}"));
     }
     let outline = guides.positions_of(&outline_anchors);
-    let outline_stretches = smooth(&outline, &[]);
+    // The chin is the outline's lowest point, where it turns from running down the face to
+    // running back under the jaw: the curve runs level there, and does not sag below it on its
+    // way back to a neck that meets the jaw above the chin's height.
+    let mut directions = vec![None; outline.len()];
+    directions[chin_at] = LEVEL;
+    // The underside of the jaw runs on from the chin through the top of the neck's front, so
+    // the curve keeps that line's direction there and turns up toward the ear after it.
+    if outline_anchors.get(chin_at + 1).map(String::as_str) == Some("neck-front-top") {
+        let (chin, throat) = (outline[chin_at], outline[chin_at + 1]);
+        directions[chin_at + 1] = Some(unit_vector([throat[0] - chin[0], throat[1] - chin[1]]));
+    }
+    let outline_stretches = smooth(&outline, &directions);
     guides.add(
         "face-outline",
         None,
@@ -448,9 +478,14 @@ fn build_side(head: &Head, seen: &Seen) -> Guides {
     // Level lines: each spans the face outline at its height, from the jaw line to the front.
     {
         let nose_y = guides.position(&format!("jaw-line-{NEAR}-at-nose-level"))[1];
-        // The front of the outline is its first four stretches, down to the chin.
-        let front_x = furthest_crossing(&outline[..5], &outline_stretches[..4], 1, nose_y)
-            .unwrap_or_else(|| guides.position("nose-mark-bottom")[0]);
+        // The front of the outline is its stretches down to the chin.
+        let front_x = furthest_crossing(
+            &outline[..=chin_at],
+            &outline_stretches[..chin_at],
+            1,
+            nose_y,
+        )
+        .unwrap_or_else(|| guides.position(nose_point)[0]);
         let nose_front = guides.view_point(
             "face-outline-front-at-nose-level".to_string(),
             front_x,
@@ -502,10 +537,7 @@ fn build_side(head: &Head, seen: &Seen) -> Guides {
         None,
         Paint::Form,
         Shape::Line,
-        vec![
-            format!("nose-mark-{NEAR}-corner"),
-            "nose-mark-bottom".to_string(),
-        ],
+        vec![format!("nose-mark-{NEAR}-corner"), nose_point.to_string()],
     );
     guides.add(
         "mouth-line",
@@ -520,7 +552,8 @@ fn build_side(head: &Head, seen: &Seen) -> Guides {
 
     ear(&mut guides, NEAR);
 
-    // Neck: the same upright round column. Its two lines are its back and its front.
+    // Neck: the same upright round column. Its two lines are its back and its front. Where
+    // the set gives a point of the profile at an end of a line, the line runs through it.
     {
         let middle = seen.x_at(head.neck_depth);
         let half = seen.length(head.neck_half_width);
@@ -529,11 +562,20 @@ fn build_side(head: &Head, seen: &Seen) -> Guides {
         let skull = guides.position("skull-centre");
         let radius = seen.length(head.skull_radius);
         for (end, x) in [("back", middle - half), ("front", middle + half)] {
-            let start_y = neck_line_start(x, &outline, &outline_stretches, skull, radius, chin_y);
-            let anchors = vec![
-                guides.view_point(format!("neck-{end}-top"), x, start_y),
-                guides.view_point(format!("neck-{end}-base"), x, base_y),
-            ];
+            let (top, base) = (format!("neck-{end}-top"), format!("neck-{end}-base"));
+            let top = match head.has(&top) {
+                true => top,
+                false => {
+                    let start_y =
+                        neck_line_start(x, &outline, &outline_stretches, skull, radius, chin_y);
+                    guides.view_point(top, x, start_y)
+                }
+            };
+            let base = match head.has(&base) {
+                true => base,
+                false => guides.view_point(base, x, base_y),
+            };
+            let anchors = vec![top, base];
             guides.add(
                 &format!("neck-{end}"),
                 Some("neck"),
@@ -572,6 +614,14 @@ pub fn build(head: &Head, seen: &Seen) -> Guides {
     if seen.view == View::Side {
         return build_side(head, seen);
     }
+    // The three-quarter view's centre line and nose mark run through the nose point of a
+    // turned view, the tip of the nose. The front view's run through the nose mark's bottom:
+    // the base of the nose is what a front view marks.
+    let nose_point = if seen.view == View::ThreeQuarter {
+        head.nose_point()
+    } else {
+        "nose-mark-bottom"
+    };
     let mut guides = Guides {
         guides: Vec::new(),
         view_points: Vec::new(),
@@ -689,14 +739,8 @@ pub fn build(head: &Head, seen: &Seen) -> Guides {
     // Centre line: along the skull from its top to its front, a quarter of an ellipse, then
     // smoothly through the eye line, the nose mark's bottom, the mouth line's centre and the chin.
     {
-        let anchors = names(&[
-            "skull-top",
-            "skull-front",
-            "centre-line-at-eye-level",
-            "nose-mark-bottom",
-            "mouth-line-centre",
-            "chin",
-        ]);
+        let mut anchors = names(&["skull-top"]);
+        anchors.extend(centre_line_from_the_skull(head, nose_point));
         let points = guides.positions_of(&anchors);
         let (top, front) = (points[0], points[1]);
         let mut stretches = vec![Stretch::Curve {
@@ -780,7 +824,7 @@ pub fn build(head: &Head, seen: &Seen) -> Guides {
         Shape::Polyline,
         names(&[
             "nose-mark-right-corner",
-            "nose-mark-bottom",
+            nose_point,
             "nose-mark-left-corner",
         ]),
     );

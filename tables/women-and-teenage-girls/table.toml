@@ -1,0 +1,1506 @@
+# A proportion table, by `maquette table-from-readings`: for each proportion of the list, the
+# number of characters whose accepted readings give it, the works they come from and, where
+# five or more characters do, the lowest, the middle and the highest value among them.
+# `maquette list-proportions` defines each proportion.
+#
+# It is a proposal until Jon has accepted it. [rules] says what it is built from, what it
+# counts, when a proportion has a valid range, and what the table does not say.
+
+[table]
+built_from = "the records of Jon's checks at Look 4 of 8, checked on 2026-11-17, and at Look 7 of 8, checked on 2026-11-18"
+characters = 20
+works = 12
+characters_for_a_table = 5
+proportions = 86
+given = 56
+too_thin = 20
+no_character = 7
+conventions = 3
+# Accepted and not measured. `maquette jons-check` says why.
+left_out = [
+  "the side view of `work-3` is not measured by the record of Jon's check at Look 7 of 8, checked on 2026-11-18, and another record's readings of it are",
+  "`character-2` has no measured front view, and heights and widths are the front view's: nothing is taken from it",
+  "the three-quarter view of `character-6` is not used: its depth is taken from its side view",
+  "the three-quarter view of `character-7` is not used: its depth is taken from its side view",
+  "the three-quarter view of `character-14` is not used: its depth is taken from its side view",
+]
+bands = [{ band = "adult", characters = 14 }, { band = "teenage", characters = 6 }]
+
+[rules]
+built_from = "A table is built from the records of Jon's checks and from nothing else: the readings of each character he accepted, each drawing as its record rules it, with what he marked as off left out. A drawing that is set aside or not called level is left out, and so is a character he rejected. A record names its readings from the folder it is in, so the records of several batches, each in its own folder, can build one table."
+read_again = "A label that several records name is one character, and its readings must say the same reference in each; a character accepted in one record and rejected in another builds no table. One drawing may be read again under a later revision of the reading instructions, which asks for points the earlier did not: the earlier readings, which Jon accepted first, give every proportion they give, and the later ones only what the earlier were not asked for. Two measured drawings of a view that are two pictures, or one picture read twice under one revision, build no table."
+a_character = "A table counts characters: one drawing of each accepted character in each view. Heights and widths are taken from a character's front view, so a character with no measured front view gives nothing. Depth is taken from its side view where one is measured, and otherwise from its three-quarter view at the turn the readings show."
+works = "Beside each count of characters stands the number of works they come from, and how many of them the work that gives the most gives, so that a range resting on one hand can be seen: several characters of one work's sheets are drawn by one hand or a few. A work is what the characters' readings name as their work, word for word, with its designer where it is known. Characters whose work is not known are counted under the words their readings give, so they may join drawings by different hands, or part drawings by one."
+values = "For each proportion: the number of characters that give it and, where it has a range, the lowest, the middle and the highest value among them. The middle is the median: the middle value in order, or midway between the two middle values of an even number of characters. Every value is in units, a length over the height from the eye line down to the chin."
+floor = "A proportion with five characters or more behind it is given: its valid range runs from its lowest value to its highest. A proportion with fewer is too thin: the table says how many characters stand behind it and why the others do not give it, and states no number, because the values of one to four characters are those characters' own numbers. It has no range, and nothing is set against it. The floor is held proportion by proportion. In a view that has five characters, a proportion that hair or a mark of Jon's leaves with fewer is too thin all the same, because a range is backed only by the characters that show that feature. A view with fewer than five characters is reported as too thin and is not a table. The floor counts characters and not works; how many works stand behind a range is stated beside it, and is not a floor."
+age_bands = "Where the characters are of more than one age band, as their readings give it, each proportion also states each band's own count of characters and, where five or more of a band give it, that band's own lowest, middle and highest value, with whether the ranges of every two bands overlap. The table's own range is of every character, whatever its band. Where the ranges overlap, that proportion does not tell the bands apart on the characters measured, and where they do not, it does. Neither tests whether the bands differ beyond those characters: ranges that overlap may still be of bands that differ, and ranges that do not may rest on few characters of few works."
+conventions = "A convention is built by a stated rule and is never a measurement: it has no valid range, however many characters the rule could be run on, and the table states no number for it."
+separate_ranges = "Each range is separate. The table does not rule on which combinations of proportions go together: a head with every proportion inside its range may still be one that no reference shows."
+single_references = "A lowest value and a highest value are each one reference's number. The table does not tie them to a work."
+comparison_case = "No comparison case's numbers are in a table. The command that builds one takes the record of Jon's check and no set of proportions, reads only from the reference folder, and refuses what is not a reader's reading of a drawing."
+
+# The accepted characters whose view the table takes, for each view and for depth, which
+# takes two views of one character, with the works they come from. A view with fewer than
+# five characters is too thin, and is not a table.
+[[view]]
+view = "front"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "a table"
+[[view]]
+view = "three-quarter"
+characters = 2
+works = 2
+most_from_one_work = 1
+standing = "too thin: not a table"
+[[view]]
+view = "side"
+characters = 9
+works = 5
+most_from_one_work = 4
+standing = "a table"
+[[view]]
+view = "depth, from a front and a side view of one character"
+characters = 9
+works = 5
+most_from_one_work = 4
+standing = "a table"
+[[view]]
+view = "depth, from a front and a three-quarter view of one character"
+characters = 2
+works = 2
+most_from_one_work = 1
+standing = "too thin: not a table"
+
+# The characters the table was measured on, as their readings name their work and its
+# designer. Where each picture was taken from is in its readings, in the reference folder.
+[[character]]
+label = "work-1"
+work = "Frieren: Beyond Journey's End (TV anime, 2023–24)"
+designer = "Reiko Nagasawa"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front", "side"]
+depth_from = "its side view"
+[[character]]
+label = "work-2"
+work = "Wotakoi: Love Is Hard for Otaku (TV anime, 2018)"
+designer = "安田京弘"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front", "side"]
+depth_from = "its side view"
+[[character]]
+label = "work-3"
+work = "Delicious in Dungeon (TV anime, 2024)"
+designer = "Naoki Takeda"
+age_band = "adult"
+sex = "female"
+species = "half-elf: a human face, with long pointed ears at the sides of the head"
+views = ["front", "side"]
+depth_from = "its side view"
+[[character]]
+label = "work-4"
+work = "Erased (TV anime, 2016)"
+designer = "Keigo Sasaki"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front"]
+depth_from = "no view: it gives no depth"
+[[character]]
+label = "work-5"
+work = "Lycoris Recoil (TV anime, 2022)"
+designer = "imigimuru"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front"]
+depth_from = "no view: it gives no depth"
+[[character]]
+label = "work-6"
+work = "Mayonaka Punch (TV anime, 2024)"
+designer = "Ryota Arima; original character design by Tsukasa Kotobuki"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front"]
+depth_from = "no view: it gives no depth"
+[[character]]
+label = "character-3"
+work = "not a published work: the last stage of a step-by-step drawing lesson"
+designer = "not known"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front"]
+depth_from = "no view: it gives no depth"
+[[character]]
+label = "character-4"
+work = "Shimoneta (Shimoneta to Iu Gainen ga Sonzai Shinai Taikutsu na Sekai), as the picture's file name says"
+designer = "Fujii Masahiro, as the picture's file name says; not confirmed"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front"]
+depth_from = "no view: it gives no depth"
+[[character]]
+label = "character-5"
+work = "Berserk: a sheet from a collection the picture's file name calls \"Art of Berserk\""
+designer = "not confirmed"
+age_band = "adult"
+sex = "male: a character drawn to look feminine, whose drawing Jon included as a woman's head"
+species = "human"
+views = ["front", "side"]
+depth_from = "its side view"
+[[character]]
+label = "character-6"
+work = "Berserk: a sheet from a collection the picture's file name calls \"Art of Berserk\""
+designer = "not confirmed"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front", "side"]
+depth_from = "its side view"
+[[character]]
+label = "character-7"
+work = "Berserk: a sheet from a collection the picture's file name calls \"Art of Berserk\""
+designer = "not confirmed"
+age_band = "teenage"
+sex = "female"
+species = "human"
+views = ["front", "side"]
+depth_from = "its side view"
+[[character]]
+label = "character-8"
+work = "Berserk: a sheet from a collection the picture's file name calls \"Art of Berserk\""
+designer = "not confirmed"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front", "three-quarter"]
+depth_from = "its three-quarter view, at the turn the readings show"
+[[character]]
+label = "character-10"
+work = "Monster: a sheet from a collection the picture's file name calls \"Art of Monster\""
+designer = "not confirmed"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front"]
+depth_from = "no view: it gives no depth"
+[[character]]
+label = "character-11"
+work = "Monster: a sheet from a collection the picture's file name calls \"Art of Monster\""
+designer = "not confirmed"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front"]
+depth_from = "no view: it gives no depth"
+[[character]]
+label = "character-13"
+work = "Shimoneta (Shimoneta to Iu Gainen ga Sonzai Shinai Taikutsu na Sekai), as the picture's file name says"
+designer = "Fujii Masahiro, as the picture's file name says; not confirmed"
+age_band = "adult"
+sex = "female"
+species = "human"
+views = ["front", "three-quarter"]
+depth_from = "its three-quarter view, at the turn the readings show"
+[[character]]
+label = "character-14"
+work = "Berserk: a sheet from a collection the picture's file name calls \"Art of Berserk\""
+designer = "not confirmed"
+age_band = "teenage"
+sex = "female"
+species = "human"
+views = ["front", "side"]
+depth_from = "its side view"
+[[character]]
+label = "character-16"
+work = "Summer Wars: a sheet from a collection the picture's file name calls \"Art of Summer Wars\""
+designer = "not confirmed"
+age_band = "teenage"
+sex = "female"
+species = "human"
+views = ["front"]
+depth_from = "no view: it gives no depth"
+[[character]]
+label = "character-17"
+work = "not known: a drawing Jon gathered"
+designer = "not known"
+age_band = "teenage"
+sex = "female"
+species = "human"
+views = ["front", "side"]
+depth_from = "its side view"
+[[character]]
+label = "character-18"
+work = "not known: a drawing Jon gathered"
+designer = "not known"
+age_band = "teenage"
+sex = "female"
+species = "human"
+views = ["front", "side"]
+depth_from = "its side view"
+[[character]]
+label = "character-19"
+work = "not known: a drawing Jon gathered"
+designer = "not known"
+age_band = "teenage"
+sex = "female"
+species = "human"
+views = ["front"]
+depth_from = "no view: it gives no depth"
+
+# Every proportion of the list, in the list's order. Only a proportion whose standing
+# is "given" has a valid range.
+[[proportion]]
+name = "hair_top_rise"
+kind = "measured"
+dimension = "height"
+characters = 18
+works = 11
+most_from_one_work = 5
+standing = "given"
+lowest = 1.192985
+middle = 1.405673
+highest = 1.977893
+not_given_by = [
+  "2 characters: the front view does not have a position for hair-top, so its height is unknown",
+]
+bands = [{ band = "adult", characters = 14, lowest = 1.192985, middle = 1.401695, highest = 1.862021 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "hair_half_width"
+kind = "measured"
+dimension = "width"
+characters = 15
+works = 10
+most_from_one_work = 5
+standing = "given"
+lowest = 0.768355
+middle = 1.081508
+highest = 2.225401
+not_given_by = [
+  "5 characters: the front view has no position for `hair-left-extent`",
+]
+bands_overlap = true
+bands = [{ band = "adult", characters = 10, lowest = 0.768355, middle = 1.060698, highest = 1.518858 }, { band = "teenage", characters = 5, lowest = 0.946987, middle = 1.230198, highest = 2.225401 }]
+[[proportion]]
+name = "hair_half_depth"
+kind = "measured"
+dimension = "depth"
+characters = 10
+works = 5
+most_from_one_work = 5
+standing = "given"
+lowest = 1.153158
+middle = 1.243543
+highest = 1.830159
+not_given_by = [
+  "6 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+  "4 characters: the front view has no position for `hair-left-extent`",
+]
+bands = [{ band = "adult", characters = 6, lowest = 1.181487, middle = 1.243543, highest = 1.830159 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "hair_centre_depth"
+kind = "measured"
+dimension = "depth"
+characters = 11
+works = 6
+most_from_one_work = 5
+standing = "given"
+lowest = -1.418123
+middle = -0.801447
+highest = -0.651789
+not_given_by = [
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+bands = [{ band = "adult", characters = 7, lowest = -1.418123, middle = -0.80434, highest = -0.651789 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "skull_radius"
+kind = "convention"
+dimension = "width"
+characters = 0
+works = 0
+most_from_one_work = 0
+standing = "convention"
+not_given_by = [
+  "19 characters: no view draws the skull, and the rule that builds it from the ears' base points and the temples lacks `ear_base_outer_rise`",
+  "1 character: no view draws the skull, and the rule that builds it from the ears' base points and the temples lacks `ear_base_outer_depth`",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "skull_centre_rise"
+kind = "convention"
+dimension = "height"
+characters = 0
+works = 0
+most_from_one_work = 0
+standing = "convention"
+not_given_by = [
+  "19 characters: no view draws the skull, and the rule that builds it from the ears' base points and the temples lacks `ear_base_outer_rise`",
+  "1 character: no view draws the skull, and the rule that builds it from the ears' base points and the temples lacks `ear_base_outer_depth`",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "skull_centre_depth"
+kind = "convention"
+dimension = "depth"
+characters = 0
+works = 0
+most_from_one_work = 0
+standing = "convention"
+not_given_by = [
+  "19 characters: no view draws the skull, and the rule that builds it from the ears' base points and the temples lacks `ear_base_outer_rise`",
+  "1 character: no view draws the skull, and the rule that builds it from the ears' base points and the temples lacks `ear_base_outer_depth`",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "chin_depth"
+kind = "measured"
+dimension = "depth"
+characters = 11
+works = 6
+most_from_one_work = 5
+standing = "given"
+lowest = -0.128546
+middle = 0.116646
+highest = 0.427653
+not_given_by = [
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+bands = [{ band = "adult", characters = 7, lowest = -0.128546, middle = 0.067712, highest = 0.141171 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "face_top_rise"
+kind = "measured"
+dimension = "height"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "9 characters: neither view has a position for face-outline-left-top and face-outline-right-top, so its height is unknown; a side view does not give it: the reading instructions ask a side view for no temple.",
+  "9 characters: the front view does not have a position for face-outline-left-top and face-outline-right-top, so its height is unknown",
+  "1 character: neither view has a position for face-outline-left-top and face-outline-right-top, so its height is unknown",
+]
+bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "face_top_half_width"
+kind = "measured"
+dimension = "width"
+characters = 0
+works = 0
+most_from_one_work = 0
+standing = "no character"
+not_given_by = [
+  "11 characters: neither view has positions for both face-outline-left-top and face-outline-right-top, so their offset is unknown",
+  "9 characters: the front view does not have positions for both face-outline-left-top and face-outline-right-top, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "face_top_depth"
+kind = "measured"
+dimension = "depth"
+characters = 0
+works = 0
+most_from_one_work = 0
+standing = "no character"
+not_given_by = [
+  "9 characters: the side view has no position for face-outline-left-top and face-outline-right-top, so their depth is unknown; a side view does not give it: the reading instructions ask a side view for no temple, so a front view and a side view give the temple no depth.",
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+  "1 character: neither view has positions for both face-outline-left-top and face-outline-right-top, so their offset is unknown",
+  "1 character: the three-quarter view has no position for face-outline-left-top and face-outline-right-top, so their depth is unknown",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "face_half_width_at_eye_level"
+kind = "measured"
+dimension = "width"
+characters = 5
+works = 3
+most_from_one_work = 2
+standing = "given"
+lowest = 0.662385
+middle = 0.670181
+highest = 0.859991
+not_given_by = [
+  "8 characters: neither view has positions for both face-outline-left-at-eye-level and face-outline-right-at-eye-level, so their offset is unknown",
+  "7 characters: the front view does not have positions for both face-outline-left-at-eye-level and face-outline-right-at-eye-level, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 3 }, { band = "teenage", characters = 2 }]
+[[proportion]]
+name = "face_depth_at_eye_level"
+kind = "measured"
+dimension = "depth"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "9 characters: the side view has no position for face-outline-left-at-eye-level and face-outline-right-at-eye-level, so their depth is unknown; a side view does not give it: the cheek point is where the front of the face turns into its side. That is the far outline of a three-quarter view and no outline of a profile, so a side view has no point to place there.",
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+  "1 character: the three-quarter view has no position for face-outline-left-at-eye-level and face-outline-right-at-eye-level, so their depth is unknown",
+]
+bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "face_half_width_at_nose_level"
+kind = "measured"
+dimension = "width"
+characters = 11
+works = 7
+most_from_one_work = 4
+standing = "given"
+lowest = 0.521668
+middle = 0.626414
+highest = 0.829215
+not_given_by = [
+  "4 characters: neither view has positions for both face-outline-left-at-nose-level and face-outline-right-at-nose-level, so their offset is unknown",
+  "5 characters: the front view does not have positions for both face-outline-left-at-nose-level and face-outline-right-at-nose-level, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 7, lowest = 0.521668, middle = 0.626414, highest = 0.673405 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "face_depth_at_nose_level"
+kind = "measured"
+dimension = "depth"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "9 characters: the side view has no position for face-outline-left-at-nose-level and face-outline-right-at-nose-level, so their depth is unknown; a side view does not give it: the cheek point is where the front of the face turns into its side. That is the far outline of a three-quarter view and no outline of a profile, so a side view has no point to place there.",
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+  "1 character: the three-quarter view has no position for face-outline-left-at-nose-level and face-outline-right-at-nose-level, so their depth is unknown",
+]
+bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "face_half_width_at_mouth_level"
+kind = "measured"
+dimension = "width"
+characters = 18
+works = 10
+most_from_one_work = 5
+standing = "given"
+lowest = 0.421701
+middle = 0.532277
+highest = 0.669701
+not_given_by = [
+  "1 character: neither view has positions for both face-outline-left-at-mouth-level and face-outline-right-at-mouth-level, so their offset is unknown",
+  "1 character: the front view does not have positions for both face-outline-left-at-mouth-level and face-outline-right-at-mouth-level, so their offset is unknown",
+]
+bands_overlap = true
+bands = [{ band = "adult", characters = 12, lowest = 0.421701, middle = 0.529841, highest = 0.638833 }, { band = "teenage", characters = 6, lowest = 0.502492, middle = 0.540044, highest = 0.669701 }]
+[[proportion]]
+name = "face_depth_at_mouth_level"
+kind = "measured"
+dimension = "depth"
+characters = 2
+works = 2
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "9 characters: the side view has no position for face-outline-left-at-mouth-level and face-outline-right-at-mouth-level, so their depth is unknown; a side view does not give it: the cheek point is where the front of the face turns into its side. That is the far outline of a three-quarter view and no outline of a profile, so a side view has no point to place there.",
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+bands = [{ band = "adult", characters = 2 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "jaw_drop"
+kind = "measured"
+dimension = "height"
+characters = 0
+works = 0
+most_from_one_work = 0
+standing = "no character"
+not_given_by = [
+  "9 characters: neither view has a position for face-outline-left-jaw and face-outline-right-jaw, so its height is unknown; a side view does not give it: the reading instructions ask a side view for no jaw point.",
+  "9 characters: the front view does not have a position for face-outline-left-jaw and face-outline-right-jaw, so its height is unknown",
+  "2 characters: neither view has a position for face-outline-left-jaw and face-outline-right-jaw, so its height is unknown",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "jaw_half_width"
+kind = "measured"
+dimension = "width"
+characters = 0
+works = 0
+most_from_one_work = 0
+standing = "no character"
+not_given_by = [
+  "11 characters: neither view has positions for both face-outline-left-jaw and face-outline-right-jaw, so their offset is unknown",
+  "9 characters: the front view does not have positions for both face-outline-left-jaw and face-outline-right-jaw, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "jaw_depth"
+kind = "measured"
+dimension = "depth"
+characters = 0
+works = 0
+most_from_one_work = 0
+standing = "no character"
+not_given_by = [
+  "9 characters: the side view has no position for face-outline-left-jaw and face-outline-right-jaw, so their depth is unknown; a side view does not give it: the reading instructions ask a side view for no jaw point. It lies beside the chin on the front of the face, which a profile draws as one line.",
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+  "2 characters: the three-quarter view has no position for face-outline-left-jaw and face-outline-right-jaw, so their depth is unknown",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "jaw_line_depth_at_nose_level"
+kind = "measured"
+dimension = "depth"
+characters = 2
+works = 1
+most_from_one_work = 2
+standing = "too thin"
+not_given_by = [
+  "7 characters: the side view has no position for jaw-line-left-at-nose-level and jaw-line-right-at-nose-level, so their depth is unknown",
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+  "2 characters: the three-quarter view has no position for jaw-line-left-at-nose-level and jaw-line-right-at-nose-level, so their depth is unknown",
+]
+bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 1 }]
+[[proportion]]
+name = "jaw_line_depth_at_mouth_level"
+kind = "measured"
+dimension = "depth"
+characters = 7
+works = 4
+most_from_one_work = 4
+standing = "given"
+lowest = -0.657177
+middle = -0.628489
+highest = -0.404198
+not_given_by = [
+  "4 characters: the side view has no position for jaw-line-left-at-mouth-level and jaw-line-right-at-mouth-level, so their depth is unknown",
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+bands = [{ band = "adult", characters = 4 }, { band = "teenage", characters = 3 }]
+[[proportion]]
+name = "eye_inner_corner_offset"
+kind = "measured"
+dimension = "width"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = 0.189673
+middle = 0.230625
+highest = 0.28255
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = 0.189673, middle = 0.229336, highest = 0.268819 }, { band = "teenage", characters = 6, lowest = 0.229064, middle = 0.246465, highest = 0.28255 }]
+[[proportion]]
+name = "eye_inner_corner_drop"
+kind = "measured"
+dimension = "height"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = -0.16907
+middle = -0.005567
+highest = 0.043064
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = -0.057351, middle = -0.005567, highest = 0.041202 }, { band = "teenage", characters = 6, lowest = -0.16907, middle = -0.021761, highest = 0.043064 }]
+[[proportion]]
+name = "eye_outer_corner_offset"
+kind = "measured"
+dimension = "width"
+characters = 17
+works = 10
+most_from_one_work = 5
+standing = "given"
+lowest = 0.4718
+middle = 0.568751
+highest = 0.76593
+not_given_by = [
+  "1 character: neither view has positions for both eye-left-outer-corner and eye-right-outer-corner, so their offset is unknown",
+  "2 characters: the front view does not have positions for both eye-left-outer-corner and eye-right-outer-corner, so their offset is unknown",
+]
+bands_overlap = true
+bands = [{ band = "adult", characters = 12, lowest = 0.4718, middle = 0.575801, highest = 0.701847 }, { band = "teenage", characters = 5, lowest = 0.543412, middle = 0.560828, highest = 0.76593 }]
+[[proportion]]
+name = "eye_outer_corner_drop"
+kind = "measured"
+dimension = "height"
+characters = 19
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = -0.044696
+middle = -0.017708
+highest = 0.047588
+not_given_by = [
+  "1 character: the front view does not have a position for eye-left-outer-corner and eye-right-outer-corner, so its height is unknown",
+]
+bands_overlap = true
+bands = [{ band = "adult", characters = 13, lowest = -0.044696, middle = -0.022104, highest = 0.047588 }, { band = "teenage", characters = 6, lowest = -0.033031, middle = -0.007404, highest = 0.024451 }]
+[[proportion]]
+name = "eye_wrap_depth"
+kind = "measured"
+dimension = "depth"
+characters = 11
+works = 6
+most_from_one_work = 5
+standing = "given"
+lowest = 0.126718
+middle = 0.163536
+highest = 0.263666
+not_given_by = [
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+bands = [{ band = "adult", characters = 7, lowest = 0.126718, middle = 0.157694, highest = 0.197456 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "eye_opening_height"
+kind = "measured"
+dimension = "height"
+characters = 19
+works = 11
+most_from_one_work = 5
+standing = "given"
+lowest = 0.060067
+middle = 0.160643
+highest = 0.397492
+not_given_by = [
+  "1 character: marked as off by Jon for this character, so it is not given for this work",
+]
+bands_overlap = true
+bands = [{ band = "adult", characters = 13, lowest = 0.060067, middle = 0.160643, highest = 0.275782 }, { band = "teenage", characters = 6, lowest = 0.11044, middle = 0.196815, highest = 0.397492 }]
+[[proportion]]
+name = "eye_opening_top_offset"
+kind = "measured"
+dimension = "width"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = 0.316679
+middle = 0.399625
+highest = 0.50908
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = 0.316679, middle = 0.394402, highest = 0.50908 }, { band = "teenage", characters = 6, lowest = 0.357952, middle = 0.406815, highest = 0.492848 }]
+[[proportion]]
+name = "eye_opening_bottom_offset"
+kind = "measured"
+dimension = "width"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = 0.328408
+middle = 0.391184
+highest = 0.487646
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = 0.328408, middle = 0.382332, highest = 0.441692 }, { band = "teenage", characters = 6, lowest = 0.355686, middle = 0.401003, highest = 0.487646 }]
+[[proportion]]
+name = "iris_centre_offset"
+kind = "measured"
+dimension = "width"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = 0.317685
+middle = 0.384834
+highest = 0.486346
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = 0.317685, middle = 0.371763, highest = 0.446997 }, { band = "teenage", characters = 6, lowest = 0.363163, middle = 0.400832, highest = 0.486346 }]
+[[proportion]]
+name = "iris_centre_drop"
+kind = "measured"
+dimension = "height"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = -0.03127
+middle = -0.00109
+highest = 0.004645
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = -0.03127, middle = -0.00091, highest = 0.004645 }, { band = "teenage", characters = 6, lowest = -0.013367, middle = -0.002722, highest = 0.00068 }]
+[[proportion]]
+name = "iris_depth"
+kind = "measured"
+dimension = "depth"
+characters = 10
+works = 6
+most_from_one_work = 5
+standing = "given"
+lowest = -0.060138
+middle = 0.047846
+highest = 0.081769
+not_given_by = [
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+  "1 character: the side view has no position for iris-left-centre and iris-right-centre, so their depth is unknown",
+]
+bands = [{ band = "adult", characters = 7, lowest = -0.060138, middle = 0.049557, highest = 0.081769 }, { band = "teenage", characters = 3 }]
+[[proportion]]
+name = "iris_width"
+kind = "measured"
+dimension = "width"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = 0.080982
+middle = 0.169112
+highest = 0.28782
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = 0.080982, middle = 0.170587, highest = 0.233681 }, { band = "teenage", characters = 6, lowest = 0.083824, middle = 0.169112, highest = 0.28782 }]
+[[proportion]]
+name = "iris_height"
+kind = "measured"
+dimension = "height"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = 0.057415
+middle = 0.159585
+highest = 0.37116
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = 0.057415, middle = 0.159585, highest = 0.264783 }, { band = "teenage", characters = 6, lowest = 0.108714, middle = 0.182252, highest = 0.37116 }]
+[[proportion]]
+name = "lid_line_inner_end_offset"
+kind = "measured"
+dimension = "width"
+characters = 19
+works = 12
+most_from_one_work = 4
+standing = "given"
+lowest = 0.173252
+middle = 0.220257
+highest = 0.267085
+not_given_by = [
+  "1 character: neither view has positions for both lid-line-left-inner-end and lid-line-right-inner-end, so their offset is unknown",
+]
+bands_overlap = true
+bands = [{ band = "adult", characters = 13, lowest = 0.173252, middle = 0.211098, highest = 0.253049 }, { band = "teenage", characters = 6, lowest = 0.203042, middle = 0.23173, highest = 0.267085 }]
+[[proportion]]
+name = "lid_line_inner_end_drop"
+kind = "measured"
+dimension = "height"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = -0.207941
+middle = -0.032116
+highest = 0.05076
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = -0.104232, middle = -0.032116, highest = 0.035949 }, { band = "teenage", characters = 6, lowest = -0.207941, middle = -0.04285, highest = 0.05076 }]
+[[proportion]]
+name = "lid_line_crest_offset"
+kind = "measured"
+dimension = "width"
+characters = 19
+works = 12
+most_from_one_work = 4
+standing = "given"
+lowest = 0.313328
+middle = 0.404659
+highest = 0.512184
+not_given_by = [
+  "1 character: neither view has positions for both lid-line-left-crest and lid-line-right-crest, so their offset is unknown",
+]
+bands_overlap = true
+bands = [{ band = "adult", characters = 13, lowest = 0.313328, middle = 0.401699, highest = 0.512184 }, { band = "teenage", characters = 6, lowest = 0.365655, middle = 0.410319, highest = 0.496316 }]
+[[proportion]]
+name = "lid_line_crest_rise"
+kind = "measured"
+dimension = "height"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = 0.042047
+middle = 0.103103
+highest = 0.22466
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = 0.042047, middle = 0.103103, highest = 0.197305 }, { band = "teenage", characters = 6, lowest = 0.075928, middle = 0.115087, highest = 0.22466 }]
+[[proportion]]
+name = "lid_line_outer_end_offset"
+kind = "measured"
+dimension = "width"
+characters = 13
+works = 8
+most_from_one_work = 5
+standing = "given"
+lowest = 0.503001
+middle = 0.60139
+highest = 0.791867
+not_given_by = [
+  "2 characters: neither view has positions for both lid-line-left-outer-end and lid-line-right-outer-end, so their offset is unknown",
+  "5 characters: the front view does not have positions for both lid-line-left-outer-end and lid-line-right-outer-end, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 9, lowest = 0.503001, middle = 0.60139, highest = 0.791867 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "lid_line_outer_end_rise"
+kind = "measured"
+dimension = "height"
+characters = 19
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = -0.027828
+middle = 0.047576
+highest = 0.157535
+not_given_by = [
+  "1 character: the front view does not have a position for lid-line-left-outer-end and lid-line-right-outer-end, so its height is unknown",
+]
+bands_overlap = true
+bands = [{ band = "adult", characters = 13, lowest = -0.027828, middle = 0.046159, highest = 0.157535 }, { band = "teenage", characters = 6, lowest = -0.001734, middle = 0.051734, highest = 0.080632 }]
+[[proportion]]
+name = "brow_inner_end_offset"
+kind = "measured"
+dimension = "width"
+characters = 11
+works = 7
+most_from_one_work = 3
+standing = "given"
+lowest = 0.109837
+middle = 0.153931
+highest = 0.221321
+not_given_by = [
+  "6 characters: neither view has positions for both brow-line-left-inner-end and brow-line-right-inner-end, so their offset is unknown",
+  "3 characters: the front view does not have positions for both brow-line-left-inner-end and brow-line-right-inner-end, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 8, lowest = 0.109837, middle = 0.159483, highest = 0.221321 }, { band = "teenage", characters = 3 }]
+[[proportion]]
+name = "brow_inner_end_rise"
+kind = "measured"
+dimension = "height"
+characters = 17
+works = 11
+most_from_one_work = 4
+standing = "given"
+lowest = 0.122369
+middle = 0.223469
+highest = 0.520585
+not_given_by = [
+  "1 character: the front view does not have a position for brow-line-left-inner-end and brow-line-right-inner-end, so its height is unknown",
+  "2 characters: neither view has a position for brow-line-left-inner-end and brow-line-right-inner-end, so its height is unknown",
+]
+bands_overlap = true
+bands = [{ band = "adult", characters = 12, lowest = 0.122369, middle = 0.226682, highest = 0.451526 }, { band = "teenage", characters = 5, lowest = 0.16401, middle = 0.223469, highest = 0.520585 }]
+[[proportion]]
+name = "brow_outer_end_offset"
+kind = "measured"
+dimension = "width"
+characters = 8
+works = 7
+most_from_one_work = 2
+standing = "given"
+lowest = 0.514961
+middle = 0.635544
+highest = 0.728232
+not_given_by = [
+  "6 characters: neither view has positions for both brow-line-left-outer-end and brow-line-right-outer-end, so their offset is unknown",
+  "6 characters: the front view does not have positions for both brow-line-left-outer-end and brow-line-right-outer-end, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 6, lowest = 0.514961, middle = 0.635544, highest = 0.728232 }, { band = "teenage", characters = 2 }]
+[[proportion]]
+name = "brow_outer_end_rise"
+kind = "measured"
+dimension = "height"
+characters = 14
+works = 8
+most_from_one_work = 5
+standing = "given"
+lowest = 0.182542
+middle = 0.250402
+highest = 0.475444
+not_given_by = [
+  "6 characters: the front view does not have a position for brow-line-left-outer-end and brow-line-right-outer-end, so its height is unknown",
+]
+bands_overlap = true
+bands = [{ band = "adult", characters = 9, lowest = 0.182542, middle = 0.245626, highest = 0.427285 }, { band = "teenage", characters = 5, lowest = 0.207938, middle = 0.251622, highest = 0.475444 }]
+[[proportion]]
+name = "nose_mark_corner_offset"
+kind = "measured"
+dimension = "width"
+characters = 14
+works = 9
+most_from_one_work = 5
+standing = "given"
+lowest = 0.036966
+middle = 0.100557
+highest = 0.140131
+not_given_by = [
+  "3 characters: the front view does not have positions for both nose-mark-left-corner and nose-mark-right-corner, so their offset is unknown",
+  "3 characters: neither view has positions for both nose-mark-left-corner and nose-mark-right-corner, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 10, lowest = 0.036966, middle = 0.093323, highest = 0.138066 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "nose_mark_corner_drop"
+kind = "measured"
+dimension = "height"
+characters = 14
+works = 9
+most_from_one_work = 5
+standing = "given"
+lowest = 0.28811
+middle = 0.397079
+highest = 0.46717
+not_given_by = [
+  "3 characters: the front view does not have a position for nose-mark-left-corner and nose-mark-right-corner, so its height is unknown",
+  "1 character: neither view has a position for nose-mark-left-corner and nose-mark-right-corner, so its height is unknown",
+  "2 characters: the front view has no position for nose-mark-left-corner and nose-mark-right-corner, and a side view shows another point of the head under that name, so its height is unknown; a side view does not give it: in a side view the nose mark's corner is the middle of the nostril, or of the curve drawn for the wing of the nose, which is another point of the nose than a front view's point of the mark furthest toward that side. The height is the front view's, or is not given.",
+]
+bands = [{ band = "adult", characters = 10, lowest = 0.28811, middle = 0.377255, highest = 0.46717 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "nose_mark_corner_depth"
+kind = "measured"
+dimension = "depth"
+characters = 7
+works = 3
+most_from_one_work = 5
+standing = "given"
+lowest = 0.256901
+middle = 0.280391
+highest = 0.414433
+not_given_by = [
+  "3 characters: the side view has no position for nose-mark-left-corner and nose-mark-right-corner, so their depth is unknown",
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+  "1 character: the three-quarter view has no position for nose-mark-left-corner and nose-mark-right-corner, so their depth is unknown",
+]
+bands = [{ band = "adult", characters = 5, lowest = 0.256901, middle = 0.277978, highest = 0.414433 }, { band = "teenage", characters = 2 }]
+[[proportion]]
+name = "nose_mark_bottom_drop"
+kind = "measured"
+dimension = "height"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = 0.343163
+middle = 0.435877
+highest = 0.607026
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = 0.343163, middle = 0.429286, highest = 0.607026 }, { band = "teenage", characters = 6, lowest = 0.355486, middle = 0.454844, highest = 0.492666 }]
+[[proportion]]
+name = "nose_mark_bottom_depth"
+kind = "measured"
+dimension = "depth"
+characters = 11
+works = 6
+most_from_one_work = 5
+standing = "given"
+lowest = 0.266324
+middle = 0.451546
+highest = 0.643087
+not_given_by = [
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+bands = [{ band = "adult", characters = 7, lowest = 0.266324, middle = 0.451546, highest = 0.503774 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "nose_tip_drop"
+kind = "measured"
+dimension = "height"
+characters = 11
+works = 6
+most_from_one_work = 5
+standing = "given"
+lowest = 0.123794
+middle = 0.335533
+highest = 0.483968
+not_given_by = [
+  "9 characters: a front view draws the nose mark and not the tip of the nose, and no side view of the character was read with it",
+]
+bands = [{ band = "adult", characters = 7, lowest = 0.231084, middle = 0.357255, highest = 0.483968 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "mouth_end_offset"
+kind = "measured"
+dimension = "width"
+characters = 19
+works = 11
+most_from_one_work = 5
+standing = "given"
+lowest = 0.104547
+middle = 0.205023
+highest = 0.377774
+not_given_by = [
+  "1 character: neither view has positions for both mouth-line-left-end and mouth-line-right-end, so their offset is unknown",
+]
+bands_overlap = true
+bands = [{ band = "adult", characters = 13, lowest = 0.104547, middle = 0.205023, highest = 0.377774 }, { band = "teenage", characters = 6, lowest = 0.156169, middle = 0.214452, highest = 0.268314 }]
+[[proportion]]
+name = "mouth_end_drop"
+kind = "measured"
+dimension = "height"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = 0.52504
+middle = 0.624894
+highest = 0.687131
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = 0.52504, middle = 0.61574, highest = 0.687131 }, { band = "teenage", characters = 6, lowest = 0.54443, middle = 0.635088, highest = 0.670148 }]
+[[proportion]]
+name = "mouth_end_depth"
+kind = "measured"
+dimension = "depth"
+characters = 11
+works = 6
+most_from_one_work = 5
+standing = "given"
+lowest = -0.088059
+middle = 0.106612
+highest = 0.190773
+not_given_by = [
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+bands = [{ band = "adult", characters = 7, lowest = -0.088059, middle = 0.068901, highest = 0.15786 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "mouth_centre_drop"
+kind = "measured"
+dimension = "height"
+characters = 20
+works = 12
+most_from_one_work = 5
+standing = "given"
+lowest = 0.54685
+middle = 0.632047
+highest = 0.691727
+bands_overlap = true
+bands = [{ band = "adult", characters = 14, lowest = 0.54685, middle = 0.619091, highest = 0.691727 }, { band = "teenage", characters = 6, lowest = 0.616818, middle = 0.641424, highest = 0.655855 }]
+[[proportion]]
+name = "mouth_centre_depth"
+kind = "measured"
+dimension = "depth"
+characters = 11
+works = 6
+most_from_one_work = 5
+standing = "given"
+lowest = 0.078394
+middle = 0.239252
+highest = 0.532154
+not_given_by = [
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+]
+bands = [{ band = "adult", characters = 7, lowest = 0.078394, middle = 0.222222, highest = 0.239319 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "ear_base_outer_offset"
+kind = "measured"
+dimension = "width"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "11 characters: neither view has positions for both ear-left-base-outer and ear-right-base-outer, so their offset is unknown",
+  "8 characters: the front view does not have positions for both ear-left-base-outer and ear-right-base-outer, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 1 }]
+[[proportion]]
+name = "ear_base_outer_rise"
+kind = "measured"
+dimension = "height"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "11 characters: neither view has a position for ear-left-base-outer and ear-right-base-outer, so its height is unknown",
+  "8 characters: the front view does not have a position for ear-left-base-outer and ear-right-base-outer, so its height is unknown",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 1 }]
+[[proportion]]
+name = "ear_base_outer_depth"
+kind = "measured"
+dimension = "depth"
+characters = 0
+works = 0
+most_from_one_work = 0
+standing = "no character"
+not_given_by = [
+  "9 characters: the side view has no position for ear-left-base-outer and ear-right-base-outer, so their depth is unknown",
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+  "2 characters: the three-quarter view has no position for ear-left-base-outer and ear-right-base-outer, so their depth is unknown",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "ear_base_inner_offset"
+kind = "measured"
+dimension = "width"
+characters = 6
+works = 3
+most_from_one_work = 3
+standing = "given"
+lowest = 0.597914
+middle = 0.661565
+highest = 0.831816
+not_given_by = [
+  "6 characters: neither view has positions for both ear-left-base-inner and ear-right-base-inner, so their offset is unknown",
+  "8 characters: the front view does not have positions for both ear-left-base-inner and ear-right-base-inner, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 3 }, { band = "teenage", characters = 3 }]
+[[proportion]]
+name = "ear_base_inner_rise"
+kind = "measured"
+dimension = "height"
+characters = 8
+works = 4
+most_from_one_work = 4
+standing = "given"
+lowest = -0.458092
+middle = -0.34577
+highest = -0.212504
+not_given_by = [
+  "4 characters: neither view has a position for ear-left-base-inner and ear-right-base-inner, so its height is unknown",
+  "8 characters: the front view does not have a position for ear-left-base-inner and ear-right-base-inner, so its height is unknown",
+]
+bands = [{ band = "adult", characters = 5, lowest = -0.458092, middle = -0.40447, highest = -0.212504 }, { band = "teenage", characters = 3 }]
+[[proportion]]
+name = "ear_base_inner_depth"
+kind = "measured"
+dimension = "depth"
+characters = 6
+works = 3
+most_from_one_work = 4
+standing = "given"
+lowest = -0.826367
+middle = -0.781687
+highest = -0.627495
+not_given_by = [
+  "4 characters: the side view has no position for ear-left-base-inner and ear-right-base-inner, so their depth is unknown",
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+  "1 character: neither view has positions for both ear-left-base-inner and ear-right-base-inner, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 4 }, { band = "teenage", characters = 2 }]
+[[proportion]]
+name = "ear_top_offset"
+kind = "measured"
+dimension = "width"
+characters = 3
+works = 2
+most_from_one_work = 2
+standing = "too thin"
+not_given_by = [
+  "9 characters: neither view has positions for both ear-left-top and ear-right-top, so their offset is unknown",
+  "8 characters: the front view does not have positions for both ear-left-top and ear-right-top, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 2 }]
+[[proportion]]
+name = "ear_top_rise"
+kind = "measured"
+dimension = "height"
+characters = 9
+works = 4
+most_from_one_work = 5
+standing = "given"
+lowest = 0.027331
+middle = 0.143217
+highest = 0.231475
+not_given_by = [
+  "3 characters: neither view has a position for ear-left-top and ear-right-top, so its height is unknown",
+  "8 characters: the front view does not have a position for ear-left-top and ear-right-top, so its height is unknown",
+]
+bands = [{ band = "adult", characters = 5, lowest = 0.08445, middle = 0.143217, highest = 0.195544 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "ear_outer_extent_offset"
+kind = "measured"
+dimension = "width"
+characters = 7
+works = 4
+most_from_one_work = 3
+standing = "given"
+lowest = 0.8468
+middle = 0.918461
+highest = 1.05635
+not_given_by = [
+  "6 characters: neither view has positions for both ear-left-outer-extent and ear-right-outer-extent, so their offset is unknown",
+  "7 characters: the front view does not have positions for both ear-left-outer-extent and ear-right-outer-extent, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 4 }, { band = "teenage", characters = 3 }]
+[[proportion]]
+name = "ear_outer_extent_rise"
+kind = "measured"
+dimension = "height"
+characters = 9
+works = 5
+most_from_one_work = 4
+standing = "given"
+lowest = -0.290505
+middle = -0.025496
+highest = 0.05531
+not_given_by = [
+  "4 characters: the front view has no position for ear-left-outer-extent and ear-right-outer-extent, and a side view shows another point of the head under that name, so its height is unknown; a side view does not give it: in a profile the ear's extents are toward the back and the front of the head, which are other points of the ear than its extents to the sides.",
+  "7 characters: the front view does not have a position for ear-left-outer-extent and ear-right-outer-extent, so its height is unknown",
+]
+bands = [{ band = "adult", characters = 5, lowest = -0.290505, middle = -0.141367, highest = 0.027107 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "ear_inner_extent_offset"
+kind = "measured"
+dimension = "width"
+characters = 5
+works = 3
+most_from_one_work = 2
+standing = "given"
+lowest = 0.597914
+middle = 0.654211
+highest = 0.837885
+not_given_by = [
+  "7 characters: neither view has positions for both ear-left-inner-extent and ear-right-inner-extent, so their offset is unknown",
+  "8 characters: the front view does not have positions for both ear-left-inner-extent and ear-right-inner-extent, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 2 }, { band = "teenage", characters = 3 }]
+[[proportion]]
+name = "ear_inner_extent_rise"
+kind = "measured"
+dimension = "height"
+characters = 6
+works = 4
+most_from_one_work = 2
+standing = "given"
+lowest = -0.458092
+middle = -0.337576
+highest = -0.191157
+not_given_by = [
+  "6 characters: the front view has no position for ear-left-inner-extent and ear-right-inner-extent, and a side view shows another point of the head under that name, so its height is unknown; a side view does not give it: in a profile the ear's extents are toward the back and the front of the head, which are other points of the ear than its extents to the sides.",
+  "8 characters: the front view does not have a position for ear-left-inner-extent and ear-right-inner-extent, so its height is unknown",
+]
+bands = [{ band = "adult", characters = 3 }, { band = "teenage", characters = 3 }]
+[[proportion]]
+name = "neck_half_width"
+kind = "measured"
+dimension = "width"
+characters = 8
+works = 5
+most_from_one_work = 2
+standing = "given"
+lowest = 0.281856
+middle = 0.33767
+highest = 0.371009
+not_given_by = [
+  "6 characters: the front view does not place both of the points where the neck ends, and a side view shows the neck's back and its front, which end at other heights and are not as far apart; a side view does not give it: the front view's. A drawn neck is not as wide from back to front as from side to side.",
+  "5 characters: the front view does not place both of the points where the neck ends",
+  "1 character: the three-quarter view has no position for `neck-left-base`",
+]
+bands = [{ band = "adult", characters = 5, lowest = 0.281856, middle = 0.329003, highest = 0.360258 }, { band = "teenage", characters = 3 }]
+[[proportion]]
+name = "neck_depth"
+kind = "measured"
+dimension = "depth"
+characters = 2
+works = 2
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "8 characters: the side view has no position for `neck-back-base`",
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+  "1 character: the three-quarter view has no position for `neck-left-base`",
+]
+bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 1 }]
+[[proportion]]
+name = "neck_base_drop"
+kind = "measured"
+dimension = "height"
+characters = 8
+works = 5
+most_from_one_work = 2
+standing = "given"
+lowest = 1.063409
+middle = 1.230239
+highest = 1.392718
+not_given_by = [
+  "6 characters: the front view does not place both of the points where the neck ends, and a side view shows the neck's back and its front, which end at other heights and are not as far apart; a side view does not give it: the front view's. The neck's back and its front end at other heights than its sides.",
+  "5 characters: the front view does not place both of the points where the neck ends",
+  "1 character: the three-quarter view has no position for `neck-left-base`",
+]
+bands = [{ band = "adult", characters = 5, lowest = 1.063409, middle = 1.199006, highest = 1.283408 }, { band = "teenage", characters = 3 }]
+[[proportion]]
+name = "shoulder_half_width"
+kind = "measured"
+dimension = "width"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "11 characters: neither view has positions for both shoulder-left-point and shoulder-right-point, so their offset is unknown",
+  "8 characters: the front view does not have positions for both shoulder-left-point and shoulder-right-point, so their offset is unknown",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 1 }]
+[[proportion]]
+name = "shoulder_drop"
+kind = "measured"
+dimension = "height"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "11 characters: neither view has a position for shoulder-left-point and shoulder-right-point, so its height is unknown",
+  "8 characters: the front view does not have a position for shoulder-left-point and shoulder-right-point, so its height is unknown",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 1 }]
+[[proportion]]
+name = "shoulder_depth"
+kind = "measured"
+dimension = "depth"
+characters = 0
+works = 0
+most_from_one_work = 0
+standing = "no character"
+not_given_by = [
+  "9 characters: the side view has no position for shoulder-left-point and shoulder-right-point, so their depth is unknown",
+  "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
+  "2 characters: the three-quarter view has no position for shoulder-left-point and shoulder-right-point, so their depth is unknown",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "forehead_depth"
+kind = "measured"
+dimension = "depth"
+characters = 3
+works = 2
+most_from_one_work = 2
+standing = "too thin"
+not_given_by = [
+  "6 characters: the side view has no position for `centre-line-at-brow-level`",
+]
+bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 2 }]
+[[proportion]]
+name = "bridge_depth"
+kind = "measured"
+dimension = "depth"
+characters = 6
+works = 3
+most_from_one_work = 4
+standing = "given"
+lowest = 0.219689
+middle = 0.2524
+highest = 0.435691
+not_given_by = [
+  "3 characters: the side view has no position for `centre-line-at-eye-level`",
+]
+bands = [{ band = "adult", characters = 3 }, { band = "teenage", characters = 3 }]
+[[proportion]]
+name = "jaw_angle_drop"
+kind = "measured"
+dimension = "height"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "8 characters: the side view has no position for `jaw-right-angle` or `jaw-left-angle`",
+]
+bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "jaw_angle_depth"
+kind = "measured"
+dimension = "depth"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "8 characters: the side view has no position for `jaw-right-angle` or `jaw-left-angle`",
+]
+bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 0 }]
+[[proportion]]
+name = "neck_front_top_drop"
+kind = "measured"
+dimension = "height"
+characters = 6
+works = 3
+most_from_one_work = 3
+standing = "given"
+lowest = 0.902233
+middle = 0.987
+highest = 1.020039
+not_given_by = [
+  "3 characters: the side view has no position for `neck-front-top`",
+]
+bands = [{ band = "adult", characters = 2 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "neck_front_top_depth"
+kind = "measured"
+dimension = "depth"
+characters = 6
+works = 3
+most_from_one_work = 3
+standing = "given"
+lowest = -0.332529
+middle = -0.28419
+highest = 0.03616
+not_given_by = [
+  "3 characters: the side view has no position for `neck-front-top`",
+]
+bands = [{ band = "adult", characters = 2 }, { band = "teenage", characters = 4 }]
+[[proportion]]
+name = "neck_front_base_drop"
+kind = "measured"
+dimension = "height"
+characters = 3
+works = 2
+most_from_one_work = 2
+standing = "too thin"
+not_given_by = [
+  "6 characters: the side view has no position for `neck-front-base`",
+]
+bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 2 }]
+[[proportion]]
+name = "neck_front_base_depth"
+kind = "measured"
+dimension = "depth"
+characters = 3
+works = 2
+most_from_one_work = 2
+standing = "too thin"
+not_given_by = [
+  "6 characters: the side view has no position for `neck-front-base`",
+]
+bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 2 }]
+[[proportion]]
+name = "neck_back_top_drop"
+kind = "measured"
+dimension = "height"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "8 characters: the side view has no position for `neck-back-top`",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 1 }]
+[[proportion]]
+name = "neck_back_top_depth"
+kind = "measured"
+dimension = "depth"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "8 characters: the side view has no position for `neck-back-top`",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 1 }]
+[[proportion]]
+name = "neck_back_base_drop"
+kind = "measured"
+dimension = "height"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "8 characters: the side view has no position for `neck-back-base`",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 1 }]
+[[proportion]]
+name = "neck_back_base_depth"
+kind = "measured"
+dimension = "depth"
+characters = 1
+works = 1
+most_from_one_work = 1
+standing = "too thin"
+not_given_by = [
+  "8 characters: the side view has no position for `neck-back-base`",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 1 }]

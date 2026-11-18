@@ -84,6 +84,8 @@ pub struct Head {
     pub neck_half_width: f64,
     pub neck_depth: f64,
     pub neck_base_drop: f64,
+    /// The proportions of [`PROFILE`] the set gave, in the list's order.
+    profile: Vec<String>,
 }
 
 impl Head {
@@ -98,7 +100,104 @@ impl Head {
             .find(|landmark| landmark.name == name)
             .unwrap_or_else(|| panic!("the head model has no landmark `{name}`"))
     }
+
+    /// The nose point of a turned view: the landmark its centre line, its face outline's
+    /// front and its nose mark run through. It is the tip of the nose where the set gives
+    /// the tip a height of its own, and otherwise the nose mark's bottom: the two are then
+    /// one point. A front view's nose mark always runs through its own bottom.
+    pub fn nose_point(&self) -> &'static str {
+        if self.landmarks.iter().any(|at| at.name == NOSE_TIP) {
+            NOSE_TIP
+        } else {
+            NOSE_MARK_BOTTOM
+        }
+    }
+
+    /// Whether the head has a landmark of this name: a point of the profile is one only where
+    /// the set gives it.
+    pub fn has(&self, name: &str) -> bool {
+        self.landmarks.iter().any(|landmark| landmark.name == name)
+    }
+
+    /// The proportions of the profile the head is drawn with: those of [`PROFILE`] the set
+    /// gave, in the list's order. The side view draws its forehead, bridge, jaw's angle and
+    /// neck from them, and its landmark file says which they are.
+    pub fn profile(&self) -> &[String] {
+        &self.profile
+    }
 }
+
+/// The forehead: the centre line at the height of the brow line's inner end.
+pub const FOREHEAD: &str = "centre-line-at-brow-level";
+
+/// The bridge of the nose: the centre line at the eye line.
+pub const BRIDGE: &str = "centre-line-at-eye-level";
+
+/// The points of the profile a side view is read for since revision 2026-11-17.4 of the
+/// reading instructions, each with the proportions that place it: a landmark of the head only
+/// where the set gives every one of them. The bridge is a landmark of every head; a set that
+/// gives its depth places it there, and one that does not, by the skull's rule.
+///
+/// The forehead takes its height from the brow line's inner end. The angle of the jaw is a
+/// pair whose offset nothing measures: it stands at the half-width of the face outline at the
+/// mouth level, a convention, and no guide of a front or a three-quarter view runs through
+/// it. The neck's four points are on the centre line, at its front and its back.
+pub const PROFILE: &[(&str, &[&str])] = &[
+    (FOREHEAD, &["forehead_depth"]),
+    (BRIDGE, &["bridge_depth"]),
+    (JAW_ANGLE, &["jaw_angle_drop", "jaw_angle_depth"]),
+    (
+        "neck-front-top",
+        &["neck_front_top_drop", "neck_front_top_depth"],
+    ),
+    (
+        "neck-front-base",
+        &["neck_front_base_drop", "neck_front_base_depth"],
+    ),
+    (
+        "neck-back-top",
+        &["neck_back_top_drop", "neck_back_top_depth"],
+    ),
+    (
+        "neck-back-base",
+        &["neck_back_base_drop", "neck_back_base_depth"],
+    ),
+];
+
+/// The angle of the jaw, a pair: in [`PROFILE`], the point whose landmarks [`jaw_angle`] names.
+const JAW_ANGLE: &str = "jaw-<side>-angle";
+
+/// The name of one side's angle of the jaw.
+pub fn jaw_angle(side: &str) -> String {
+    format!("jaw-{side}-angle")
+}
+
+/// The proportions of [`PROFILE`] whose point a reading was not asked for, given the names of
+/// the landmarks it was asked for: what a reading of the same drawing made under a later
+/// revision of the reading instructions, which asks for it, may add to it.
+pub fn profile_not_asked(asked: &[String]) -> Vec<&'static str> {
+    PROFILE
+        .iter()
+        .filter(|(point, _)| {
+            let names = match *point {
+                JAW_ANGLE => vec![jaw_angle("right"), jaw_angle("left")],
+                point => vec![point.to_string()],
+            };
+            !names.iter().any(|name| asked.contains(name))
+        })
+        .flat_map(|(_, proportions)| proportions.iter().copied())
+        .collect()
+}
+
+/// The nose mark's bottom: the base of the nose as a front view marks it, on the centre line.
+const NOSE_MARK_BOTTOM: &str = "nose-mark-bottom";
+
+/// The tip of the nose: a landmark of its own only where a set's `nose_tip_drop` is not its
+/// `nose_mark_bottom_drop`. It stands on the centre line at that height, at the depth
+/// `nose_mark_bottom_depth`. A set that gives the two one height has one point for both, and
+/// its files name only the nose mark's bottom: such a set is drawn as it was before the tip
+/// had a height of its own.
+pub const NOSE_TIP: &str = "nose-tip";
 
 /// Where a coordinate of a landmark comes from.
 #[derive(Debug, Clone, Copy)]
@@ -296,6 +395,56 @@ pub fn head(set: &Set) -> Result<Head> {
                 drop,
                 depth,
             });
+            // The tip of the nose, where the set gives it a height of its own: on the
+            // centre line, at the depth the nose mark's bottom is given.
+            let tip_drop = set.get("nose_tip_drop");
+            if spec.stem == NOSE_MARK_BOTTOM && tip_drop != drop {
+                landmarks.push(Landmark {
+                    name: NOSE_TIP.to_string(),
+                    offset,
+                    drop: tip_drop,
+                    depth,
+                });
+            }
+        }
+    }
+
+    // The points of the profile, where the set gives them. The bridge is placed by `rules`.
+    let mut profile = Vec::new();
+    for (point, proportions) in PROFILE {
+        let given: Option<Vec<f64>> = proportions.iter().map(|name| set.given(name)).collect();
+        let Some(given) = given else {
+            continue;
+        };
+        profile.extend(proportions.iter().map(|name| name.to_string()));
+        match (*point, given.as_slice()) {
+            (BRIDGE, _) => {}
+            (FOREHEAD, [depth]) => landmarks.push(Landmark {
+                name: FOREHEAD.to_string(),
+                offset: 0.0,
+                drop: -set.get("brow_inner_end_rise"),
+                depth: *depth,
+            }),
+            (JAW_ANGLE, [drop, depth]) => {
+                let offset = set.get("face_half_width_at_mouth_level");
+                for (side, offset) in [("right", -offset), ("left", offset)] {
+                    landmarks.push(Landmark {
+                        name: jaw_angle(side),
+                        offset,
+                        drop: *drop,
+                        depth: *depth,
+                    });
+                }
+            }
+            (neck, [drop, depth]) => landmarks.push(Landmark {
+                name: neck.to_string(),
+                offset: 0.0,
+                drop: *drop,
+                depth: *depth,
+            }),
+            _ => unreachable!(
+                "each point of the profile has a depth, and a drop where it is not the forehead"
+            ),
         }
     }
 
@@ -327,6 +476,7 @@ pub fn head(set: &Set) -> Result<Head> {
         neck_half_width: set.get("neck_half_width"),
         neck_depth: set.get("neck_depth"),
         neck_base_drop: set.get("neck_base_drop"),
+        profile,
     })
 }
 
@@ -352,11 +502,13 @@ pub fn set_back_share(share: f64) -> Result<f64> {
 pub fn with_lower_face_set_back(set: Set, share: f64) -> Result<Set> {
     let share = set_back_share(share)?;
     let chin = (share * (set.get("chin_depth") - set.get("iris_depth"))).max(0.0);
-    let nose_drop = set.get("nose_mark_bottom_drop");
+    // The nose point of the side view: the tip of the nose, which stands at the nose mark's
+    // bottom unless the set gives it a height of its own.
+    let nose_drop = set.get("nose_tip_drop");
     let mouth_drop = set.get("mouth_centre_drop");
     if !(nose_drop < mouth_drop && mouth_drop < 1.0) {
         return Err(Error::new(format!(
-            "the mouth line's centre is {mouth_drop} below the eye line, the nose mark's bottom {nose_drop} and the chin 1, so the mouth is not between them and the line from the nose mark to the chin does not pass its height"
+            "the mouth line's centre is {mouth_drop} below the eye line, the tip of the nose {nose_drop} and the chin 1, so the mouth is not between them and the line from the nose to the chin does not pass its height"
         )));
     }
     let nose_depth = set.get("nose_mark_bottom_depth");
@@ -469,9 +621,133 @@ fn rules(set: &Set, at: &mut BTreeMap<Key, [f64; 3]>) -> Result<()> {
         )));
     }
     *at.get_mut(&("skull-front", "")).expect("in the table") = [0.0, -rise, skull_depth + radius];
-    at.get_mut(&("centre-line-at-eye-level", ""))
-        .expect("in the table")[2] = skull_depth + (radius * radius - rise * rise).sqrt();
+    // At the eye line it stands on the skull's surface, unless the set gives the bridge of the
+    // nose its own depth, which a side view measures.
+    at.get_mut(&(BRIDGE, "")).expect("in the table")[2] = set
+        .given("bridge_depth")
+        .unwrap_or_else(|| skull_depth + (radius * radius - rise * rise).sqrt());
     Ok(())
+}
+
+/// The proportions a landmark's place rests on: those behind its offset from the centre line,
+/// those behind its height, and those behind its depth, in that order. A coordinate that is
+/// zero or the unit by definition rests on none. None when the head has no such landmark.
+///
+/// It says of each coordinate what [`head`] and [`rules`] do to it, for whoever shows where
+/// the numbers of a drawn head come from. `profile` is what [`Head::profile`] is for the set:
+/// the bridge rests on its own depth where the set gives one, and on the skull where it does
+/// not.
+pub fn rests_on(landmark: &str, profile: &[String]) -> Option<[Vec<&'static str>; 3]> {
+    let gives = |name: &str| profile.iter().any(|given| given == name);
+    match landmark {
+        FOREHEAD => {
+            return Some([
+                Vec::new(),
+                vec!["brow_inner_end_rise"],
+                vec!["forehead_depth"],
+            ]);
+        }
+        BRIDGE if gives("bridge_depth") => {
+            return Some([Vec::new(), Vec::new(), vec!["bridge_depth"]]);
+        }
+        name if name == jaw_angle("left") || name == jaw_angle("right") => {
+            return Some([
+                vec!["face_half_width_at_mouth_level"],
+                vec!["jaw_angle_drop"],
+                vec!["jaw_angle_depth"],
+            ]);
+        }
+        _ => {}
+    }
+    if let Some((_, [drop, depth])) = PROFILE
+        .iter()
+        .find(|(point, _)| *point == landmark)
+        .and_then(|(point, names)| Some((point, <[&'static str; 2]>::try_from(*names).ok()?)))
+    {
+        return Some([Vec::new(), vec![drop], vec![depth]]);
+    }
+    if landmark == NOSE_TIP {
+        return Some([
+            Vec::new(),
+            vec!["nose_tip_drop"],
+            vec!["nose_mark_bottom_depth"],
+        ]);
+    }
+    let spec = LANDMARKS.iter().find(|spec| match spec.pair {
+        true => spec.left() == landmark || spec.right() == landmark,
+        false => spec.stem == landmark,
+    })?;
+    Some(coordinates_rest_on(spec))
+}
+
+fn coordinates_rest_on(spec: &Spec) -> [Vec<&'static str>; 3] {
+    let direct = |from: Origin| -> Vec<&'static str> {
+        match from {
+            Plus(name) | Rise(name) => vec![name],
+            Zero | Unit | Rule => Vec::new(),
+        }
+    };
+    let mut on = [direct(spec.offset), direct(spec.drop), direct(spec.depth)];
+    // The straight line through the eye's two corners, and the one through the ear's two
+    // base points: a point on either takes its depth from the line's ends and its own offset.
+    let own_offset = on[0].clone();
+    let on_line = |ends: &[&'static str]| -> Vec<&'static str> {
+        ends.iter()
+            .copied()
+            .chain(own_offset.iter().copied())
+            .collect()
+    };
+    const EYE_CORNERS: [&str; 3] = [
+        "eye_inner_corner_offset",
+        "eye_outer_corner_offset",
+        "eye_wrap_depth",
+    ];
+    const EAR_BASE: [&str; 4] = [
+        "ear_base_inner_offset",
+        "ear_base_inner_depth",
+        "ear_base_outer_offset",
+        "ear_base_outer_depth",
+    ];
+    match spec.key() {
+        ("hair-top", "") => on[2] = vec!["hair_centre_depth"],
+        ("skull-front", "") => {
+            on[1] = vec!["skull_centre_rise"];
+            on[2] = vec!["skull_centre_depth", "skull_radius"];
+        }
+        ("centre-line-at-eye-level", "") => {
+            on[2] = vec!["skull_centre_depth", "skull_radius", "skull_centre_rise"];
+        }
+        ("face-outline", "at-nose-level") => {
+            on[1] = vec!["nose_mark_corner_drop", "nose_mark_bottom_drop"];
+        }
+        ("face-outline", "at-mouth-level") => on[1] = vec!["mouth_centre_drop"],
+        ("jaw-line", level) => {
+            // A jaw-line point shares its cheek point's offset and height.
+            if let Some(cheek) = LANDMARKS
+                .iter()
+                .find(|cheek| cheek.key() == ("face-outline", level))
+            {
+                let [offset, drop, _] = coordinates_rest_on(cheek);
+                on[0] = offset;
+                on[1] = drop;
+            }
+            if on[2].is_empty() {
+                on[2] = vec!["jaw_line_depth_at_nose_level"];
+            }
+        }
+        ("eye", "outer-corner" | "inner-corner") => on[2] = vec!["eye_wrap_depth"],
+        ("eye", "opening-top" | "opening-bottom") => {
+            on[1] = vec!["eye_opening_height"];
+            on[2] = on_line(&EYE_CORNERS);
+        }
+        ("eye", "opening-centre") => {
+            on[0] = vec!["eye_inner_corner_offset", "eye_outer_corner_offset"];
+        }
+        ("lid-line" | "brow-line", _) => on[2] = on_line(&EYE_CORNERS),
+        ("ear", "top" | "outer-extent" | "inner-extent") => on[2] = on_line(&EAR_BASE),
+        _ => {}
+    }
+    on
 }
 
 /// Landmark positions read from one view: SVG units, x toward the viewer's right, y downward.
@@ -984,12 +1260,42 @@ pub struct Taken {
 /// the offsets of the pairs it shows whole; the front view gives what the three-quarter view
 /// does not show, and the widths of silhouettes, the neck and the shoulder line.
 ///
-/// Every proportion must be given: a view that hides one is an error. [`take_proportions`]
-/// gives what there is.
+/// Every proportion must be given but those a set may leave out: a view that hides one is an
+/// error. [`take_proportions`] gives what there is.
 pub fn proportions_from_views(front: &Reading, three_quarter: &Reading) -> Result<Set> {
+    // Beside a three-quarter view, what a set may leave out is not said to be missing.
     let taken = take_proportions(front, three_quarter)?;
     if let Some((_, why)) = taken.not_given.first() {
         return Err(Error::new(why.clone()));
+    }
+    Set::from_values(taken.values)
+}
+
+/// The set [`proportions_from_views`] takes back from an armature's front and three-quarter
+/// views, with the proportions of the profile its side view is drawn with, which only the side
+/// view draws. `named` is what the side view's landmark file says they are: the bridge is a
+/// landmark of every head, and only the file says whether its depth was given or built by the
+/// skull's rule.
+pub fn proportions_from_views_and_profile(
+    front: &Reading,
+    three_quarter: &Reading,
+    side: &Reading,
+    named: &[String],
+) -> Result<Set> {
+    let mut taken = take_proportions(front, three_quarter)?;
+    if let Some((_, why)) = taken.not_given.first() {
+        return Err(Error::new(why.clone()));
+    }
+    if !named.is_empty() {
+        let from_side = take_from(front, Beside::Side(side))?;
+        for name in named {
+            let value = from_side.values.get(name).ok_or_else(|| {
+                Error::new(format!(
+                    "the side view names `{name}` among the proportions of the profile it is drawn with, and does not draw it"
+                ))
+            })?;
+            taken.values.insert(name.clone(), *value);
+        }
     }
     Set::from_values(taken.values)
 }
@@ -1093,6 +1399,11 @@ pub fn take_from(front: &Reading, beside: Beside) -> Result<Taken> {
             values.insert(name.to_string(), value);
         }
         Err(Error(why)) => {
+            // A proportion a set may leave out is said to be missing only where a view that
+            // could give it was read: the points of the profile, beside a side view.
+            if !beside_side && list.find(name).is_some_and(|known| known.optional()) {
+                return;
+            }
             // Where the list says a side view does not give a proportion, its reason, in the
             // list's own words, is said beside what was missing.
             let by_the_list = list
@@ -1285,6 +1596,98 @@ pub fn take_from(front: &Reading, beside: Beside) -> Result<Taken> {
             }
         },
     );
+
+    // The tip of the nose. A side view places it, as `nose-mark-bottom`, at its own height.
+    // An armature's three-quarter view names it where it has one; a drawing read with no
+    // side view does not, and the tip then stands at the nose mark's bottom. A front view
+    // alone draws the nose mark and no tip.
+    put(
+        "nose_tip_drop",
+        match views.turned.as_ref() {
+            Some(side) if side.view == View::Side => side
+                .reading
+                .need(NOSE_MARK_BOTTOM, View::Side)
+                .map(|at| (at[1] - side.frame.eye_line_y) / side.frame.unit),
+            Some(turned) => match turned.reading.get(NOSE_TIP) {
+                Some(at) => Ok((at[1] - turned.frame.eye_line_y) / turned.frame.unit),
+                None => views.drop(spec(NOSE_MARK_BOTTOM, "")),
+            },
+            None => Err(Error::new(
+                "a front view draws the nose mark and not the tip of the nose, and no side view of the character was read with it",
+            )),
+        },
+    );
+
+    // The points of the profile that only a side view is asked for, the last part of the
+    // list: each gives a height in the side view's own unit, where the list takes one, and a
+    // depth. A height of the forehead and of the bridge is the brow's and the eye line's.
+    let in_profile = |landmarks: &[&str]| -> Result<(f64, f64)> {
+        let side = views
+            .turned
+            .as_ref()
+            .filter(|turned| turned.view == View::Side)
+            .ok_or_else(|| {
+                Error::new(format!(
+                    "only a side view is asked for `{}`, and no side view of the character was read",
+                    landmarks[0]
+                ))
+            })?;
+        let at = landmarks
+            .iter()
+            .find_map(|landmark| side.reading.get(landmark))
+            .ok_or_else(|| {
+                Error::new(format!(
+                    "the side view has no position for `{}`",
+                    landmarks.join("` or `")
+                ))
+            })?;
+        Ok((
+            (at[1] - side.frame.eye_line_y) / side.frame.unit,
+            views.depth_at(at[0], 0.0)?,
+        ))
+    };
+    for (landmarks, drop, depth) in [
+        (&["centre-line-at-brow-level"][..], None, "forehead_depth"),
+        (&["centre-line-at-eye-level"][..], None, "bridge_depth"),
+        // The near side's, whichever side is near.
+        (
+            &["jaw-right-angle", "jaw-left-angle"][..],
+            Some("jaw_angle_drop"),
+            "jaw_angle_depth",
+        ),
+        (
+            &["neck-front-top"][..],
+            Some("neck_front_top_drop"),
+            "neck_front_top_depth",
+        ),
+        (
+            &["neck-front-base"][..],
+            Some("neck_front_base_drop"),
+            "neck_front_base_depth",
+        ),
+        (
+            &["neck-back-top"][..],
+            Some("neck_back_top_drop"),
+            "neck_back_top_depth",
+        ),
+        (
+            &["neck-back-base"][..],
+            Some("neck_back_base_drop"),
+            "neck_back_base_depth",
+        ),
+    ] {
+        let taken = in_profile(landmarks);
+        if let Some(drop) = drop {
+            put(
+                drop,
+                match &taken {
+                    Ok((at, _)) => Ok(*at),
+                    Err(Error(why)) => Err(Error::new(why.clone())),
+                },
+            );
+        }
+        put(depth, taken.map(|(_, at)| at));
+    }
 
     // No circle is drawn: the skull is built by rule from what was taken above.
     let skull = if skull_drawn {

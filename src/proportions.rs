@@ -49,6 +49,16 @@ pub struct Proportion {
     /// How a convention is built where nothing is drawn behind it. A measured proportion
     /// has none.
     pub rule: Option<String>,
+    /// What a head drawn from a set that leaves it out is drawn with, where a set may leave it
+    /// out: the list's `when_left_out`. None for a proportion every set gives.
+    pub when_left_out: Option<String>,
+}
+
+impl Proportion {
+    /// Whether a set may leave it out.
+    pub fn optional(&self) -> bool {
+        self.when_left_out.is_some()
+    }
 }
 
 /// One amount of a correction: a length in units, with the rule it comes from.
@@ -163,6 +173,10 @@ fn parse_list(text: &str) -> Result<List> {
             },
             side_not_taken,
             rule,
+            when_left_out: entry
+                .get("when_left_out")
+                .map(|_| text_of(entry, "when_left_out", &context))
+                .transpose()?,
             name,
         });
     }
@@ -364,13 +378,19 @@ impl List {
             if let Some(rule) = &proportion.rule {
                 out.push_str(&format!("  By rule: {rule}\n"));
             }
+            if let Some(left_out) = &proportion.when_left_out {
+                out.push_str(&format!(
+                    "  A set may leave it out; a head drawn from one that does is drawn as follows: {left_out}\n"
+                ));
+            }
         }
         out
     }
 }
 
-/// A set of proportions: one value for every proportion of the list, and nothing else. It
-/// may carry corrections of the list, each with a value for every one of its amounts.
+/// A set of proportions: one value for every proportion of the list that every set gives, a
+/// value or none for each that a set may leave out, and nothing else. It may carry
+/// corrections of the list, each with a value for every one of its amounts.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Set {
     values: BTreeMap<String, f64>,
@@ -379,14 +399,14 @@ pub struct Set {
 }
 
 impl Set {
-    /// Checks values against the list: every proportion once, no other name, every number
-    /// finite, and every span that must be above zero above zero.
+    /// Checks values against the list: every proportion once, but those a set may leave out,
+    /// no other name, every number finite, and every span that must be above zero above zero.
     pub fn from_values(values: BTreeMap<String, f64>) -> Result<Set> {
         let list = list()?;
         let missing: Vec<&str> = list
             .proportions
             .iter()
-            .filter(|proportion| !values.contains_key(&proportion.name))
+            .filter(|proportion| !proportion.optional() && !values.contains_key(&proportion.name))
             .map(|proportion| proportion.name.as_str())
             .collect();
         if !missing.is_empty() {
@@ -409,7 +429,9 @@ impl Set {
             )));
         }
         for proportion in &list.proportions {
-            let value = values[&proportion.name];
+            let Some(&value) = values.get(&proportion.name) else {
+                continue;
+            };
             if !value.is_finite() {
                 return Err(Error::new(format!(
                     "the proportion `{}` is not a finite number",
@@ -538,17 +560,25 @@ impl Set {
         Ok(set)
     }
 
-    /// The value of a proportion of the list.
+    /// The value of a proportion of the list that every set gives.
     ///
     /// # Panics
     ///
-    /// If the list has no such proportion: the head model and the list then disagree, which
-    /// is a fault in the program and not in a set of proportions.
+    /// If the set has no such value: the list has no such proportion, or a set may leave it
+    /// out and [`Set::given`] is what asks for it. Either is a fault in the program and not in
+    /// a set of proportions.
     pub fn get(&self, name: &str) -> f64 {
         match self.values.get(name) {
             Some(value) => *value,
-            None => panic!("the list of proportions has no `{name}`, which the head model uses"),
+            None => panic!(
+                "the set gives no `{name}`: the list has no such proportion, or a set may leave it out and the program asked for it as one every set gives"
+            ),
         }
+    }
+
+    /// The value of a proportion that a set may leave out, or none where this one does.
+    pub fn given(&self, name: &str) -> Option<f64> {
+        self.values.get(name).copied()
     }
 
     /// The set as the text of its file, in the list's order, under the opening lines given.
@@ -562,10 +592,14 @@ impl Set {
         }
         out.push_str("[proportions]\n");
         for proportion in &list()?.proportions {
+            // A proportion the set leaves out is not written.
+            let Some(&value) = self.values.get(&proportion.name) else {
+                continue;
+            };
             out.push_str(&format!(
                 "{} = {}\n",
                 proportion.name,
-                crate::number::toml(self.values[&proportion.name], 6)
+                crate::number::toml(value, 6)
             ));
         }
         if !self.corrections.is_empty() {

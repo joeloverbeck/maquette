@@ -2,7 +2,7 @@
 
 ## What maquette is
 
-Maquette generates armatures for anime-style characters from proportions measured on good published drawings. An armature is the construction guide a drawing is built on: the skull, the face outline, guides for the eyes, brows, nose, mouth and ears, the neck, and later the volumes of the body. It comes as SVG, with a file giving the coordinates of every named landmark. An agent then draws and paints the character over it, and the armature is hidden in the finished art.
+Maquette generates armatures for anime-style characters from proportions measured on good drawings that Jon rates. An armature is the construction guide a drawing is built on: the skull, the face outline, guides for the eyes, brows, nose, mouth and ears, the neck, and later the volumes of the body. It comes as SVG, with a file giving the coordinates of every named landmark. An agent then draws and paints the character over it, and the armature is hidden in the finished art.
 
 ## Purpose (`PURP-1`)
 
@@ -14,7 +14,7 @@ Maquette generates armatures for anime-style characters from proportions measure
 
 ## Primary outcome (`PURP-2`)
 
-Jon builds a character's armature inside proportions measured on good published drawings, in front, three-quarter and side views that he accepts on sight, and the agent that paints over it produces a drawing whose proportions he does not send back.
+Jon builds a character's armature inside proportions measured on good drawings he rates, in front, three-quarter and side views that he accepts on sight, and the agent that paints over it produces a drawing whose proportions he does not send back.
 
 Jon selected the form on 2026-11-16: a character creator, in which he or an agent moves controls for the face shape, the eyes, nose, mouth, ears and other parts. He ruled the same day that measured references are its base, and that Saffi's accepted armature tests what the creator allows and never feeds it. Those selections are part of the outcome. They waive the comparison of mechanisms in `PURP-4` and nothing else. Whether an armature improves what is painted over it is still to be shown (`SEARCH-4`, `SIM-2`), and everything inside the creator stays replaceable.
 
@@ -32,7 +32,7 @@ The one consumer is mudsong's character art. Its next use of an armature is the 
 
 There are two real inputs.
 
-- **References:** published drawings from works Jon rates as competent, by several hands, each checked for its view and tilt (`04-evidence-and-references.md`). They fill the proportion tables.
+- **References:** drawings Jon rates, whatever their source, by several hands, each checked for its view and tilt (`04-evidence-and-references.md`). They fill the proportion tables.
 - **Saffi,** as mudsong has settled her: an adult woman of the cat-folk, human-faced, with round ears set on the skull. Her hand-made armature, a front view and a three-quarter view from mudsong's portrait study, is the comparison case.
 
 Mudsong is private, so a ticket here restates the facts it needs and says where they came from.
@@ -55,7 +55,7 @@ Maquette extracts the armature step from mudsong's portrait run, so that run's e
 
 **Not established.** A side view. A front view Jon accepted. A body. Any character but Saffi. That one family's proportions serve another character. That a generated armature is as good as the hand-made one. That Saffi's proportions are good ones: Jon accepted them as good enough for now (2026-11-16).
 
-**Established since, in maquette.** This is maquette's own evidence and no part of mudsong's record. At look 3, on 2026-11-17, Jon accepted Saffi's generated armature in three views (issue #6; the files are in `armatures/saffi/`). The side view carries the named correction `lower_face_set_back` at the amounts in `data/saffi/proportions.toml`. So she has a front view and a side view Jon accepted. The rest of the list above stands: a body, any character but Saffi, that one family's proportions serve another character, that a generated armature is as good as the hand-made one, and that her proportions are good ones. No table is accepted, and mudsong has not yet used the files.
+**Established since, in maquette.** This is maquette's own evidence and no part of mudsong's record. At look 3, on 2026-11-17, Jon accepted Saffi's generated armature in three views (issue #6; the files are in `armatures/saffi/`). The side view carries the named correction `lower_face_set_back` at the amounts in `data/saffi/proportions.toml`. So she has a front view and a side view Jon accepted. The rest of the list above stands: a body, any character but Saffi, that one family's proportions serve another character, that a generated armature is as good as the hand-made one, and that her proportions are good ones. At look 4, the same day, Jon accepted the readings of a first batch of references: six works, a front view of each and a side view of three. The first table built from them was not accepted at look 5, for the side view's nose, and had no verdict at look 6, where he sent the work to more references. He gathered a second batch himself and accepted most of its characters at look 7, on 2026-11-18. At look 8, the same day, he accepted the table built from both batches as measured, with what it counts: 20 characters of 12 works, adult women and teenage girls, in `tables/women-and-teenage-girls/`. That is the first accepted table. It accepts no armature of a character but Saffi: Jon found the side view of the head drawn from it better than before, and still wrong at the back of the jaw. Mudsong has not yet used the files.
 
 The portrait run keeps its own appetite and state in mudsong. Nothing here discharges it.
 
@@ -68,7 +68,7 @@ Jon ruled on 2026-11-16 that both stay here. The tables have no consumer but the
 
 ## Authority
 
-Jon is the acceptance authority. Only he decides whether an armature looks right, which published work counts as a competent reference, whether a reference is level and in the view stated, which style family a character is drawn in, where a character sits between human and animal, and what is published.
+Jon is the acceptance authority. Only he decides whether an armature looks right, which drawing counts as a reference, whether a reference is level and in the view stated, which style family a character is drawn in, where a character sits between human and animal, and what is published.
 
 ## Limits
 

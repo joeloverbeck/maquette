@@ -334,6 +334,80 @@ const IN_SIDE_VIEW: &[Ask] = &[
     ),
 ];
 
+/// The revision of the reading instructions from which a side view is asked for the points of
+/// the profile below. Look 6 drew a side view whose forehead, jaw and neck nothing measured,
+/// and it read wrong there. A side reading made under an earlier revision was not asked for
+/// them, and is not held to them.
+const PROFILE_SINCE: &str = "2026-11-17.4";
+
+/// The points of the profile on the front of the face and on the neck that a side view is
+/// asked for since [`PROFILE_SINCE`], in the order a reader works down the head.
+const PROFILE_ON_CENTRE_LINE: &[Ask] = &[
+    ask(
+        "centre-line-at-brow-level",
+        "",
+        "face outline",
+        "The forehead: where the front outline of the face crosses the height of the near brow's front end.",
+    ),
+    ask(
+        "centre-line-at-eye-level",
+        "",
+        "face outline",
+        "The bridge of the nose: where the front outline of the face crosses the eye line.",
+    ),
+    ask(
+        "neck-front-top",
+        "",
+        "neck",
+        "The top of the front of the neck: where its edge leaves the underside of the jaw.",
+    ),
+    ask(
+        "neck-back-top",
+        "",
+        "neck",
+        "The top of the back of the neck: where its edge meets the head. Not where hair crosses it.",
+    ),
+];
+
+/// The point of the profile on the near side that a side view is asked for since
+/// [`PROFILE_SINCE`].
+const PROFILE_ON_NEAR_SIDE: Ask = ask(
+    "jaw",
+    "angle",
+    "jaw",
+    "The angle of the jaw: going back along the underside of the jaw from the chin, where it turns to run up toward the ear.",
+);
+
+/// Where a revision of the reading instructions stands among the others: its date, then its
+/// number that day. None for a revision not written that way, which is taken to come before
+/// every revision that is.
+fn revision_order(revision: &str) -> Option<(&str, u32)> {
+    let (date, number) = revision.rsplit_once('.')?;
+    let is_date = date.len() == 10
+        && date.bytes().enumerate().all(|(at, byte)| match at {
+            4 | 7 => byte == b'-',
+            _ => byte.is_ascii_digit(),
+        });
+    if !is_date {
+        return None;
+    }
+    Some((date, number.parse().ok()?))
+}
+
+/// How two revisions of the reading instructions stand in time, by [`revision_order`]. Two
+/// revisions not written that way are told apart by their words, so that one order holds.
+pub fn revisions_in_order(first: &str, second: &str) -> std::cmp::Ordering {
+    (revision_order(first), first).cmp(&(revision_order(second), second))
+}
+
+/// Whether a reading made under `revision` was asked for what a view asks for since `since`.
+fn asked_since(revision: &str, since: &str) -> bool {
+    match (revision_order(revision), revision_order(since)) {
+        (Some(revision), Some(since)) => revision >= since,
+        _ => false,
+    }
+}
+
 /// The points of the near side's outline that a turned view does not ask for: above the nose
 /// level the list of proportions builds the jaw line by rule, and the jaw point belongs to
 /// the front of the face, which a side view shows as the centre line.
@@ -472,9 +546,19 @@ fn what_in(view: View, ask: &Ask) -> &'static str {
         .map_or(ask.what, |(_, _, what)| what)
 }
 
-/// The landmarks a view asks a reader for, in the order of a reading. `faces` is which way a
-/// turned head faces; a front view has none.
+/// The landmarks a view asks a reader for under the reading instructions as they stand, in the
+/// order of a reading. `faces` is which way a turned head faces; a front view has none.
 pub fn asked(view: View, faces: Option<Faces>) -> Vec<Asked> {
+    asked_with(view, faces, true)
+}
+
+/// The landmarks a view asked a reader for under `revision` of the reading instructions: a
+/// reading is held to what it was asked for when it was made.
+pub fn asked_under(view: View, faces: Option<Faces>, revision: &str) -> Vec<Asked> {
+    asked_with(view, faces, asked_since(revision, PROFILE_SINCE))
+}
+
+fn asked_with(view: View, faces: Option<Faces>, profile: bool) -> Vec<Asked> {
     let near = faces.unwrap_or(Faces::ViewersRight).near();
     let mut out: Vec<Asked> = ON_CENTRE_LINE
         .iter()
@@ -510,6 +594,21 @@ pub fn asked(view: View, faces: Option<Faces>) -> Vec<Asked> {
             kind: ask.kind,
             what: what_in(view, ask),
         }));
+        if profile {
+            out.extend(PROFILE_ON_CENTRE_LINE.iter().map(|ask| Asked {
+                name: ask.stem.to_string(),
+                kind: ask.kind,
+                what: ask.what,
+            }));
+            out.push(Asked {
+                name: format!(
+                    "{}-{near}-{}",
+                    PROFILE_ON_NEAR_SIDE.stem, PROFILE_ON_NEAR_SIDE.point
+                ),
+                kind: PROFILE_ON_NEAR_SIDE.kind,
+                what: PROFILE_ON_NEAR_SIDE.what,
+            });
+        }
     }
     out
 }
@@ -533,19 +632,20 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
 }
 
 /// What is said of a file that is not a picture maquette reads. A picture is read as it was
-/// published, as a PNG or as a JPEG, and is told by its bytes, not by its name.
+/// published, as a PNG, a JPEG or a WebP, and is told by its bytes, not by its name.
 pub fn not_a_picture(error: impl std::fmt::Display) -> Error {
     Error::new(format!(
-        "the picture cannot be read as a PNG or a JPEG, the two formats maquette reads: {error}"
+        "the picture cannot be read as a PNG, a JPEG or a WebP, the three formats maquette reads: {error}"
     ))
 }
 
-/// What a file that holds a picture whole calls its format: `image/png` or `image/jpeg`. A
-/// picture that is not [`upright`] is refused.
+/// What a file that holds a picture whole calls its format: `image/png`, `image/jpeg` or
+/// `image/webp`. A picture that is not [`upright`] is refused.
 pub fn picture_media_type(bytes: &[u8]) -> Result<&'static str> {
     let media_type = match image::guess_format(bytes).map_err(not_a_picture)? {
         image::ImageFormat::Png => "image/png",
         image::ImageFormat::Jpeg => "image/jpeg",
+        image::ImageFormat::WebP => "image/webp",
         other => return Err(not_a_picture(format!("it is in the format {other:?}"))),
     };
     upright(bytes)?;
@@ -564,18 +664,37 @@ pub fn picture_size(bytes: &[u8]) -> Result<(u32, u32)> {
 }
 
 /// Refuses a picture whose file says it is to be shown turned or mirrored, as an EXIF
-/// orientation other than upright does. A browser, and so a reference check sheet, shows it
+/// orientation other than upright does. A browser, and so a reference check sheet, may show it
 /// turned; maquette reads and enlarges its pixels as they are stored, and never converts a
-/// picture. A reading of it, its enlargements and its sheet would then not agree.
+/// picture. A reading of it, its enlargements and its sheet would then not agree. A picture
+/// whose EXIF cannot be read is refused too, since whether it is turned cannot be told.
 pub fn upright(bytes: &[u8]) -> Result<()> {
     use image::ImageDecoder;
+    use image::metadata::Orientation;
     let mut decoder = image::ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
         .map_err(not_a_picture)?
         .into_decoder()
         .map_err(not_a_picture)?;
-    let orientation = decoder.orientation().map_err(not_a_picture)?;
-    if orientation == image::metadata::Orientation::NoTransforms {
+    // The orientation is read from the EXIF here, not taken from the decoder's own account:
+    // the decoder expects a WebP's EXIF chunk to begin with the TIFF header, as WebP's
+    // specification says, and takes one that begins with "Exif" and two zero bytes first, as
+    // every WebP of the second batch does, for upright.
+    let orientation = match decoder.exif_metadata().map_err(not_a_picture)? {
+        None => Orientation::NoTransforms,
+        Some(exif) => {
+            let tiff = exif.strip_prefix(b"Exif\0\0").unwrap_or(&exif);
+            if !(tiff.starts_with(b"II*\0") || tiff.starts_with(b"MM\0*")) {
+                return Err(Error::new(
+                    "the picture's EXIF cannot be read: it holds no TIFF header, so whether its file says it is shown turned or mirrored cannot be told. Such a picture is not read",
+                ));
+            }
+            // A directory without an orientation, or with a value outside 1 to 8, says
+            // nothing of how the picture is shown, and a browser shows it upright.
+            Orientation::from_exif_chunk(tiff).unwrap_or(Orientation::NoTransforms)
+        }
+    };
+    if orientation == Orientation::NoTransforms {
         return Ok(());
     }
     Err(Error::new(format!(
@@ -591,10 +710,7 @@ pub const REFERENCE_FIELDS: &[(&str, &str)] = &[
         "The work the drawing is from; for a drawing from no published work, what it is.",
     ),
     ("designer", "Its character designer, or who made it."),
-    (
-        "source",
-        "Where the picture was taken from: for a reference, the official publication.",
-    ),
+    ("source", "Where the picture was taken from."),
     (
         "age_band",
         "The character's age band, such as adult or child.",
@@ -790,9 +906,9 @@ impl Record {
         })
     }
 
-    /// The landmarks this reading's view asks for.
+    /// The landmarks this reading's view asked for, under the revision it was made under.
     pub fn asked(&self) -> Vec<Asked> {
-        asked(self.view, self.faces)
+        asked_under(self.view, self.faces, &self.instructions)
     }
 
     /// What the reading lacks or gets wrong, in words its reader can act on. Empty when the

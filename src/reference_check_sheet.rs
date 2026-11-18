@@ -58,7 +58,7 @@ const DECISION: &str = "Your decision for each character: is every head level an
 const MEASURED_AGAINST: &str = "Every percentage is a share of head height, from the hair's top to the chin, as the readings of that drawing place them. A fit is a share of the front view's.";
 const LEGEND: &str = "Blue dot: a point both readings place, midway between them. Orange, numbered: a point the two readings put more than 1% apart, at both places. Ring: a point only one reading places.";
 const AGAINST_NOTHING_KNOWN: &str = "A disagreement sets the two readings of a drawing against each other, and nothing on this sheet is set against a position that is known: two readers who agree may both be wrong.";
-const SIDE_VIEW_UNTESTED: &str = "The reading of a side view has been tested once on a drawing whose positions are known: Saffi's generated side view, which is a drawing of guides. It has not been tested on a painted side view, and your eye is its only check.";
+const SIDE_VIEW_UNTESTED: &str = "The reading of a side view has been tested on two drawings whose positions are known: Saffi's generated side view, a drawing of guides, at revision 2026-11-17.3, and an original painted profile at revision 2026-11-17.4. It has not been tested on published art, and your eye is its only check there.";
 const NO_THREE_QUARTER_VIEW: &str = "No three-quarter view was read for any character on this sheet, so the front view and the side view stand beside each other.";
 const TESTED_AT: &str = "The reading instructions were tested on heads about 480 pixels high: on a smaller head a pixel is a larger share of head height.";
 

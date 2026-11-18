@@ -11,7 +11,7 @@ use maquette::views::Placement;
 use maquette::{
     Error, Result, armature, differences, enlargement, hand_made_drawings, hand_made_views,
     hard_case, jons_check, known_positions, measuring, overlay, proportions, read_back, readings,
-    reference_check_sheet, vectorcraft,
+    reference_check_sheet, sources, table, vectorcraft,
 };
 
 const USAGE: &str = "\
@@ -129,13 +129,38 @@ Usage:
       depths and the conventions summed up apart. A file that lacks some proportions is
       compared in the ones it has.
 
+  maquette set-against-table --proportions <file> --table <file> [--out <file>]
+      Set a set of proportions against a proportion table, such as one that
+      `maquette table-from-readings` writes: each proportion of the set as inside or outside
+      its valid range, with how far beyond, or as having no range to be set against, because
+      the table has fewer than five works behind it, or none, or because it is a convention.
+      The set need not be whole. Outside is a finding and not a fault: nothing in the set
+      or the table is changed. With --out the file is written there and the proportions
+      outside are printed. Both files are read from where they are named, and no reference
+      folder is needed.
+
+  maquette overlay-sources --proportions <file> --armature <folder> --out <folder>
+      For a review sheet: mark where the numbers of a drawn head come from. The set of
+      proportions is one `maquette set-from-table` wrote, which says of each proportion
+      whether it is the table's middle value, a thin average or borrowed; the armature is
+      the folder `maquette draw` wrote from it. For each view an SVG in the view's own
+      units is written, with a dot on every point a guide passes through, coloured by the
+      least supported source among the proportions that place the point in that view. A
+      front view shows no depth and a side view no width, so a point may be of one kind in
+      one view and another in the next. Writes front.sources-overlay.svg,
+      three-quarter.sources-overlay.svg and side.sources-overlay.svg, and prints the count
+      of each kind.
+
   maquette reading-instructions
       Print the reading instructions: what a reader judges and places on a drawing.
 
 Measuring. The commands below read and write in the reference folder, the one folder
-outside every repository that holds reference images, readings and reference check sheets.
+outside every repository but a private store of references, that holds reference images,
+readings and reference check sheets.
 Each of them takes --references <folder>, which names it; without that option the environment
-variable MAQUETTE_REFERENCES names it. A folder inside a Git repository is refused. Every path given to them is taken from that folder, and one that leaves it, by its
+variable MAQUETTE_REFERENCES names it. A folder inside a Git repository is refused, unless
+the repository has a file .maquette-reference-store at its root and is no checkout of
+maquette. Every path given to them is taken from that folder, and one that leaves it, by its
 own steps or through a link, is refused; with no folder they stop and say so.
 Where a view is asked for, <readings> is one reading, or the two readings of the drawing
 with a comma between them: a landmark then stands midway between the two.
@@ -143,9 +168,9 @@ A reading is measured only when it passes what check-reading checks: complete, a
 picture still the one that was read. The two readings of a drawing are two files, by two
 readers under two labels, and follow one revision of the reading instructions. A reading
 under an earlier revision is measured, and what is written says which it followed.
-A picture is a PNG or a JPEG. It is read as it was published and never converted: a reading
-records the digest of the file it was read from. One whose file says it is shown turned or
-mirrored, by an EXIF orientation, is refused.
+A picture is a PNG, a JPEG or a WebP. It is read as it was published and never converted:
+a reading records the digest of the file it was read from. One whose file says it is shown
+turned or mirrored, by an EXIF orientation, is refused, and so is one whose EXIF cannot be read.
 
   maquette start-reading --image <picture> --view front|three-quarter|side
                          [--faces right|left] --reader <label> --out <reading>
@@ -241,16 +266,51 @@ mirrored, by an EXIF orientation, is refused.
   maquette jons-check --check <check>
       Say what a record of Jon's check does and what it lacks: each character accepted or
       rejected, each drawing measured or not and from which readings, what his marks leave
-      out, and the number of accepted works for each view, with a view under five reported
-      as too thin. Exit status 0 when the record is complete, 1 when it is not.
+      out, and the number of accepted characters for each view, with the works they come
+      from, and a view under five characters reported as too thin. Exit status 0 when the
+      record is complete, 1 when it is not.
+
+  maquette table-from-readings --check <check>[,<check>...] [--out <table>]
+      Build a proportion table from records of Jon's checks that are complete, with a comma
+      between them, and from nothing else: for each proportion of the list, the lowest, the
+      middle (the median) and the highest value among the characters whose readings he
+      accepted, one drawing of each in each view, and the number of characters behind it,
+      with the works they come from and how many the work that gives the most gives. A
+      drawing that is set aside or not called level is left out, and so is a rejected
+      character. A label several records name is one character, and a drawing read again
+      under a later revision gives only what its earlier readings were not asked for. A
+      proportion with five characters or more behind it is given, and has a valid range;
+      one with fewer is too thin, also in a view that has five, and is listed with its count
+      and why the others do not give it, and with no number; a convention has no range. A
+      view with fewer than five characters is reported as too thin and is not called a
+      table. Where the characters are of more than one age band, each band's own range
+      stands beside the table's, with whether they overlap. The table lists the characters
+      it was measured on, and states that its ranges are separate and do not rule on which
+      combinations go together, and that a lowest and a highest value is one reference's
+      number. It takes no set of proportions, and refuses a record's positions written as a
+      reading: a comparison case's numbers never enter a table. A table is a proposal until
+      Jon has accepted it.
+
+  maquette set-from-table --check <check>[,<check>...] --borrow <set> [--out <file>]
+      Make a whole set of proportions for one head to be drawn, from the table the records
+      of Jon's checks give: the table's middle value where a proportion has a range; the
+      average of the characters where two to four give it, marked as thin; and for the rest the
+      number of the set named by --borrow, marked as borrowed. An ear and the neck are each
+      taken whole: unless the characters give every one of a form's proportions, all are
+      borrowed. A borrowed point that hangs on a measured one keeps its offset from it: the jaw
+      point is placed from this set's own chin, as far from it as the borrowed set's stands
+      from its chin. The set carries no correction, and says what the list's rule would set
+      back on its own depths. It says of every proportion which of the three it is, and
+      `maquette draw` reads it. The set borrowed from is read from where it is named; the set
+      made is no table.
 
 turn-from-readings, fit-of-views and proportions-from-readings take `--check <check>`, the
-record of Jon's check. A record that is not complete measures nothing. With a complete one
-only the readings of a character he accepted are measured, each drawing from all the
-readings the record lists for it and as it rules, with what he marked as off left out; a
-reading that has changed since the record was started is refused. Without it the readings
-are measured as their readers judged them, and what is written says that Jon has not
-checked them.
+record of Jon's check, which names its readings from the folder it is in. A record that is
+not complete measures nothing. With a complete one only the readings of a character he
+accepted are measured, each drawing from all the readings the record lists for it and as
+it rules, with what he marked as off left out; a reading that has changed since the record
+was started is refused. Without it the readings are measured as their readers judged them,
+and what is written says that Jon has not checked them.
 ";
 
 /// How a command ended, when nothing went wrong in running it.
@@ -329,6 +389,10 @@ fn run(arguments: &[String]) -> Result<Ended> {
         "reference-check-sheet" => reference_check_sheet(rest)?,
         "start-jons-check" => start_jons_check(rest)?,
         "jons-check" => return jons_check_command(rest),
+        "table-from-readings" => table_from_readings(rest)?,
+        "set-against-table" => set_against_table(rest)?,
+        "set-from-table" => set_from_table(rest)?,
+        "overlay-sources" => overlay_sources(rest)?,
         "compare-proportions" => compare_proportions(rest)?,
         "read-back" => return read_back_command(rest),
         "read-back-hard-case" => return read_back_hard_case(rest),
@@ -516,22 +580,35 @@ fn proportions_from_landmarks(arguments: &[String]) -> Result<()> {
     )?;
     let front = armature::read_landmark_file(&read(required(&found, "--front")?)?)?;
     let three_quarter = armature::read_landmark_file(&read(required(&found, "--three-quarter")?)?)?;
-    let mut set = head_model::proportions_from_views(&front, &three_quarter)?;
-    let opening = match found.get("--side") {
+    let (set, opening) = match found.get("--side") {
         Some(side) => {
+            // The side view's landmark file states what only it draws: the proportions of the
+            // profile, and any correction.
             let in_side = |error: Error| Error::new(format!("{side}: {error}"));
-            let carried = armature::read_side_view_corrections(&read(side)?).map_err(in_side)?;
-            for (name, amounts) in carried {
+            let text = read(side)?;
+            let named = armature::read_side_view_profile(&text).map_err(in_side)?;
+            let side_view = armature::read_landmark_file(&text).map_err(in_side)?;
+            let mut set = head_model::proportions_from_views_and_profile(
+                &front,
+                &three_quarter,
+                &side_view,
+                &named,
+            )
+            .map_err(in_side)?;
+            for (name, amounts) in armature::read_side_view_corrections(&text).map_err(in_side)? {
                 set = set.with_correction(&name, amounts).map_err(in_side)?;
             }
-            "\
+            let opening = "\
 # A set of proportions taken back from the landmark files of an armature's three views,
 # by `maquette proportions-from-landmarks`: the proportions from the front view and the
-# three-quarter view, and any correction from the side view, whose landmark file is the one
-# that states it. `maquette list-proportions` defines each proportion and each correction.
-"
+# three-quarter view, and from the side view any correction and the proportions of the profile
+# it is drawn with, which its landmark file is the one to state. `maquette list-proportions`
+# defines each proportion and each correction.
+";
+            (set, opening)
         }
-        None => {
+        None => (
+            head_model::proportions_from_views(&front, &three_quarter)?,
             "\
 # A set of proportions taken back from two landmark files, a front view and a three-quarter view,
 # by `maquette proportions-from-landmarks`. `maquette list-proportions` defines each proportion.
@@ -539,8 +616,8 @@ fn proportions_from_landmarks(arguments: &[String]) -> Result<()> {
 # No side view was given, so a correction was not taken back: the side view's landmark file is
 # the one that states it. If the armature carries a correction, this is not the whole set it
 # was drawn from. Give the side view's landmark file with `--side` to take it back as well.
-"
-        }
+",
+        ),
     };
     deliver(&found, &set.write(opening)?)
 }
@@ -787,9 +864,11 @@ fn views_given<'a>(
         Some(path) => Some((*path, check_record(folder, path)?)),
         None => None,
     };
+    // The folder the record names its readings from: the folder it is in.
+    let recorded_in = check.as_ref().map(|(_, (_, own))| own);
     let review = match &check {
-        Some((path, check)) => {
-            let review = check.review(path, &|reading| reading_now(folder, reading));
+        Some((path, (check, own))) => {
+            let review = check.review(path, &|reading| reading_now(own, reading));
             if !review.complete() {
                 return Err(Error::new(format!(
                     "the record of Jon's check `{path}` is not complete, so nothing is measured by it: {}. `maquette jons-check --check {path}` says what it does and lacks",
@@ -814,9 +893,11 @@ fn views_given<'a>(
         let view = option.trim_start_matches("--");
         let paths: Vec<&str> = named.split(',').map(str::trim).collect();
         separate_files(folder, &paths)?;
+        // A path the record names is named from the record's folder, and one given from the
+        // reference folder.
+        let own = recorded_in.unwrap_or(folder);
         let same = |recorded: &str, given: &str| {
-            folder
-                .path(recorded)
+            own.path(recorded)
                 .is_ok_and(|recorded| folder.path(given).is_ok_and(|given| given == recorded))
         };
         let measured = review.measured(&paths, &same)?;
@@ -829,9 +910,10 @@ fn views_given<'a>(
             }
             _ => character = Some(measured.character),
         }
-        // Each reading is still held to what `check-reading` checks, against its picture.
+        // Each reading is still held to what `check-reading` checks, against its picture,
+        // which it names from the record's folder as the record names the reading.
         for path in &paths {
-            checked_reading(folder, path)?;
+            checked_reading(own, &own.name_of(&folder.path(path)?))?;
         }
         notes.push(format!("the {view} view is {}", measured.said));
         drawings.insert(*option, (named, measured.drawing.clone()));
@@ -1051,6 +1133,13 @@ fn start_jons_check(arguments: &[String]) -> Result<()> {
     let (folder, found) = measuring(arguments, &["--sheet", "--out"])?;
     let sheet = required(&found, "--sheet")?;
     let out = required(&found, "--out")?;
+    // A record names its readings from the folder it is in, and the sheet's readings are
+    // named from the reference folder, whose pictures they name from there in turn.
+    if folder.of_file(out)?.root() != folder.root() {
+        return Err(Error::new(format!(
+            "`{out}` is in a folder below the reference folder. A record of Jon's check names its readings, and they their pictures, from the folder it is in, and the sheet's readings are named from the reference folder: name it by a file name alone, at the top of the reference folder"
+        )));
+    }
     let (description, characters, _) = sheet_readings(&folder, sheet)?;
     let mut digests = BTreeMap::new();
     for read in characters.iter().flatten().flatten() {
@@ -1091,24 +1180,105 @@ fn start_jons_check(arguments: &[String]) -> Result<()> {
     Ok(())
 }
 
-/// A record of Jon's check of the reference folder, read. Its path is named in what goes
-/// wrong.
-fn check_record(folder: &Folder, path: &str) -> Result<jons_check::Check> {
-    jons_check::Check::read(&folder.read_text(path)?)
-        .map_err(|error| Error::new(format!("{path}: {error}")))
+/// A record of Jon's check of the reference folder, read, with the folder it names its
+/// readings from: the folder it is in. Its path is named in what goes wrong.
+fn check_record(folder: &Folder, path: &str) -> Result<(jons_check::Check, Folder)> {
+    let check = jons_check::Check::read(&folder.read_text(path)?)
+        .map_err(|error| Error::new(format!("{path}: {error}")))?;
+    Ok((check, folder.of_file(path)?))
 }
 
 fn jons_check_command(arguments: &[String]) -> Result<Ended> {
     let (folder, found) = measuring(arguments, &["--check"])?;
     let path = required(&found, "--check")?;
-    let check = check_record(&folder, path)?;
-    let review = check.review(path, &|reading| reading_now(&folder, reading));
+    let (check, own) = check_record(&folder, path)?;
+    let review = check.review(path, &|reading| reading_now(&own, reading));
     print!("{}", review.said());
     Ok(if review.complete() {
         Ended::Well
     } else {
         Ended::CheckFailed
     })
+}
+
+fn table_from_readings(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(arguments, &["--check", "--out"])?;
+    let table = table_by(&folder, required(&found, "--check")?)?;
+    deliver_measured(&folder, &found, &table.file(), &table.summary())
+}
+
+fn set_from_table(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(arguments, &["--check", "--borrow", "--out"])?;
+    let table = table_by(&folder, required(&found, "--check")?)?;
+    // The set that is borrowed from is committed numbers, read from where it is named.
+    let borrow = required(&found, "--borrow")?;
+    let borrowed = proportions::Set::read(&read(borrow)?)
+        .map_err(|error| Error::new(format!("{borrow}: {error}")))?;
+    let made = table.set_with(borrow, &borrowed)?;
+    deliver_measured(&folder, &found, &made.file()?, &made.summary())
+}
+
+fn overlay_sources(arguments: &[String]) -> Result<()> {
+    let found = options(arguments, &["--proportions", "--armature", "--out"])?;
+    let set = required(&found, "--proportions")?;
+    let set_text = read(set)?;
+    let armature = Path::new(required(&found, "--armature")?);
+    let folder = Path::new(required(&found, "--out")?);
+    std::fs::create_dir_all(folder)
+        .map_err(|error| Error::new(format!("cannot make {}: {error}", folder.display())))?;
+    for view in maquette::views::View::ALL {
+        let landmarks = armature.join(format!("{}.landmarks.toml", view.name()));
+        let named = landmarks.display().to_string();
+        let overlay = sources::overlay(set, &set_text, &named, &read(&named)?)?;
+        write(&folder.join(&overlay.file.name), &overlay.file.text)?;
+        print!("{}", overlay.summary());
+    }
+    Ok(())
+}
+
+/// The table the complete records of Jon's checks give, named with a comma between them,
+/// with each measured reading still held to what `check-reading` checks.
+fn table_by(folder: &Folder, named: &str) -> Result<table::Table> {
+    let paths: Vec<&str> = named.split(',').map(str::trim).collect();
+    let records = paths
+        .iter()
+        .map(|path| check_record(folder, path))
+        .collect::<Result<Vec<_>>>()?;
+    let mut reviews = Vec::new();
+    for (path, (check, own)) in paths.iter().zip(&records) {
+        let review = check.review(path, &|reading| reading_now(own, reading));
+        if !review.complete() {
+            return Err(Error::new(format!(
+                "the record of Jon's check `{path}` is not complete, so no table is built from it: {}. `maquette jons-check --check {path}` says what it does and lacks",
+                review.problems.join("; ")
+            )));
+        }
+        // Each reading that is measured is still held to what `check-reading` checks,
+        // against its picture as it is now.
+        for accepted in review.accepted() {
+            for (drawing, outcome) in &accepted.drawings {
+                if matches!(outcome, jons_check::Outcome::Measured { .. }) {
+                    for named in &drawing.readings {
+                        checked_reading(own, &named.path)?;
+                    }
+                }
+            }
+        }
+        reviews.push(review);
+    }
+    table::build(&reviews)
+}
+
+fn set_against_table(arguments: &[String]) -> Result<()> {
+    let found = options(arguments, &["--proportions", "--table", "--out"])?;
+    let set = required(&found, "--proportions")?;
+    let named = required(&found, "--table")?;
+    let against = table::set_against(set, &read(set)?, named, &read(named)?)?;
+    deliver(&found, &against.file())?;
+    if found.contains_key("--out") {
+        print!("{}", against.summary());
+    }
+    Ok(())
 }
 
 fn score_reading(arguments: &[String]) -> Result<()> {

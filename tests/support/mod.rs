@@ -15,6 +15,40 @@ pub fn repository() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
+/// The points of the profile, to add to the made-up set. Every number is made up, like the set.
+pub const MADE_UP_PROFILE: &str = "\
+forehead_depth = 0.2311
+bridge_depth = 0.2127
+jaw_angle_drop = 0.8873
+jaw_angle_depth = -0.4627
+neck_front_top_drop = 0.9631
+neck_front_top_depth = -0.1873
+neck_front_base_drop = 1.3127
+neck_front_base_depth = -0.2371
+neck_back_top_drop = 0.6373
+neck_back_top_depth = -1.2129
+neck_back_base_drop = 1.0871
+neck_back_base_depth = -1.3373
+";
+
+/// Writes the made-up set with the points of the profile and its tip of the nose at 0.3627
+/// below the eye line, above the nose mark's bottom at 0.4629, into a scratch folder of its
+/// own, with each of `also`'s lines of the set replaced, and returns its path.
+pub fn made_up_profile_set(name: &str, also: &[(&str, &str)]) -> PathBuf {
+    let set = scratch(&format!("{name}-set")).join("proportions.toml");
+    let mut made_up = text(&repository().join(MADE_UP))
+        .replace("nose_tip_drop = 0.4629", "nose_tip_drop = 0.3627");
+    for (line, with) in also {
+        assert!(
+            made_up.contains(line),
+            "the made-up set has no line `{line}`"
+        );
+        made_up = made_up.replace(line, with);
+    }
+    std::fs::write(&set, format!("{made_up}{MADE_UP_PROFILE}")).expect("the set is written");
+    set
+}
+
 /// Runs the program from the repository's root.
 pub fn maquette(arguments: &[&str]) -> Output {
     maquette_with_path(arguments, None)
@@ -269,8 +303,8 @@ pub fn made_up_image_with_block(path: &Path, width: u32, height: u32, block: [u3
     picture.save(path).expect("the made-up picture is written");
 }
 
-/// The made-up picture as a JPEG, the other format a drawing is published in. A JPEG does
-/// not keep each pixel's value exactly, so a test of one holds a pixel to a tolerance.
+/// The made-up picture as a JPEG, another format a drawing is published in. A JPEG does not
+/// keep each pixel's value exactly, so a test of one holds a pixel to a tolerance.
 pub fn made_up_jpeg(path: &Path, width: u32, height: u32) {
     assert!(
         path.extension().is_some_and(|extension| extension == "jpg"),
@@ -285,16 +319,26 @@ pub fn made_up_jpeg(path: &Path, width: u32, height: u32) {
     );
 }
 
+/// EXIF that says only how a picture is to be shown: a big-endian TIFF header and one
+/// directory of one entry, tag 0x0112, the orientation, a SHORT, one of it. `orientation` is
+/// the EXIF value, 1 for upright and 6 for a quarter turn clockwise.
+pub fn exif_orientation(orientation: u8) -> Vec<u8> {
+    let mut exif = b"MM\0\x2a\0\0\0\x08\0\x01\x01\x12\0\x03\0\0\0\x01\0".to_vec();
+    exif.extend([orientation, 0, 0, 0, 0, 0, 0]);
+    exif
+}
+
+/// What precedes the TIFF header in a JPEG's EXIF segment, and in the EXIF chunk of every WebP
+/// of the second batch, though WebP's own specification leaves it out.
+pub const EXIF_PREFIX: &[u8] = b"Exif\0\0";
+
 /// The made-up JPEG with an EXIF segment that says the picture is to be shown turned:
-/// `orientation` is the EXIF value, 1 for upright and 6 for a quarter turn clockwise. The
-/// pixels are the made-up picture's, stored as they are.
+/// `orientation` is the EXIF value, as for [`exif_orientation`]. The pixels are the made-up
+/// picture's, stored as they are.
 pub fn made_up_jpeg_with_orientation(path: &Path, width: u32, height: u32, orientation: u8) {
     made_up_jpeg(path, width, height);
     let jpeg = std::fs::read(path).expect("the made-up JPEG is read");
-    // "Exif", then a big-endian TIFF header and one directory of one entry: tag 0x0112, the
-    // orientation, a SHORT, one of it.
-    let mut exif = b"Exif\0\0MM\0\x2a\0\0\0\x08\0\x01\x01\x12\0\x03\0\0\0\x01\0".to_vec();
-    exif.extend([orientation, 0, 0, 0, 0, 0, 0]);
+    let exif = [EXIF_PREFIX, &exif_orientation(orientation)].concat();
     let length = u16::try_from(exif.len() + 2).expect("a short segment");
     let mut out = jpeg[..2].to_vec();
     out.extend([0xFF, 0xE1]);
@@ -302,6 +346,60 @@ pub fn made_up_jpeg_with_orientation(path: &Path, width: u32, height: u32, orien
     out.extend(exif);
     out.extend(&jpeg[2..]);
     std::fs::write(path, out).expect("the made-up JPEG is written");
+}
+
+/// The made-up picture as a WebP, another format a drawing is published in. It is written
+/// lossless, the only WebP the `image` crate writes, so each pixel keeps its value.
+pub fn made_up_webp(path: &Path, width: u32, height: u32) {
+    assert!(
+        path.extension()
+            .is_some_and(|extension| extension == "webp"),
+        "a made-up WebP is named `.webp`, so that it is written as one"
+    );
+    made_up_image(path, width, height);
+    let webp = std::fs::read(path).expect("the made-up picture is read");
+    assert!(
+        webp.starts_with(b"RIFF") && webp.get(8..12) == Some(b"WEBP".as_slice()),
+        "the made-up picture was not written as a WebP"
+    );
+}
+
+/// The made-up WebP in WebP's extended format, with `exif` as its EXIF chunk, byte for byte.
+/// The pixels are the made-up picture's, in the chunk the plain WebP holds them in.
+pub fn made_up_webp_with_exif(path: &Path, width: u32, height: u32, exif: &[u8]) {
+    made_up_webp(path, width, height);
+    let plain = std::fs::read(path).expect("the made-up WebP is read");
+    // The extended format's header chunk: flags that say an EXIF chunk follows, three bytes
+    // reserved, then the canvas's width and height less one, in three bytes each.
+    let mut header = vec![0x08, 0, 0, 0];
+    header.extend(&(width - 1).to_le_bytes()[..3]);
+    header.extend(&(height - 1).to_le_bytes()[..3]);
+    let chunk = |name: &[u8], data: &[u8]| {
+        let mut out = name.to_vec();
+        out.extend(
+            u32::try_from(data.len())
+                .expect("a short chunk")
+                .to_le_bytes(),
+        );
+        out.extend(data);
+        if data.len() % 2 == 1 {
+            out.push(0);
+        }
+        out
+    };
+    let mut body = b"WEBP".to_vec();
+    body.extend(chunk(b"VP8X", &header));
+    // The plain WebP's one chunk, which holds the pixels, after its 12 bytes of RIFF header.
+    body.extend(&plain[12..]);
+    body.extend(chunk(b"EXIF", exif));
+    let mut out = b"RIFF".to_vec();
+    out.extend(
+        u32::try_from(body.len())
+            .expect("a short file")
+            .to_le_bytes(),
+    );
+    out.extend(body);
+    std::fs::write(path, out).expect("the made-up WebP is written");
 }
 
 /// The SHA-256 digest of a file, in lower-case hex, worked out by the test itself.

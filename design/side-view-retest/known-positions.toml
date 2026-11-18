@@ -1,0 +1,62 @@
+# The known positions of `side-profile.png`, written as a landmark file is, so that
+# `maquette score-reading --known-positions` reads them.
+#
+# The drawing is an original head made for this test on 2026-11-17, in VectorCraft
+# (`side-profile.vectorcraft`): a painted woman's head in profile, facing the viewer's right. It
+# is no character and copies no drawing. Its picture is a render at one pixel to a unit.
+#
+# Every position below is an anchor of a drawn path, or a crossing worked out on a straight
+# segment; README.md beside this file says which, landmark by landmark, by the definitions of
+# revision 2026-11-17.4 of the reading instructions. Names are a reader's, but for the back edge of
+# the jaw, which a reader places under `face-outline-right-at-...` and the list calls the jaw line.
+# A shoulder point is not given: the profile's shoulder is under the garment, and a reader may
+# state it as not seen or place it; either way it is not scored.
+
+view = "side"
+svg = "side-profile.svg"
+what = "an original painted head in profile drawn in VectorCraft for the retest of revision 2026-11-17.4, design/side-view-retest/side-profile.png, whose positions are the anchors of its paths"
+turn_degrees = 90.0
+
+[frame]
+width = 1000.0
+height = 1000.0
+unit = 230.0  # eye line to chin
+head_height = 475.0  # hair top to chin
+eye_line_y = 450.0
+
+[landmarks]
+hair-top = { x = 548.0, y = 205.0 }
+chin = { x = 694.0, y = 680.0 }
+nose-mark-bottom = { x = 736.0, y = 522.0 }
+mouth-line-centre = { x = 704.0, y = 578.0 }
+eye-right-outer-corner = { x = 596.0, y = 443.0 }
+eye-right-inner-corner = { x = 651.0, y = 452.0 }
+eye-right-opening-top = { x = 630.0, y = 428.0 }
+eye-right-opening-bottom = { x = 632.0, y = 472.0 }
+iris-right-top = { x = 639.0, y = 431.0 }
+iris-right-bottom = { x = 639.0, y = 471.0 }
+iris-right-outer-extent = { x = 627.0, y = 452.0 }
+iris-right-inner-extent = { x = 647.0, y = 452.0 }
+lid-line-right-inner-end = { x = 650.0, y = 433.0 }
+lid-line-right-crest = { x = 626.0, y = 425.0 }
+lid-line-right-outer-end = { x = 590.0, y = 432.0 }
+brow-line-right-inner-end = { x = 655.0, y = 383.0 }
+brow-line-right-outer-end = { x = 602.0, y = 372.0 }
+nose-mark-right-corner = { x = 705.5, y = 529.5 }
+mouth-line-right-end = { x = 683.0, y = 577.0 }
+ear-right-base-outer = { x = 556.0, y = 418.0 }
+ear-right-base-inner = { x = 553.0, y = 508.0 }
+ear-right-top = { x = 528.0, y = 398.0 }
+ear-right-outer-extent = { x = 497.0, y = 455.0 }
+ear-right-inner-extent = { x = 560.0, y = 462.0 }
+jaw-line-right-at-nose-level = { x = 553.941, y = 525.75 }
+jaw-line-right-at-mouth-level = { x = 556.712, y = 578.0 }
+hair-back-extent = { x = 373.0, y = 300.0 }
+hair-front-extent = { x = 696.0, y = 348.0 }
+neck-back-base = { x = 452.0, y = 768.0 }
+neck-front-base = { x = 628.0, y = 798.0 }
+centre-line-at-brow-level = { x = 691.0, y = 383.0 }
+centre-line-at-eye-level = { x = 683.0, y = 450.0 }
+neck-front-top = { x = 618.0, y = 657.3 }
+neck-back-top = { x = 472.0, y = 556.0 }
+jaw-right-angle = { x = 560.0, y = 640.0 }
