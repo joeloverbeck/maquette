@@ -442,8 +442,9 @@ about = "a made-up character of a made-up work"
         "{all}"
     );
     assert!(
-        said("tested once on a drawing whose positions are known")
-            && said("not been tested on a painted side view"),
+        said("tested on two drawings whose positions are known")
+            && said("an original painted profile")
+            && said("not been tested on published art"),
         "{all}"
     );
     assert!(said("work-1: front 480, side 240"), "{all}");

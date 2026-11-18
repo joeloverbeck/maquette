@@ -1060,6 +1060,22 @@ fn a_private_repository_that_declares_itself_a_reference_store_holds_reference_f
         message.contains("is a Git repository") && message.contains("a checkout of maquette"),
         "{message}"
     );
+
+    // Nor is a store that sits inside a checkout of maquette, which Git could then take in.
+    let nested = checkout.join("inside");
+    std::fs::create_dir_all(nested.join(".git")).expect("made");
+    std::fs::write(nested.join(".git/HEAD"), "ref: refs/heads/made-up\n").expect("written");
+    std::fs::write(
+        nested.join(".maquette-reference-store"),
+        "made up for a test\n",
+    )
+    .expect("written");
+    let output = maquette_in(Some(&nested), &["check-reading", "--reading", "front.toml"]);
+    let message = failure(&output);
+    assert!(
+        message.contains("inside a checkout of maquette"),
+        "{message}"
+    );
 }
 
 /// A link inside the reference folder that leads out of it is a way out of it like any other.

@@ -65,10 +65,21 @@ fn repository_holding(folder: &Path) -> Option<&Path> {
 pub const STORE_MARKER: &str = ".maquette-reference-store";
 
 /// Whether a repository is a private store of references: it declares itself one with
-/// [`STORE_MARKER`] at its root, and it is no checkout of maquette, which is public. A checkout
-/// of maquette has the list of proportions at its root.
+/// [`STORE_MARKER`] at its root, and it is no checkout of maquette, which is public, and in
+/// none. A checkout of maquette has the list of proportions at its root.
 fn is_a_store(repository: &Path) -> bool {
-    repository.join(STORE_MARKER).is_file() && !is_maquette(repository)
+    declares_itself_a_store(repository) && maquette_holding(repository).is_none()
+}
+
+fn declares_itself_a_store(repository: &Path) -> bool {
+    repository.join(STORE_MARKER).is_file()
+}
+
+/// The checkout of maquette a repository is or is in, if any.
+fn maquette_holding(repository: &Path) -> Option<&Path> {
+    repository
+        .ancestors()
+        .find(|above| repository_holding(above) == Some(*above) && is_maquette(above))
 }
 
 fn is_maquette(repository: &Path) -> bool {
@@ -123,14 +134,17 @@ impl Folder {
             } else {
                 format!("is inside the Git repository `{}`", repository.display())
             };
-            let marked_checkout = if repository.join(STORE_MARKER).is_file()
-                && is_maquette(repository)
-            {
-                format!(
-                    " It holds `{STORE_MARKER}`, but it is a checkout of maquette, which is public and holds no references."
-                )
-            } else {
-                String::new()
+            let marked_checkout = match maquette_holding(repository) {
+                Some(maquette) if declares_itself_a_store(repository) && maquette == repository => {
+                    format!(
+                        " It holds `{STORE_MARKER}`, but it is a checkout of maquette, which is public and holds no references."
+                    )
+                }
+                Some(maquette) if declares_itself_a_store(repository) => format!(
+                    " It holds `{STORE_MARKER}`, but it is inside a checkout of maquette, `{}`, which is public and holds no references.",
+                    maquette.display()
+                ),
+                _ => String::new(),
             };
             return Err(Error::new(format!(
                 "the reference folder `{}`, which {by} names, {where_it_is}, so nothing can be measured there.{marked_checkout} References are kept outside every repository, or in a private repository of their own that declares itself a store of references with the file `{STORE_MARKER}` at its root, so that no image, reading or sheet can be committed where it may be published: name a folder that is in no repository, or in such a store. {HOW}",

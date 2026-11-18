@@ -133,8 +133,10 @@ fn sources_of(path: &str, text: &str) -> Result<BTreeMap<String, usize>> {
     let mut sources = BTreeMap::new();
     for proportion in &proportions::list()?.proportions {
         let said = words(stated, &proportion.name);
-        // A proportion left out of the set places no point, so no dot stands for it.
-        if proportion.optional() && Source::kind_of(&said) == Some("left out") {
+        // A proportion left out of the set places no point, so no dot stands for it. A set made
+        // before the list had a proportion that a set may leave out says nothing of it.
+        if proportion.optional() && (said.is_empty() || Source::kind_of(&said) == Some("left out"))
+        {
             continue;
         }
         let kind = Source::kind_of(&said)

@@ -1113,14 +1113,9 @@ pub struct Taken {
 /// Every proportion must be given but those a set may leave out: a view that hides one is an
 /// error. [`take_proportions`] gives what there is.
 pub fn proportions_from_views(front: &Reading, three_quarter: &Reading) -> Result<Set> {
+    // Beside a three-quarter view, what a set may leave out is not said to be missing.
     let taken = take_proportions(front, three_quarter)?;
-    let list = crate::proportions::list()?;
-    let may_leave_out = |name: &str| list.find(name).is_some_and(|known| known.optional());
-    if let Some((_, why)) = taken
-        .not_given
-        .iter()
-        .find(|(name, _)| !may_leave_out(name))
-    {
+    if let Some((_, why)) = taken.not_given.first() {
         return Err(Error::new(why.clone()));
     }
     Set::from_values(taken.values)

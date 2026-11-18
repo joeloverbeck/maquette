@@ -28,6 +28,11 @@ struct Work {
     chin_depth: Option<f64>,
     /// Whether the first reader calls its front view not level and sets it aside.
     front_set_aside: bool,
+    /// Whether its readers place the neck: in its front view both points where the neck ends,
+    /// 0.45 to each side and 1.6 below the eye line; in its side view, where it has one, the
+    /// neck's front base at depth 0.05 and 1.75 down and its back base at depth -0.85 and 1.45
+    /// down. Neither view places the neck's top ends.
+    neck: bool,
     /// Whether both readers set its side view aside.
     side_set_aside: bool,
 }
@@ -39,6 +44,7 @@ impl Work {
             ear_top_rise: None,
             brows: true,
             chin_depth: None,
+            neck: false,
             front_set_aside: false,
             side_set_aside: false,
         }
@@ -121,6 +127,11 @@ fn folder_with(name: &str, works: &[Work], more: &dyn Fn(&Path) -> String) -> Pa
                 points.remove(&format!("brow-line-{side}-outer-end"));
             }
         }
+        if work.neck {
+            // The made-up head's front view stands at x = 500, 200 pixels to the unit.
+            points.insert("neck-left-base".to_string(), [590.0, 720.0]);
+            points.insert("neck-right-base".to_string(), [410.0, 720.0]);
+        }
         let front = named("front");
         for (reader, path) in ["first", "second"].into_iter().zip(&front) {
             let mut made_up = MadeUp::front(reader, points.clone());
@@ -144,6 +155,11 @@ fn folder_with(name: &str, works: &[Work], more: &dyn Fn(&Path) -> String) -> Pa
                 .collect();
             points.get_mut("chin").expect("the made-up head has a chin")[0] =
                 700.0 + chin_depth * 100.0;
+            if work.neck {
+                // The eye line shows at y = 300 here.
+                points.insert("neck-front-base".to_string(), [705.0, 475.0]);
+                points.insert("neck-back-base".to_string(), [615.0, 445.0]);
+            }
             let side = named("side");
             for (reader, path) in ["first", "second"].into_iter().zip(&side) {
                 let mut made_up = MadeUp::turned(reader, points.clone());
@@ -978,6 +994,9 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
     // are 0.2, 0.3 and 0.7: their middle is 0.3 and their average 0.4.
     let mut works = six_works();
     works[2].chin_depth = Some(0.7);
+    for work in &mut works {
+        work.neck = true;
+    }
     let folder = folder("table-set-from-table", &works);
     checked(&folder, &[]);
     let (file, set) = set_from_table(&folder);
@@ -1035,6 +1054,32 @@ fn a_whole_set_is_made_from_a_table_and_says_where_each_number_comes_from() {
         1e-9,
         "borrowed",
     );
+    // The neck is taken whole too. Every made-up front places both of its bases, 0.45 to each
+    // side and 1.6 down, and the three side views its front base at depth 0.05 and its back
+    // base at -0.85, so the works give its width, where it ends and its depth, -0.4. No view
+    // places its top ends, and the borrowed set leaves them out: they are left out, and that
+    // does not take the rest of the neck from the borrowed set, since a neck without its top
+    // ends is drawn as the front view's column, from the other three.
+    assert_eq!(
+        source("neck_half_width"),
+        "the table: the middle of 6 works"
+    );
+    assert_close(value("neck_half_width"), 0.45, 1e-6, "the neck's width");
+    assert_eq!(source("neck_base_drop"), "the table: the middle of 6 works");
+    assert_close(value("neck_base_drop"), 1.6, 1e-6, "where the neck ends");
+    assert_eq!(source("neck_depth"), "a thin average: of 3 works");
+    assert_close(value("neck_depth"), -0.4, 1e-6, "the neck's depth");
+    assert_eq!(
+        source("neck_front_base_depth"),
+        "a thin average: of 3 works"
+    );
+    for name in ["neck_back_top_drop", "neck_back_top_depth"] {
+        assert!(
+            source(name).starts_with("left out: no work gives it"),
+            "{name}: {}",
+            source(name)
+        );
+    }
     // The ear is taken whole: five works give the height of its top, 1.1 to 1.35, and none
     // gives its base, so the top is borrowed with the rest of it.
     assert_eq!(
@@ -1188,6 +1233,33 @@ fn the_points_of_a_drawn_head_are_marked_by_where_their_numbers_come_from() {
         path_text(&drawn),
         "--out",
         path_text(&drawn),
+    ]);
+    // A set made before the list had the points of the profile, which a set may leave out,
+    // says nothing of where they come from, and is overlaid all the same.
+    let profile = [
+        "forehead_depth",
+        "bridge_depth",
+        "jaw_angle_",
+        "neck_front_",
+        "neck_back_",
+    ];
+    let earlier: String = text(&set)
+        .lines()
+        .filter(|line| !profile.iter().any(|name| line.starts_with(name)))
+        .map(|line| format!("{line}\n"))
+        .collect();
+    assert!(!earlier.contains("forehead_depth"), "{earlier}");
+    let earlier_set = drawn.join("earlier-set.toml");
+    std::fs::write(&earlier_set, earlier).expect("written");
+    let earlier_out = scratch("overlay-sources-earlier-set");
+    maquette_ok(&[
+        "overlay-sources",
+        "--proportions",
+        path_text(&earlier_set),
+        "--armature",
+        path_text(&drawn),
+        "--out",
+        path_text(&earlier_out),
     ]);
     let place = |view: &str, name: &str| -> [f64; 2] {
         let point =

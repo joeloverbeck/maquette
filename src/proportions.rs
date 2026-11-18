@@ -560,16 +560,19 @@ impl Set {
         Ok(set)
     }
 
-    /// The value of a proportion of the list.
+    /// The value of a proportion of the list that every set gives.
     ///
     /// # Panics
     ///
-    /// If the list has no such proportion: the head model and the list then disagree, which
-    /// is a fault in the program and not in a set of proportions.
+    /// If the set has no such value: the list has no such proportion, or a set may leave it
+    /// out and [`Set::given`] is what asks for it. Either is a fault in the program and not in
+    /// a set of proportions.
     pub fn get(&self, name: &str) -> f64 {
         match self.values.get(name) {
             Some(value) => *value,
-            None => panic!("the list of proportions has no `{name}`, which the head model uses"),
+            None => panic!(
+                "the set gives no `{name}`: the list has no such proportion, or a set may leave it out and the program asked for it as one every set gives"
+            ),
         }
     }
 

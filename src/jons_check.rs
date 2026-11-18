@@ -723,10 +723,17 @@ impl Check {
                         "{of} names a `view` and its ruling is not \"measure\": the view is said only where Jon rules that a drawing is measured as another view than its card's"
                     ));
                 }
-                // A mark names a landmark the drawing's view asks for, placed or not.
+                // A mark names a landmark the drawing's view asked for, placed or not, under the
+                // revision each reading was made under.
                 let asked: Vec<String> = records
                     .iter()
-                    .flat_map(|record| crate::readings::asked(drawing.counts_as(), record.faces))
+                    .flat_map(|record| {
+                        crate::readings::asked_under(
+                            drawing.counts_as(),
+                            record.faces,
+                            &record.instructions,
+                        )
+                    })
                     .map(|asked| asked.name)
                     .collect();
                 for mark in &drawing.off {

@@ -568,6 +568,10 @@ impl Source {
         matches!(self, Source::Borrowed(_) | Source::BorrowedOffset(..))
     }
 
+    fn is_left_out(&self) -> bool {
+        matches!(self, Source::LeftOut(_))
+    }
+
     /// The source as the set's file says it. What stands before the colon is the kind, which
     /// [`Source::kind_of`] reads back.
     fn words(&self) -> String {
@@ -646,17 +650,17 @@ impl Table {
                 (line.name.clone(), value, source)
             })
             .collect();
-        // The rule `taken_whole`. A proportion left out counts as one the works do not give.
-        let not_from_the_works =
-            |source: &Source| matches!(source, Source::Borrowed(_) | Source::LeftOut(_));
+        // The rule `taken_whole`. A proportion left out does not take a form from the borrowed
+        // set: what a head drawn without it is drawn with, the list's `when_left_out`, rests
+        // on the form's other proportions alone.
         for (start, why) in TAKEN_WHOLE {
             let whole = |name: &str| name.starts_with(start);
             if made
                 .iter()
-                .any(|(name, _, source)| whole(name) && not_from_the_works(source))
+                .any(|(name, _, source)| whole(name) && matches!(source, Source::Borrowed(_)))
             {
                 for (name, value, source) in &mut made {
-                    if whole(name) && !not_from_the_works(source) {
+                    if whole(name) && !source.is_borrowed() && !source.is_left_out() {
                         (*value, *source) = borrow(name, why);
                     }
                 }
@@ -757,7 +761,7 @@ impl SetFromTable {
             self.count(|source| matches!(source, Source::Table(_))),
             self.count(|source| matches!(source, Source::ThinAverage(_))),
             self.count(Source::is_borrowed),
-            self.count(|source| matches!(source, Source::LeftOut(_)))
+            self.count(Source::is_left_out)
         ));
         opening.push_str(&format!("correction = {}\n", quoted(&self.correction())));
         opening.push_str("\n[rules]\n");
@@ -773,7 +777,7 @@ impl SetFromTable {
 
     /// What was made, in a few lines, for a person.
     pub fn summary(&self) -> String {
-        let left_out = self.count(|source| matches!(source, Source::LeftOut(_)));
+        let left_out = self.count(Source::is_left_out);
         format!(
             "A set of {} proportions: {} from the table's middle values, {} thin averages of two to four works, {} borrowed from `{}`.{}\n{}\n",
             self.sources.len() - left_out,

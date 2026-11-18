@@ -42,3 +42,14 @@ The shoulder is under the garment and has no known position.
 ## Making the exports again
 
 Open `side-profile.vectorcraft` and export the first artboard as PNG at scale 1 and as SVG. The record does not change unless a path does.
+
+## The retest it served
+
+On 2026-11-18 two fresh readers on Opus 5.5, given `side-profile.png` and revision 2026-11-17.4 of the reading instructions and nothing else, read it, and `maquette score-reading` set each reading against `known-positions.toml`. The pass mark, set before the scores were read, was every point within 1.5% of head height.
+
+| Reader | Points scored | Mean error | Worst point | Worst of the points that revision added |
+|---|---|---|---|---|
+| First | 35 | 0.14% of head height | 0.43%, the tip of the nose | 0.30%, the top of the neck's back |
+| Second | 35 | 0.18% | 0.95%, the top of the eye opening | 0.21%, the angle of the jaw |
+
+Both judged the head level and in profile, and gave its height as 474.3 pixels against 475. Both stated the shoulder point as not seen, finding the side-view part silent on it. The readings and their scores are kept with the readers' folders in the private reference folder. What this shows: the definitions are followed accurately on a clean painted head. It shows nothing of how a published side view is read.
