@@ -1017,6 +1017,39 @@ fn outline_lowest(folder: &Path) -> f64 {
 }
 
 #[test]
+fn an_angle_of_the_jaw_above_the_mouth_level_turns_the_outline_up_after_the_jaw_line_point_below_it()
+ {
+    // Made up: the angle of the jaw stands 0.6 below the eye line, above the mouth's level,
+    // which the made-up set puts at 0.6627 and 0.6871, and 0.45 behind the eyes, behind the
+    // jaw line's point at the mouth's level at -0.3881. That point is on the underside of the
+    // jaw, between the top of the neck's front and the angle.
+    let set = support::made_up_profile_set("high-jaw-angle", &[]);
+    let raised = support::text(&set)
+        .replace("jaw_angle_drop = 0.8873", "jaw_angle_drop = 0.6")
+        .replace("jaw_angle_depth = -0.4627", "jaw_angle_depth = -0.45");
+    std::fs::write(&set, raised).expect("the set is written");
+    let folder = draw("high-jaw-angle", path_text(&set), &[]);
+    let side = landmark_file(&folder, "side");
+    let through: Vec<&str> = side.guides["face-outline"]
+        .passes_through
+        .iter()
+        .map(String::as_str)
+        .collect();
+    assert_eq!(
+        through[5..],
+        [
+            "chin",
+            "neck-front-top",
+            "jaw-line-right-at-mouth-level",
+            "jaw-right-angle",
+            "jaw-line-right-at-nose-level",
+            "jaw-line-right-at-eye-level",
+            "jaw-line-right-top",
+        ]
+    );
+}
+
+#[test]
 fn a_set_that_gives_the_points_of_the_profile_draws_the_side_views_forehead_bridge_jaw_and_neck_through_them()
  {
     let set = support::made_up_profile_set("profile", &[]);

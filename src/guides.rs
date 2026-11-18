@@ -443,14 +443,28 @@ fn build_side(head: &Head, seen: &Seen) -> Guides {
     let near_angle = jaw_angle(NEAR);
     let mut outline_anchors = centre_line_from_the_skull(head, nose_point);
     let chin_at = outline_anchors.len() - 1;
-    for under in ["neck-front-top", near_angle.as_str()] {
-        if head.has(under) {
-            outline_anchors.push(under.to_string());
-        }
+    if head.has("neck-front-top") {
+        outline_anchors.push("neck-front-top".to_string());
     }
-    for level in OUTLINE_LEVELS.iter().rev() {
-        outline_anchors.push(format!("jaw-line-{NEAR}-{level}"));
+    // The jaw line from its lowest point up. The outline turns up toward the ear at the angle
+    // of the jaw: a jaw-line point that stands lower than the angle is on the underside of the
+    // jaw, and the outline runs back through it before the angle, not down to it after.
+    let jaw_line: Vec<String> = OUTLINE_LEVELS
+        .iter()
+        .rev()
+        .map(|level| format!("jaw-line-{NEAR}-{level}"))
+        .collect();
+    let mut up_the_jaw_line = 0;
+    if head.has(&near_angle) {
+        let angle_y = guides.position(&near_angle)[1];
+        up_the_jaw_line = jaw_line
+            .iter()
+            .take_while(|point| guides.position(point)[1] > angle_y)
+            .count();
+        outline_anchors.extend(jaw_line[..up_the_jaw_line].iter().cloned());
+        outline_anchors.push(near_angle.clone());
     }
+    outline_anchors.extend(jaw_line[up_the_jaw_line..].iter().cloned());
     let outline = guides.positions_of(&outline_anchors);
     // The chin is the outline's lowest point, where it turns from running down the face to
     // running back under the jaw: the curve runs level there, and does not sag below it on its

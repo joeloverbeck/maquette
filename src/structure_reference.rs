@@ -31,7 +31,7 @@ pub const RULES: &[(&str, &str)] = &[
     ),
     (
         "taken_whole",
-        "An ear and the neck are each taken whole, from one source. An ear is one form built on its two base points, and the neck one column: its width, where it ends and how far back it stands belong together, and a width from one source on a depth from another sets the head forward on a post. So unless one source gives every one of a form's proportions, all of them are borrowed.",
+        "An ear and the neck are each taken whole, from one source. An ear is one form built on its two base points, and the neck one column: its width, where it ends and how far back it stands belong together, and a width from one source on a depth from another sets the head forward on a post. So unless one source gives every one of a form's proportions, all of them are borrowed. The points of the neck's profile, where its front and its back meet the head and end, stand apart from the column: each is the structure reference's where it gives it, since the front's top is where the underside of the jaw turns down into the neck, and is borrowed otherwise. Taken whole with a borrowed column that has none, they would be left out, and the jaw would run straight from the chin to its angle, which the reference does not draw.",
     ),
     (
         "hangs_on",
@@ -42,6 +42,10 @@ pub const RULES: &[(&str, &str)] = &[
         "The set carries no correction, whatever the set it borrows from carries. A correction's amounts are worked out from a set's own depths, and whether a head is drawn with one is Jon's to say.",
     ),
 ];
+
+/// The starts of the names of the points of the neck's profile, which stand apart from the
+/// neck's column in the rule `taken_whole`.
+const NECK_PROFILE: &[&str] = &["neck_front_", "neck_back_"];
 
 /// A whole set of proportions made from one structure reference, with where each number comes
 /// from.
@@ -107,7 +111,8 @@ pub fn set(
             (name.to_string(), value, source)
         })
         .collect();
-    let finished = table::finish(made, borrowed, "the structure reference does")?;
+    // The points of the neck's profile stand apart from its column: the rule `taken_whole`.
+    let finished = table::finish(made, borrowed, "the structure reference does", NECK_PROFILE)?;
     Ok(SetFromReference {
         reference: reference.clone(),
         table: table.map(|table| table.built_from().to_string()),

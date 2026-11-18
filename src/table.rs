@@ -1003,18 +1003,23 @@ pub(crate) struct Finished {
 
 /// Applies the rules `taken_whole` and `hangs_on` to a whole set being made, each proportion
 /// with its number and its source, and makes the set. `givers` says who did not give all of a
-/// form that is borrowed whole: "the characters do", "the structure reference does".
+/// form that is borrowed whole: "the characters do", "the structure reference does". A
+/// proportion whose name starts with one of `apart` stands apart from its form: it neither
+/// takes the form from the borrowed set nor is taken with it.
 pub(crate) fn finish(
     mut made: Vec<(String, Option<f64>, Source)>,
     borrowed: &proportions::Set,
     givers: &str,
+    apart: &[&str],
 ) -> Result<Finished> {
     // The rule `taken_whole`: a form whose numbers come from more than one source is borrowed
     // whole. A proportion left out does not take a form from the borrowed set: what a head
     // drawn without it is drawn with, the list's `when_left_out`, rests on the form's other
     // proportions alone.
     for (start, form) in TAKEN_WHOLE {
-        let whole = |name: &str| name.starts_with(start);
+        let whole = |name: &str| {
+            name.starts_with(start) && !apart.iter().any(|apart| name.starts_with(apart))
+        };
         let mut sources: Vec<u8> = made
             .iter()
             .filter(|(name, _, _)| whole(name))
@@ -1135,7 +1140,7 @@ impl Table {
                 (line.name.clone(), value, source)
             })
             .collect();
-        let finished = finish(made, borrowed, "the characters do")?;
+        let finished = finish(made, borrowed, "the characters do", &[])?;
         Ok(SetFromTable {
             built_from: self.built_from.clone(),
             borrowed_from: borrowed_from.to_string(),

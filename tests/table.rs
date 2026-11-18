@@ -2140,3 +2140,68 @@ fn a_structure_reference_is_a_character_jon_accepted_and_its_set_stays_in_the_re
     assert!(!outside.exists());
     assert!(!folder.join("results/set.toml").exists());
 }
+
+#[test]
+fn the_points_of_the_necks_profile_a_structure_reference_gives_stand_apart_from_a_borrowed_column()
+{
+    // Made up: work 1's front view places no neck, so the neck's column is borrowed. Its side
+    // view places the neck's front: its top 0.95 below the eye line at depth -0.3, its base 1.5
+    // below at depth -0.55. The side view's eye line shows at y = 300, depth zero at x = 700,
+    // and a unit is 100 pixels.
+    let mut works = six_works();
+    works[0].side_points = vec![
+        ("neck-front-top", [670.0, 395.0]),
+        ("neck-front-base", [645.0, 450.0]),
+    ];
+    let folder = folder("table-structure-reference-neck-profile", &works);
+    checked(&folder, &[]);
+    let (_, set) = set_from_structure_reference(&folder, "work-1", true, &[]);
+    let borrowed = support::proportions(&support::repository().join(support::MADE_UP));
+    let source = |name: &str| set["sources"][name].as_str().expect("a source").to_string();
+    let value = |name: &str| number(&set["proportions"][name]);
+    assert_eq!(
+        source("neck_half_width"),
+        "borrowed: the structure reference does not give it"
+    );
+    assert_close(
+        value("neck_depth"),
+        borrowed["neck_depth"],
+        1e-9,
+        "the borrowed column",
+    );
+    for (name, expected) in [
+        ("neck_front_top_drop", 0.95),
+        ("neck_front_top_depth", -0.3),
+        ("neck_front_base_drop", 1.5),
+        ("neck_front_base_depth", -0.55),
+    ] {
+        assert_eq!(
+            source(name),
+            "the structure reference: as its readings give it",
+            "{name}"
+        );
+        assert_close(value(name), expected, 1e-6, name);
+    }
+    // The back of the neck, which neither gives, is left out.
+    assert!(
+        source("neck_back_top_drop")
+            .starts_with("left out: the structure reference does not give it"),
+        "{}",
+        source("neck_back_top_drop")
+    );
+    let drawn = scratch("structure-reference-neck-profile-drawn");
+    maquette_ok(&[
+        "draw",
+        "--proportions",
+        path_text(&folder.join("results/structure-set.toml")),
+        "--out",
+        path_text(&drawn),
+    ]);
+    // The side view draws the neck's front where the reference puts it. A unit is 200 there
+    // and the eye line at y = 400, and the chin stands at depth 0.2, so the top of the neck's
+    // front stands 0.5 units, 100, behind the chin and 190 below the eye line.
+    let side = support::LandmarkFile::read(&drawn.join("side.landmarks.toml"));
+    let (top, chin) = (side.point("neck-front-top"), side.point("chin"));
+    assert_close(top.x - chin.x, -100.0, 1e-3, "behind the chin");
+    assert_close(top.y, 590.0, 1e-3, "below the eye line");
+}
