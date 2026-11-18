@@ -304,6 +304,22 @@ turned or mirrored, by an EXIF orientation, is refused, and so is one whose EXIF
       `maquette draw` reads it. The set borrowed from is read from where it is named; the set
       made is no table.
 
+  maquette set-from-structure-reference --front <readings> [--side <readings>] --check <check>
+                                        --borrow <set> [--borrow-also <name>[,<name>...]]
+                                        [--unseen-from-table <check>[,<check>...]] [--out <file>]
+      Make a whole set of proportions for one head to be drawn, from one structure reference:
+      every number the readings of one character Jon accepted give, as it stands, taken as
+      proportions-from-readings takes them. Each proportion named by --borrow-also, by its
+      name or by the start of several names ending in `_`, such as `brow_`, is borrowed in
+      place of the reference's own. With --unseen-from-table, what a front view does not show,
+      as the list says, and the reference does not give, takes the middle value of the table
+      those records give, where it has a range. The rest, and every convention, is the
+      number of the set named by --borrow. An ear and the neck are each taken whole from one
+      source, and the jaw point hangs on the chin, as in set-from-table. The set carries no
+      correction, and says of every proportion where it comes from. It reproduces one
+      character's proportions, so it is written into the reference folder like the readings,
+      and never committed; `maquette draw` reads it.
+
 turn-from-readings, fit-of-views and proportions-from-readings take `--check <check>`, the
 record of Jon's check, which names its readings from the folder it is in. A record that is
 not complete measures nothing. With a complete one only the readings of a character he
@@ -392,6 +408,7 @@ fn run(arguments: &[String]) -> Result<Ended> {
         "table-from-readings" => table_from_readings(rest)?,
         "set-against-table" => set_against_table(rest)?,
         "set-from-table" => set_from_table(rest)?,
+        "set-from-structure-reference" => set_from_structure_reference(rest)?,
         "overlay-sources" => overlay_sources(rest)?,
         "compare-proportions" => compare_proportions(rest)?,
         "read-back" => return read_back_command(rest),
@@ -1215,6 +1232,46 @@ fn set_from_table(arguments: &[String]) -> Result<()> {
     let borrowed = proportions::Set::read(&read(borrow)?)
         .map_err(|error| Error::new(format!("{borrow}: {error}")))?;
     let made = table.set_with(borrow, &borrowed)?;
+    deliver_measured(&folder, &found, &made.file()?, &made.summary())
+}
+
+fn set_from_structure_reference(arguments: &[String]) -> Result<()> {
+    let (folder, found) = measuring(
+        arguments,
+        &[
+            "--front",
+            "--side",
+            "--check",
+            "--borrow",
+            "--borrow-also",
+            "--unseen-from-table",
+            "--out",
+        ],
+    )?;
+    // A structure reference is a reference: a drawing Jon accepted.
+    required(&found, "--check")?;
+    let views = views_given(&folder, &found, &["--front", "--side"])?;
+    let mut reference =
+        measuring::proportions(&views.need("--front")?, None, views.get("--side").as_ref())?;
+    views.mark(&mut reference.read);
+    reference.leave_out(&views.proportions_off);
+    let table = match found.get("--unseen-from-table") {
+        Some(named) => Some(table_by(&folder, named)?),
+        None => None,
+    };
+    // The set that is borrowed from is committed numbers, read from where it is named.
+    let borrow = required(&found, "--borrow")?;
+    let borrowed = proportions::Set::read(&read(borrow)?)
+        .map_err(|error| Error::new(format!("{borrow}: {error}")))?;
+    let also: Vec<String> = match found.get("--borrow-also") {
+        Some(named) => named
+            .split(',')
+            .map(|name| name.trim().to_string())
+            .collect(),
+        None => Vec::new(),
+    };
+    let made =
+        maquette::structure_reference::set(&reference, table.as_ref(), borrow, &borrowed, &also)?;
     deliver_measured(&folder, &found, &made.file()?, &made.summary())
 }
 

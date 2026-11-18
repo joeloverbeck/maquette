@@ -690,7 +690,7 @@ impl ReadFrom {
     }
 
     /// The lines of a file's `[readings]` or `[source]`.
-    fn file(&self) -> String {
+    pub(crate) fn file(&self) -> String {
         format!(
             "read = {}\n{}jons_check = {}\n",
             quoted_lines(&self.lines),
@@ -701,7 +701,7 @@ impl ReadFrom {
 
     /// What a person is told beside the result: what was not read by the instructions as
     /// they stand, and what Jon's check says of the readings.
-    fn summary(&self) -> String {
+    pub(crate) fn summary(&self) -> String {
         self.other_instructions
             .iter()
             .chain([&self.checked])
@@ -1263,7 +1263,7 @@ pub enum DepthFrom {
 }
 
 impl DepthFrom {
-    fn words(&self) -> &'static str {
+    pub(crate) fn words(&self) -> &'static str {
         match self {
             DepthFrom::NoView => {
                 "no view: a front view was read alone, and it shows heights and widths and no depth"

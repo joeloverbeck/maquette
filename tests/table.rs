@@ -1,5 +1,6 @@
 //! The proportion table, through the command line: building one from the readings Jon
-//! accepted, and setting a set of proportions against one.
+//! accepted, setting a set of proportions against one, and making a whole set for a head from
+//! a table or from one structure reference.
 //!
 //! Everything here is made up: the pictures are plain grey, the readings are of a made-up
 //! head changed by hand for each made-up work, the verdicts are the test's and not Jon's,
@@ -1382,6 +1383,10 @@ fn the_help_names_both_commands() {
         help.contains("maquette overlay-sources --proportions <file> --armature <folder>"),
         "{help}"
     );
+    assert!(
+        help.contains("maquette set-from-structure-reference --front <readings> [--side <readings>] --check <check>"),
+        "{help}"
+    );
 }
 
 /// Makes a whole set from the table of a made-up reference folder, borrowing from the
@@ -1798,4 +1803,340 @@ fn the_bridge_of_a_drawn_head_is_marked_by_its_own_depth_where_the_set_gives_one
     let at = [point.x, point.y];
     assert!(has_dot(&dots(&side, "thin-averages"), at), "{side}");
     assert!(!has_dot(&dots(&side, "borrowed"), at), "{side}");
+}
+
+// ---------------------------------------------------------------- one structure reference
+
+/// Makes a whole set from one made-up character's readings in a made-up reference folder,
+/// borrowing from the made-up set of proportions, with `more` options, and returns the set's
+/// file as text and as TOML.
+fn set_from_structure_reference(
+    folder: &Path,
+    label: &str,
+    side: bool,
+    more: &[&str],
+) -> (String, toml::Table) {
+    let readings = |view: &str| format!("first/{label}-{view}.toml,second/{label}-{view}.toml");
+    let front = readings("front");
+    let side_readings = readings("side");
+    let mut arguments = vec![
+        "set-from-structure-reference",
+        "--front",
+        &front,
+        "--check",
+        "check.toml",
+        "--borrow",
+        support::MADE_UP,
+        "--out",
+        "results/structure-set.toml",
+    ];
+    if side {
+        arguments.extend(["--side", side_readings.as_str()]);
+    }
+    arguments.extend(more);
+    measure_ok(folder, &arguments);
+    let file = text(&folder.join("results/structure-set.toml"));
+    let table = file.parse().expect("the set is TOML");
+    (file, table)
+}
+
+#[test]
+fn a_whole_set_is_made_from_one_structure_reference_and_says_where_each_number_comes_from() {
+    // Made up: every work places its neck. Work 1 is the structure reference: its hair's top
+    // stands 1.2 above the eye line, its ears' tops 1.3, and its side view puts the chin at
+    // depth 0.2.
+    let mut works = six_works();
+    for work in &mut works {
+        work.neck = true;
+    }
+    let folder = folder("table-set-from-structure-reference", &works);
+    checked(&folder, &[]);
+    let (file, set) = set_from_structure_reference(&folder, "work-1", true, &[]);
+    let borrowed = support::proportions(&support::repository().join(support::MADE_UP));
+    let value = |name: &str| number(&set["proportions"][name]);
+    let source = |name: &str| set["sources"][name].as_str().expect("a source").to_string();
+    let reference = "the structure reference: as its readings give it";
+
+    // What the reference gives is its own number, as it stands: the hair's top from its front
+    // view, the chin's depth from its side view. The table's middles of 1.45 and 0.25 do not
+    // enter: no table is named.
+    assert_eq!(source("hair_top_rise"), reference);
+    assert_close(value("hair_top_rise"), 1.2, 1e-6, "the reference's hair");
+    assert_eq!(source("chin_depth"), reference);
+    assert_close(value("chin_depth"), 0.2, 1e-6, "the reference's chin");
+    // The neck: its front view places both bases, 0.45 to each side and 1.6 down, and its
+    // side view the front base at depth 0.05 and the back base at -0.85, so it gives the
+    // neck's width, where it ends and its depth, -0.4. No view places the neck's top ends and
+    // the borrowed set leaves them out: they are left out, and the rest of the neck is the
+    // reference's, from one source.
+    assert_eq!(source("neck_half_width"), reference);
+    assert_close(value("neck_half_width"), 0.45, 1e-6, "the neck's width");
+    assert_eq!(source("neck_depth"), reference);
+    assert_close(value("neck_depth"), -0.4, 1e-6, "the neck's depth");
+    assert!(
+        source("neck_back_top_drop")
+            .starts_with("left out: the structure reference does not give it"),
+        "{}",
+        source("neck_back_top_drop")
+    );
+    // The ear is taken whole: the reference gives its top, 1.3, and not its base, so the top
+    // is borrowed with the rest of it.
+    assert_eq!(
+        source("ear_top_rise"),
+        "borrowed: the ear is taken whole, and the structure reference does not give all of it"
+    );
+    assert_close(
+        value("ear_top_rise"),
+        borrowed["ear_top_rise"],
+        1e-9,
+        "borrowed",
+    );
+    // A convention is borrowed, and what the reference does not give.
+    assert_eq!(
+        source("skull_radius"),
+        "borrowed: a convention, which is never measured"
+    );
+    assert_close(
+        value("skull_radius"),
+        borrowed["skull_radius"],
+        1e-9,
+        "borrowed",
+    );
+    assert_eq!(
+        source("face_top_rise"),
+        "borrowed: the structure reference does not give it"
+    );
+    // The jaw point hangs on the chin: the borrowed set's jaw point stands at depth 0.1621,
+    // 0.0254 behind its chin at 0.1875, and this head's chin is at 0.2.
+    assert_eq!(
+        source("jaw_depth"),
+        "borrowed: as its offset from the chin, on which the jaw point hangs; the structure reference does not give it"
+    );
+    assert_close(
+        value("jaw_depth"),
+        0.2 + (0.1621 - 0.1875),
+        1e-6,
+        "from the chin",
+    );
+
+    // The counts are those of the sources, and every proportion of the list has one.
+    let sources = set["sources"].as_table().expect("the sources");
+    assert_eq!(sources.len(), 86);
+    let counted = |kind: &str| {
+        sources
+            .values()
+            .filter(|said| said.as_str().is_some_and(|said| said.starts_with(kind)))
+            .count() as i64
+    };
+    let stated = set["source"].as_table().expect("a [source]");
+    assert_eq!(
+        stated["from_the_structure_reference"].as_integer(),
+        Some(counted("the structure reference:"))
+    );
+    assert_eq!(stated["from_the_table"].as_integer(), Some(0));
+    assert_eq!(stated["borrowed"].as_integer(), Some(counted("borrowed:")));
+    assert_eq!(stated["left_out"].as_integer(), Some(counted("left out:")));
+    assert_eq!(
+        counted("the structure reference:") + counted("borrowed:") + counted("left out:"),
+        86
+    );
+    assert_eq!(stated["borrowed_from"].as_str(), Some(support::MADE_UP));
+    assert!(
+        stated["jons_check"]
+            .as_str()
+            .is_some_and(|said| said.contains("the character `work-1` is accepted")),
+        "{stated:?}"
+    );
+
+    // It carries no correction, says it is never committed, and `maquette draw` reads it.
+    assert!(!file.contains("[corrections"), "{file}");
+    assert!(
+        stated["correction"]
+            .as_str()
+            .is_some_and(|said| said.starts_with("The set carries no correction.")),
+        "{stated:?}"
+    );
+    assert!(file.contains("is never\n# committed"), "{file}");
+    let drawn = scratch("set-from-structure-reference-drawn");
+    maquette_ok(&[
+        "draw",
+        "--proportions",
+        path_text(&folder.join("results/structure-set.toml")),
+        "--out",
+        path_text(&drawn),
+    ]);
+    assert!(drawn.join("side.svg").exists());
+}
+
+#[test]
+fn a_structure_reference_lends_what_is_named_to_be_borrowed_and_nothing_named_wrongly() {
+    let folder = folder("table-structure-reference-borrow-also", &six_works());
+    checked(&folder, &[]);
+    let (_, set) = set_from_structure_reference(
+        &folder,
+        "work-1",
+        true,
+        &["--borrow-also", "brow_,iris_width"],
+    );
+    let borrowed = support::proportions(&support::repository().join(support::MADE_UP));
+    let source = |name: &str| set["sources"][name].as_str().expect("a source").to_string();
+    let named = "borrowed: named in `borrowed_also`, in place of the structure reference's own";
+    // Work 1 shows its brows, and they are borrowed all the same: each proportion whose name
+    // starts `brow_`, and the iris's width by its whole name.
+    for name in [
+        "brow_inner_end_offset",
+        "brow_inner_end_rise",
+        "brow_outer_end_offset",
+        "brow_outer_end_rise",
+        "iris_width",
+    ] {
+        assert_eq!(source(name), named, "{name}");
+        assert_close(
+            number(&set["proportions"][name]),
+            borrowed[name],
+            1e-9,
+            name,
+        );
+    }
+    assert_eq!(
+        source("hair_top_rise"),
+        "the structure reference: as its readings give it"
+    );
+    assert_eq!(
+        set["source"]["borrowed_also"].as_array().map(Vec::len),
+        Some(2)
+    );
+
+    // A name that is in no proportion of the list is refused, and nothing is written.
+    let output = maquette_in(
+        Some(&folder),
+        &[
+            "set-from-structure-reference",
+            "--front",
+            "first/work-1-front.toml,second/work-1-front.toml",
+            "--check",
+            "check.toml",
+            "--borrow",
+            support::MADE_UP,
+            "--borrow-also",
+            "brows_",
+            "--out",
+            "results/refused.toml",
+        ],
+    );
+    assert!(
+        failure(&output).contains("`brows_`, named to be borrowed, names no proportion"),
+        "{}",
+        failure(&output)
+    );
+    assert!(!folder.join("results/refused.toml").exists());
+}
+
+#[test]
+fn what_a_front_view_does_not_show_comes_from_the_table_where_one_is_named() {
+    // Made up: works 1 to 5 have a side view, with the chin at depth 0.2 to 0.6, so the
+    // table gives the chin's depth a range, with its middle at 0.4. Work 6 has no side view,
+    // covered ears and no brows.
+    let mut works = six_works();
+    for (at, depth) in [0.2, 0.3, 0.4, 0.5, 0.6].into_iter().enumerate() {
+        works[at].chin_depth = Some(depth);
+    }
+    let folder = folder("table-structure-reference-unseen", &works);
+    checked(&folder, &[]);
+    let table = ["--unseen-from-table", "check.toml"];
+    let (file, set) = set_from_structure_reference(&folder, "work-6", false, &table);
+    let source = |name: &str| set["sources"][name].as_str().expect("a source").to_string();
+    // A front view does not show the chin's depth: it is the table's middle.
+    assert_eq!(
+        source("chin_depth"),
+        "the table: the middle of 5 characters"
+    );
+    assert_close(
+        number(&set["proportions"]["chin_depth"]),
+        0.4,
+        1e-6,
+        "the table's middle",
+    );
+    // What a front view shows comes from the reference, and where the reference does not
+    // give it, from the borrowed set even where the table has a range: five works give the
+    // ears' tops, and work 6's are covered.
+    assert_eq!(
+        source("hair_top_rise"),
+        "the structure reference: as its readings give it"
+    );
+    assert_close(
+        number(&set["proportions"]["hair_top_rise"]),
+        1.6,
+        1e-6,
+        "work 6's hair",
+    );
+    assert_eq!(
+        source("ear_top_rise"),
+        "borrowed: the structure reference does not give it"
+    );
+    assert!(file.contains("table = \"built from"), "{file}");
+    let from_the_table = set["sources"]
+        .as_table()
+        .expect("the sources")
+        .values()
+        .filter(|said| {
+            said.as_str()
+                .is_some_and(|said| said.starts_with("the table:"))
+        })
+        .count() as i64;
+    assert_eq!(
+        set["source"]["from_the_table"].as_integer(),
+        Some(from_the_table)
+    );
+
+    // Where the reference gives a depth, its own number stands: work 1's chin, at 0.2.
+    let (_, set) = set_from_structure_reference(&folder, "work-1", true, &table);
+    assert_eq!(
+        set["sources"]["chin_depth"].as_str(),
+        Some("the structure reference: as its readings give it")
+    );
+    assert_close(
+        number(&set["proportions"]["chin_depth"]),
+        0.2,
+        1e-6,
+        "work 1's chin",
+    );
+}
+
+#[test]
+fn a_structure_reference_is_a_character_jon_accepted_and_its_set_stays_in_the_reference_folder() {
+    let folder = folder("table-structure-reference-refused", &six_works());
+    checked(&folder, &["work-2"]);
+    let run = |label: &str, check: bool, out: &str| {
+        let front = format!("first/{label}-front.toml,second/{label}-front.toml");
+        let mut arguments = vec![
+            "set-from-structure-reference",
+            "--front",
+            &front,
+            "--borrow",
+            support::MADE_UP,
+            "--out",
+            out,
+        ];
+        if check {
+            arguments.extend(["--check", "check.toml"]);
+        }
+        maquette_in(Some(&folder), &arguments).to_owned()
+    };
+    // Without the record of Jon's check.
+    let output = run("work-1", false, "results/set.toml");
+    assert!(failure(&output).contains("--check"), "{}", failure(&output));
+    // A character he rejected.
+    let output = run("work-2", true, "results/set.toml");
+    assert!(failure(&output).contains("work-2"), "{}", failure(&output));
+    // Written outside the reference folder.
+    let outside = scratch("structure-reference-outside").join("set.toml");
+    let output = run("work-1", true, path_text(&outside));
+    assert!(
+        failure(&output).contains("is outside the reference folder"),
+        "{}",
+        failure(&output)
+    );
+    assert!(!outside.exists());
+    assert!(!folder.join("results/set.toml").exists());
 }
