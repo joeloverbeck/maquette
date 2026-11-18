@@ -871,7 +871,7 @@ pub const SET_RULES: &[(&str, &str)] = &[
     ),
     (
         "taken_whole",
-        "An ear and the neck are each taken whole. An ear is one form built on its two base points, and the neck one column: its width, where it ends and how far back it stands belong together, and a width from one source on a depth from another sets the head forward on a post. So unless the table and the thin averages give every one of a form's proportions, all of them are borrowed.",
+        "An ear, the neck and the jaw line are each taken whole. An ear is one form built on its two base points, and the neck one column: its width, where it ends and how far back it stands belong together, and a width from one source on a depth from another sets the head forward on a post. The jaw line is one edge, the back of the jaw: its depth at the nose level from one source and at the mouth level from another bends it back on itself. So unless the table and the thin averages give every one of a form's proportions, all of them are borrowed.",
     ),
     (
         "hangs_on",
@@ -884,16 +884,11 @@ pub const SET_RULES: &[(&str, &str)] = &[
 ];
 
 /// The forms that are taken whole from one source, each by the start of its proportions'
-/// names, with what a proportion borrowed for that reason says: the rule `taken_whole`.
+/// names, with what it is called: the rule `taken_whole`.
 const TAKEN_WHOLE: &[(&str, &str)] = &[
-    (
-        "ear_",
-        "the ear is taken whole, and the characters do not give all of it",
-    ),
-    (
-        "neck_",
-        "the neck is taken whole, and the characters do not give all of it",
-    ),
+    ("ear_", "the ear"),
+    ("neck_", "the neck"),
+    ("jaw_line_", "the jaw line"),
 ];
 
 /// How the jaw point hangs on the chin, as a proportion borrowed that way says it.
@@ -912,35 +907,49 @@ const HANGS_ON: &[(&str, Option<&str>, &str)] = &[
     ("jaw_depth", Some("chin_depth"), ON_THE_CHIN),
 ];
 
-/// Where a proportion of a set made from a table comes from.
+/// Where a proportion of a whole set made for a head to be drawn comes from: a set made from a
+/// table, or from one structure reference.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Source {
     /// The table's middle value, with the characters behind it.
     Table(usize),
     /// The average of two to four characters.
     ThinAverage(usize),
+    /// The number the structure reference's readings give, as it stands.
+    Reference,
     /// The borrowed set's own number, and why.
-    Borrowed(&'static str),
+    Borrowed(String),
     /// Borrowed as an offset from the point it hangs on, by the rule `hangs_on`: how it
     /// hangs, and why it is borrowed at all.
-    BorrowedOffset(&'static str, &'static str),
-    /// Left out of the set: a proportion a set may leave out, which the characters do not give to
-    /// draw and the borrowed set leaves out too. Why it would have been borrowed.
-    LeftOut(&'static str),
+    BorrowedOffset(&'static str, String),
+    /// Left out of the set: a proportion a set may leave out, which nothing gives to draw and
+    /// the borrowed set leaves out too. Why it would have been borrowed.
+    LeftOut(String),
 }
 
 impl Source {
-    fn is_borrowed(&self) -> bool {
+    pub(crate) fn is_borrowed(&self) -> bool {
         matches!(self, Source::Borrowed(_) | Source::BorrowedOffset(..))
     }
 
-    fn is_left_out(&self) -> bool {
+    pub(crate) fn is_left_out(&self) -> bool {
         matches!(self, Source::LeftOut(_))
+    }
+
+    /// Which source gives the number, for the rule `taken_whole`: the table's characters, the
+    /// structure reference, or the borrowed set. None for a proportion left out.
+    fn giver(&self) -> Option<u8> {
+        match self {
+            Source::Table(_) | Source::ThinAverage(_) => Some(0),
+            Source::Reference => Some(1),
+            Source::Borrowed(_) | Source::BorrowedOffset(..) => Some(2),
+            Source::LeftOut(_) => None,
+        }
     }
 
     /// The source as the set's file says it. What stands before the colon is the kind, which
     /// [`Source::kind_of`] reads back.
-    fn words(&self) -> String {
+    pub(crate) fn words(&self) -> String {
         match self {
             Source::Table(characters) => {
                 format!("the table: the middle of {characters} characters")
@@ -948,6 +957,7 @@ impl Source {
             Source::ThinAverage(characters) => {
                 format!("a thin average: of {characters} characters")
             }
+            Source::Reference => "the structure reference: as its readings give it".to_string(),
             Source::Borrowed(why) => format!("borrowed: {why}"),
             Source::BorrowedOffset(how, why) => format!("borrowed: {how}; {why}"),
             Source::LeftOut(why) => {
@@ -957,12 +967,132 @@ impl Source {
     }
 
     /// The kind of source a set's file states for a proportion: "the table", "a thin
-    /// average", "borrowed" or "left out". None for anything else.
+    /// average", "the structure reference", "borrowed" or "left out". None for anything else.
     pub fn kind_of(words: &str) -> Option<&'static str> {
         let kind = words.split(':').next().unwrap_or_default().trim();
-        ["the table", "a thin average", "borrowed", "left out"]
+        [
+            "the table",
+            "a thin average",
+            "the structure reference",
+            "borrowed",
+            "left out",
+        ]
+        .into_iter()
+        .find(|known| *known == kind)
+    }
+}
+
+/// A borrowed number, or none where the borrowed set leaves out a proportion that a set may
+/// leave out: it is then left out of the set being made too.
+pub(crate) fn borrow(
+    borrowed: &proportions::Set,
+    name: &str,
+    why: String,
+) -> (Option<f64>, Source) {
+    match borrowed.given(name) {
+        Some(value) => (Some(value), Source::Borrowed(why)),
+        None => (None, Source::LeftOut(why)),
+    }
+}
+
+/// A whole set made for a head to be drawn, once the rules every such set shares are applied.
+pub(crate) struct Finished {
+    /// Each proportion's source, in the list's order.
+    pub sources: Vec<(String, Source)>,
+    pub set: proportions::Set,
+    /// What the list's rule for `lower_face_set_back` would set back on the set's own depths
+    /// at a share of 1: the chin and the mouth, in units. None where the rule cannot be run.
+    pub rule_would_set_back: Option<[f64; 2]>,
+}
+
+/// Applies the rules `taken_whole` and `hangs_on` to a whole set being made, each proportion
+/// with its number and its source, and makes the set. `givers` says who did not give all of a
+/// form that is borrowed whole: "the characters do", "the structure reference does". A
+/// proportion whose name starts with one of `apart` stands apart from its form: it neither
+/// takes the form from the borrowed set nor is taken with it.
+pub(crate) fn finish(
+    mut made: Vec<(String, Option<f64>, Source)>,
+    borrowed: &proportions::Set,
+    givers: &str,
+    apart: &[&str],
+) -> Result<Finished> {
+    // The rule `taken_whole`: a form whose numbers come from more than one source is borrowed
+    // whole. A proportion left out does not take a form from the borrowed set: what a head
+    // drawn without it is drawn with, the list's `when_left_out`, rests on the form's other
+    // proportions alone.
+    for (start, form) in TAKEN_WHOLE {
+        let whole = |name: &str| {
+            name.starts_with(start) && !apart.iter().any(|apart| name.starts_with(apart))
+        };
+        let mut sources: Vec<u8> = made
+            .iter()
+            .filter(|(name, _, _)| whole(name))
+            .filter_map(|(_, _, source)| source.giver())
+            .collect();
+        sources.sort_unstable();
+        sources.dedup();
+        if sources.len() > 1 {
+            let why = format!("{form} is taken whole, and {givers} not give all of it");
+            for (name, value, source) in &mut made {
+                if whole(name) && !source.is_borrowed() && !source.is_left_out() {
+                    (*value, *source) = borrow(borrowed, name, why.clone());
+                }
+            }
+        }
+    }
+    // The rule `hangs_on`.
+    for (name, anchor, how) in HANGS_ON {
+        let anchored = anchor.and_then(|anchor| {
+            let (_, at, _) = made.iter().find(|(known, _, _)| known == anchor)?;
+            Some((*at)? - borrowed.get(anchor))
+        });
+        if let Some((_, Some(value), source)) = made.iter_mut().find(|(known, _, _)| known == name)
+            && let Source::Borrowed(why) = source
+        {
+            // The borrowed number, moved by as far as this set's anchor stands from the
+            // borrowed set's: the point keeps its offset from what it hangs on.
+            *value += anchored.unwrap_or(0.0);
+            *source = Source::BorrowedOffset(how, std::mem::take(why));
+        }
+    }
+    let set = proportions::Set::from_values(
+        made.iter()
+            .filter_map(|(name, value, _)| Some((name.clone(), (*value)?)))
+            .collect(),
+    )?;
+    const SET_BACK: &str = "lower_face_set_back";
+    let rule_would_set_back = crate::head_model::with_lower_face_set_back(set.clone(), 1.0)
+        .ok()
+        .and_then(|with| {
+            let amounts = with.correction(SET_BACK)?;
+            Some([*amounts.get("chin")?, *amounts.get("mouth")?])
+        });
+    Ok(Finished {
+        sources: made
             .into_iter()
-            .find(|known| *known == kind)
+            .map(|(name, _, source)| (name, source))
+            .collect(),
+        set,
+        rule_would_set_back,
+    })
+}
+
+/// What a whole set made for a head to be drawn says of a correction: that it carries none,
+/// and what the list's rule would give on its own depths.
+pub(crate) fn correction_words(rule_would_set_back: Option<[f64; 2]>) -> String {
+    let carried = "The set carries no correction.";
+    match rule_would_set_back {
+        Some([chin, mouth]) if chin == 0.0 && mouth == 0.0 => format!(
+            "{carried} Run on this set's own depths, the list's rule for `lower_face_set_back` sets nothing back at any share: the chin does not stand in front of the iris's centre, and the mouth does not stand in front of the line from the nose mark's bottom to the chin."
+        ),
+        Some([chin, mouth]) => format!(
+            "{carried} Run on this set's own depths, the list's rule for `lower_face_set_back` would set the chin back by {} of a unit at a share of 1, and the mouth by {}. That is not carried.",
+            six(chin),
+            six(mouth)
+        ),
+        None => format!(
+            "{carried} The list's rule for `lower_face_set_back` cannot be run on this set: its mouth does not stand between its nose mark and its chin."
+        ),
     }
 }
 
@@ -989,15 +1119,8 @@ impl Table {
         borrowed_from: &str,
         borrowed: &proportions::Set,
     ) -> Result<SetFromTable> {
-        // A borrowed number, or none where the borrowed set leaves out a proportion that a set
-        // may leave out: it is then left out of this set too.
-        let borrow = |name: &str, why: &'static str| -> (Option<f64>, Source) {
-            match borrowed.given(name) {
-                Some(value) => (Some(value), Source::Borrowed(why)),
-                None => (None, Source::LeftOut(why)),
-            }
-        };
-        let mut made: Vec<(String, Option<f64>, Source)> = self
+        let borrow = |name: &str, why: &str| borrow(borrowed, name, why.to_string());
+        let made: Vec<(String, Option<f64>, Source)> = self
             .lines
             .iter()
             .map(|line| {
@@ -1021,60 +1144,28 @@ impl Table {
                 (line.name.clone(), value, source)
             })
             .collect();
-        // The rule `taken_whole`. A proportion left out does not take a form from the borrowed
-        // set: what a head drawn without it is drawn with, the list's `when_left_out`, rests
-        // on the form's other proportions alone.
-        for (start, why) in TAKEN_WHOLE {
-            let whole = |name: &str| name.starts_with(start);
-            if made
-                .iter()
-                .any(|(name, _, source)| whole(name) && matches!(source, Source::Borrowed(_)))
-            {
-                for (name, value, source) in &mut made {
-                    if whole(name) && !source.is_borrowed() && !source.is_left_out() {
-                        (*value, *source) = borrow(name, why);
-                    }
-                }
-            }
-        }
-        // The rule `hangs_on`.
-        for (name, anchor, how) in HANGS_ON {
-            let anchored = anchor.and_then(|anchor| {
-                let (_, at, _) = made.iter().find(|(known, _, _)| known == anchor)?;
-                Some((*at)? - borrowed.get(anchor))
-            });
-            if let Some((_, Some(value), source)) =
-                made.iter_mut().find(|(known, _, _)| known == name)
-                && let Source::Borrowed(why) = *source
-            {
-                // The borrowed number, moved by as far as this set's anchor stands from the
-                // borrowed set's: the point keeps its offset from what it hangs on.
-                *value += anchored.unwrap_or(0.0);
-                *source = Source::BorrowedOffset(how, why);
-            }
-        }
-        let set = proportions::Set::from_values(
-            made.iter()
-                .filter_map(|(name, value, _)| Some((name.clone(), (*value)?)))
-                .collect(),
-        )?;
-        const SET_BACK: &str = "lower_face_set_back";
-        let rule_would_set_back = crate::head_model::with_lower_face_set_back(set.clone(), 1.0)
-            .ok()
-            .and_then(|with| {
-                let amounts = with.correction(SET_BACK)?;
-                Some([*amounts.get("chin")?, *amounts.get("mouth")?])
-            });
+        let finished = finish(made, borrowed, "the characters do", &[])?;
         Ok(SetFromTable {
             built_from: self.built_from.clone(),
             borrowed_from: borrowed_from.to_string(),
-            sources: made
-                .into_iter()
-                .map(|(name, _, source)| (name, source))
-                .collect(),
-            set,
-            rule_would_set_back,
+            sources: finished.sources,
+            set: finished.set,
+            rule_would_set_back: finished.rule_would_set_back,
         })
+    }
+
+    /// What the table was built from, in words.
+    pub fn built_from(&self) -> &str {
+        &self.built_from
+    }
+
+    /// A proportion's middle value and the characters behind it, where the table gives it a
+    /// valid range. None where it is too thin, given by no character, a convention, or not in
+    /// the table.
+    pub fn middle(&self, name: &str) -> Option<(f64, usize)> {
+        let line = self.lines.iter().find(|line| line.name == name)?;
+        let numbers = line.numbers();
+        matches!(line.standing(), Standing::Given).then(|| (median(&numbers), numbers.len()))
     }
 }
 
@@ -1086,20 +1177,7 @@ impl SetFromTable {
     /// What the set says of a correction: that it carries none, and what the list's rule
     /// would give on its own depths.
     fn correction(&self) -> String {
-        let carried = "The set carries no correction.";
-        match self.rule_would_set_back {
-            Some([chin, mouth]) if chin == 0.0 && mouth == 0.0 => format!(
-                "{carried} Run on this set's own depths, the list's rule for `lower_face_set_back` sets nothing back at any share: the chin does not stand in front of the iris's centre, and the mouth does not stand in front of the line from the nose mark's bottom to the chin."
-            ),
-            Some([chin, mouth]) => format!(
-                "{carried} Run on this set's own depths, the list's rule for `lower_face_set_back` would set the chin back by {} of a unit at a share of 1, and the mouth by {}. That is not carried.",
-                six(chin),
-                six(mouth)
-            ),
-            None => format!(
-                "{carried} The list's rule for `lower_face_set_back` cannot be run on this set: its mouth does not stand between its nose mark and its chin."
-            ),
-        }
+        correction_words(self.rule_would_set_back)
     }
 
     /// The set as the text of a file that `maquette draw` reads.

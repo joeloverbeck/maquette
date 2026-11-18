@@ -55,6 +55,12 @@ pub struct Proportion {
 }
 
 impl Proportion {
+    /// Whether a front view shows it: the list says how it is taken there, and not that a
+    /// front view does not see it or is not read for it.
+    pub fn front_shows(&self) -> bool {
+        !(self.front.starts_with("Not seen") || self.front.starts_with("Not taken"))
+    }
+
     /// Whether a set may leave it out.
     pub fn optional(&self) -> bool {
         self.when_left_out.is_some()

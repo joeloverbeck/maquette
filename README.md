@@ -4,6 +4,8 @@ Maquette generates armatures for anime-style characters from proportions measure
 
 In an animation studio a maquette is the sculpted reference model that keeps a character on model from every angle.
 
+> **Parked on 2026-11-18, and archived.** After look 9 Jon judged that gathering many references for averages, or a character creator built on them, was the wrong approach for the characters he needs, and parked maquette. [`docs/foundation/README.md`](docs/foundation/README.md), "Look 9 and parking", records why, what worked, what failed, and what a successor inherits. Nothing below is active work.
+
 ## Status
 
 Founded on 2026-11-16, and reoriented by Jon the same day toward measured proportions; [`docs/foundation/README.md`](docs/foundation/README.md) records both, and what Jon decided at each look. Work starts from the issue tracker.

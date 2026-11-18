@@ -44,6 +44,8 @@
 //!   set is made from one for a head to be drawn.
 //! - [`sources`]: where the numbers of a drawn head come from, marked on its views for a
 //!   review sheet.
+//! - [`structure_reference`]: how a whole set is made from one structure reference for a
+//!   head to be drawn: its own numbers as they stand, and another set's for the rest.
 //! - [`number`] and [`toml_text`]: how numbers and text are written, so that every file
 //!   agrees on them.
 
@@ -67,6 +69,7 @@ pub mod readings;
 pub mod reference_check_sheet;
 pub mod reference_folder;
 pub mod sources;
+pub mod structure_reference;
 pub mod table;
 pub mod toml_text;
 pub mod vectorcraft;

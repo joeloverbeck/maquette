@@ -97,6 +97,10 @@ The distance from the hair's top to the chin of a level head. Differences betwee
 **Reference**:
 A published drawing whose proportions are measured.
 
+**Structure reference**:
+A reference whose measured proportions one character's armature takes as they stand, wherever it gives them, without averaging it with any other. What it does not give comes from the character's own set of proportions.
+_Avoid_: template, donor, base
+
 **Reading**:
 One agent's placement of the landmarks on one drawing, with its judgement of the view, the turn and whether the head is level. The drawing is a reference, or a hand-made drawing with known positions.
 
