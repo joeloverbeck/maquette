@@ -17,7 +17,7 @@ Before the first write of a session, verify that the target resolves to `joelove
 - **Blocking:** `gh issue create --blocked-by <number> ...` or `gh issue edit <child> --add-blocked-by <blocker>`. If unavailable, put `Blocked by: #<number>` at the top of the child body.
 - **Comment:** `gh issue comment <number> --body-file <file>`.
 - **Labels:** `gh issue edit <number> --add-label <label>` or `--remove-label <label>`; use the mapping and readiness rules in `docs/agents/triage-labels.md`.
-- **Close:** post the explanation as a separate comment, then run `gh issue close <number>`.
+- **Close:** post the explanation as a separate comment, then run `gh issue close <number>`. A pull request whose body says `Closes #<number>` closes that issue at its merge, so post the issue's closing comment before merging.
 
 For multiline bodies and comments, write the exact text to a temporary file and use `--body-file`. Read back the changed issue, comment or labels after a write.
 
@@ -25,7 +25,7 @@ Every number in a comment (a count, a total, a share, a cost) comes from a comma
 
 ## Publication
 
-A pull request lists exactly what it publishes. It merges once its checks pass and Jon has accepted every armature and every table in it; the agent then merges it. The checks are `.github/workflows/checks.yml`: formatting, lints and tests, on every pull request and on `main`.
+A pull request lists exactly what it publishes. It merges once its checks pass and Jon has accepted every armature and every table in it; the agent then merges it. The checks are `.github/workflows/checks.yml`: formatting, lints and tests, on every pull request and on `main`. To wait for them, take the run's id from `gh run list --branch <branch> --limit 1` and run `gh run watch <id> --exit-status`: just after `gh pr create`, `gh pr checks --watch` can find no run yet, and it exits with a failure.
 
 **PRs as a request surface: no.**
 

@@ -12,10 +12,11 @@ mod support;
 use std::collections::BTreeMap;
 
 use support::{
-    LandmarkFile, assert_close, draw, maquette_ok, number, proportions, repository, text,
+    LandmarkFile, assert_close, draw, maquette_ok, number, proportions, repository, sha256_of, text,
 };
 
 const TABLE: &str = "tables/women-and-teenage-girls/table.toml";
+const TABLES_README: &str = "tables/women-and-teenage-girls/README.md";
 const HEAD: &str = "design/look-8-both-batches/head-from-the-table.toml";
 const SAFFIS: &str = "data/saffi/proportions.toml";
 
@@ -168,6 +169,210 @@ fn the_table_lists_its_characters_by_work_and_designer_and_names_nothing_else() 
     ] {
         assert!(!file.contains(private), "the table holds `{private}`");
     }
+}
+
+/// A count as the README writes it in words, as in "six teenage characters".
+fn in_words(count: i64) -> String {
+    let words = [
+        "none", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+        "eleven", "twelve",
+    ];
+    usize::try_from(count)
+        .ok()
+        .and_then(|index| words.get(index))
+        .map_or_else(|| count.to_string(), |word| (*word).to_string())
+}
+
+/// What a `[[view]]` of the table states, by the view's name: characters, works and most from
+/// one work.
+fn view_counts(table: &toml::Table, view: &str) -> [i64; 3] {
+    let found = table["view"]
+        .as_array()
+        .expect("the table lists its views")
+        .iter()
+        .find(|entry| entry["view"].as_str() == Some(view))
+        .unwrap_or_else(|| panic!("the table has no view `{view}`"));
+    ["characters", "works", "most_from_one_work"]
+        .map(|key| found[key].as_integer().expect("a count"))
+}
+
+#[test]
+fn the_tables_readme_states_the_tables_own_numbers() {
+    // Every number the README states about the table, set against the table and against what
+    // `set-against-table` prints. A count written by hand drifts from the file it counts: the
+    // README once gave the teenage characters a work too many. A number added to the README
+    // gets its line here.
+    let readme = text(&repository().join(TABLES_README));
+    let table = toml_of(TABLE);
+    let entries = entries(&table);
+    let stated = table["table"].as_table().expect("a [table]");
+    let count = |key: &str| stated[key].as_integer().expect("a count");
+    let says = |sentence: String| {
+        assert!(
+            readme.contains(&sentence),
+            "the README does not say \"{sentence}\""
+        );
+    };
+
+    // The digest it gives is the accepted table's.
+    says(format!(
+        "its SHA-256 digest is `{}`",
+        sha256_of(&repository().join(TABLE))
+    ));
+
+    says(format!(
+        "{} characters of {} works, one drawing of each in each view",
+        count("characters"),
+        count("works")
+    ));
+    let [front, front_works, front_most] = view_counts(&table, "front");
+    says(format!(
+        "a front view of all {front} characters, of {front_works} works, {front_most} of them from one work"
+    ));
+    let [side, side_works, side_most] = view_counts(&table, "side");
+    says(format!(
+        "A side view of {side}, of {side_works} works, {side_most} of them from one"
+    ));
+    let [turned, _, _] = view_counts(
+        &table,
+        "depth, from a front and a three-quarter view of one character",
+    );
+    says(format!("Three-quarter views of {turned} give depth"));
+    says(format!(
+        "{} of the {} proportions with a valid range. {} are too thin",
+        count("given"),
+        count("proportions"),
+        count("too_thin")
+    ));
+    says(format!(
+        "{} are given by none; the skull's {} are conventions",
+        count("no_character"),
+        count("conventions")
+    ));
+
+    // The ranges that rest mostly on one work, each named with its count.
+    let mostly_one = entries
+        .values()
+        .filter(|entry| entry["standing"].as_str() == Some("given"))
+        .filter(|entry| {
+            2 * entry["most_from_one_work"].as_integer().expect("a count")
+                > entry["characters"].as_integer().expect("a count")
+        })
+        .count();
+    says(format!(
+        "{} of the {} have more than half their characters from one work",
+        in_words(i64::try_from(mostly_one).expect("a count")),
+        count("given")
+    ));
+    let mut named = 0;
+    for (at, _) in readme.match_indices("` (") {
+        let name = readme[..at].rsplit('`').next().expect("a name");
+        let rest = &readme[at + 3..];
+        let Some((most, behind)) = rest.split(')').next().and_then(|n| n.split_once(" of ")) else {
+            continue;
+        };
+        let entry = &entries[name];
+        assert_eq!(
+            [most, behind].map(|n| n.parse::<i64>().expect("a count")),
+            ["most_from_one_work", "characters"]
+                .map(|key| entry[key].as_integer().expect("a count")),
+            "{name}"
+        );
+        named += 1;
+    }
+    assert_eq!(named, mostly_one, "the README names each of them");
+
+    // The age bands.
+    let bands = stated["bands"].as_array().expect("the bands");
+    let band = |name: &str| {
+        bands
+            .iter()
+            .find(|band| band["band"].as_str() == Some(name))
+            .and_then(|band| band["characters"].as_integer())
+            .expect("a band's count")
+    };
+    says(format!(
+        "{} adult characters and {} teenage ones",
+        band("adult"),
+        band("teenage")
+    ));
+    let both_ranged = entries
+        .values()
+        .filter(|entry| entry.contains_key("bands_overlap"))
+        .count();
+    let overlapping = entries
+        .values()
+        .filter(|entry| entry.get("bands_overlap").and_then(toml::Value::as_bool) == Some(true))
+        .count();
+    says(format!(
+        "a range of its own in {both_ranged} proportions, and in all {overlapping} the two ranges overlap"
+    ));
+    let teenage_works: std::collections::BTreeSet<&str> = table["character"]
+        .as_array()
+        .expect("the characters")
+        .iter()
+        .filter(|character| character["age_band"].as_str() == Some("teenage"))
+        .map(|character| character["work"].as_str().expect("a work"))
+        .collect();
+    says(format!(
+        "{} teenage characters of {} works",
+        in_words(band("teenage")),
+        in_words(i64::try_from(teenage_works.len()).expect("a count"))
+    ));
+
+    // The profile's table: each row's proportions, a `*` standing for the rest of a name.
+    let mut rows = 0;
+    for row in readme.lines().filter(|line| line.starts_with("| `")) {
+        let cells: Vec<&str> = row.split('|').map(str::trim).collect();
+        let (names, behind, standing) = (cells[1], cells[2], cells[3]);
+        let (characters, works) = match behind.split_once(", of ") {
+            Some((characters, works)) => (characters, works.strip_suffix(" works")),
+            None => (behind, None),
+        };
+        for pattern in names.split(", ").map(|name| name.trim_matches('`')) {
+            let matching: Vec<&toml::Table> = entries
+                .iter()
+                .filter(|(name, _)| match pattern.strip_suffix('*') {
+                    Some(start) => name.starts_with(start),
+                    None => name.as_str() == pattern,
+                })
+                .map(|(_, entry)| entry)
+                .collect();
+            assert!(!matching.is_empty(), "no proportion is `{pattern}`");
+            for entry in matching {
+                assert_eq!(
+                    entry["characters"].as_integer(),
+                    characters.parse().ok(),
+                    "{pattern}"
+                );
+                assert_eq!(entry["standing"].as_str(), Some(standing), "{pattern}");
+                if let Some(works) = works {
+                    assert_eq!(entry["works"].as_integer(), works.parse().ok(), "{pattern}");
+                }
+            }
+        }
+        rows += 1;
+    }
+    assert!(rows > 0, "the README has the profile's table");
+
+    // Saffi against it.
+    let printed = maquette_ok(&[
+        "set-against-table",
+        "--proportions",
+        SAFFIS,
+        "--table",
+        TABLE,
+    ]);
+    let against: toml::Table = printed.parse().expect("the comparison is TOML");
+    let summary = against["summary"].as_table().expect("a summary");
+    let of = |key: &str| summary[key].as_integer().expect("a count");
+    says(format!(
+        "inside {} ranges and outside {}; {} have no range to be set against, and she gives none of the {} proportions of the profile",
+        of("inside"),
+        of("outside"),
+        of("no_range"),
+        of("not_in_the_set")
+    ));
 }
 
 #[test]
