@@ -25,7 +25,7 @@ Every number in a comment (a count, a total, a share, a cost) comes from a comma
 
 ## Publication
 
-A pull request lists exactly what it publishes. It merges once its checks pass and Jon has accepted every armature and every table in it; the agent then merges it. The checks are `.github/workflows/checks.yml`: formatting, lints and tests, on every pull request and on `main`. To wait for them, take the run's id from `gh run list --branch <branch> --limit 1` and run `gh run watch <id> --exit-status`: just after `gh pr create`, `gh pr checks --watch` can find no run yet, and it exits with a failure.
+A pull request lists exactly what it publishes. It merges once its checks pass and Jon has accepted every armature and every table in it; the agent then merges it. The checks are `.github/workflows/checks.yml`: formatting, lints and tests, on every pull request and on `main`. A run takes some seconds to appear after a push or `gh pr create`; until then `gh pr checks --watch` exits with a failure, and `gh run list` shows no run. To wait for them, take the id of the run whose `headSha` is the pushed commit from `gh run list --branch <branch> --json databaseId,headSha`, once it is listed, and run `gh run watch <id> --exit-status`.
 
 **PRs as a request surface: no.**
 
