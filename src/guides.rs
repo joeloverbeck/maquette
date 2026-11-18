@@ -272,6 +272,19 @@ fn names(list: &[&str]) -> Vec<String> {
     list.iter().map(|name| name.to_string()).collect()
 }
 
+/// The centre line's landmarks from the skull's front down to the chin: through the forehead
+/// where the set gives it, the centre line at the eye line, the nose point of the view, and
+/// the mouth line's centre. Every view that draws the centre line or the front of the face
+/// outline runs through these.
+fn centre_line_from_the_skull(head: &Head, nose_point: &str) -> Vec<String> {
+    let mut anchors = names(&["skull-front"]);
+    if head.has(FOREHEAD) {
+        anchors.push(FOREHEAD.to_string());
+    }
+    anchors.extend(names(&[BRIDGE, nose_point, "mouth-line-centre", "chin"]));
+    anchors
+}
+
 /// The opening and the lid line of one eye, which every view builds alike from the eye's
 /// landmarks as that view shows them.
 fn eye_opening_and_lid_line(guides: &mut Guides, side: &str, group: &'static str) {
@@ -428,11 +441,7 @@ fn build_side(head: &Head, seen: &Seen) -> Guides {
     // the front runs through the forehead and the bridge, and the underside of the jaw runs
     // back from the chin through the top of the neck's front and the angle of the jaw.
     let near_angle = jaw_angle(NEAR);
-    let mut outline_anchors = vec!["skull-front".to_string()];
-    if head.has(FOREHEAD) {
-        outline_anchors.push(FOREHEAD.to_string());
-    }
-    outline_anchors.extend(names(&[BRIDGE, nose_point, "mouth-line-centre", "chin"]));
+    let mut outline_anchors = centre_line_from_the_skull(head, nose_point);
     let chin_at = outline_anchors.len() - 1;
     for under in ["neck-front-top", near_angle.as_str()] {
         if head.has(under) {
@@ -730,13 +739,8 @@ pub fn build(head: &Head, seen: &Seen) -> Guides {
     // Centre line: along the skull from its top to its front, a quarter of an ellipse, then
     // smoothly through the eye line, the nose mark's bottom, the mouth line's centre and the chin.
     {
-        // Where the set gives the forehead, the centre line runs through it below the skull's
-        // front.
-        let mut anchors = names(&["skull-top", "skull-front"]);
-        if head.has(FOREHEAD) {
-            anchors.push(FOREHEAD.to_string());
-        }
-        anchors.extend(names(&[BRIDGE, nose_point, "mouth-line-centre", "chin"]));
+        let mut anchors = names(&["skull-top"]);
+        anchors.extend(centre_line_from_the_skull(head, nose_point));
         let points = guides.positions_of(&anchors);
         let (top, front) = (points[0], points[1]);
         let mut stretches = vec![Stretch::Curve {

@@ -13,8 +13,8 @@ works = 12
 characters_for_a_table = 5
 proportions = 86
 given = 56
-too_thin = 21
-no_character = 6
+too_thin = 20
+no_character = 7
 conventions = 3
 # Accepted and not measured. `maquette jons-check` says why.
 left_out = [
@@ -33,7 +33,7 @@ a_character = "A table counts characters: one drawing of each accepted character
 works = "Beside each count of characters stands the number of works they come from, and how many of them the work that gives the most gives, so that a range resting on one hand can be seen: several characters of one work's sheets are drawn by one hand or a few. A work is what the characters' readings name as their work, word for word, with its designer where it is known. Characters whose work is not known are counted under the words their readings give, so they may join drawings by different hands, or part drawings by one."
 values = "For each proportion: the number of characters that give it and, where it has a range, the lowest, the middle and the highest value among them. The middle is the median: the middle value in order, or midway between the two middle values of an even number of characters. Every value is in units, a length over the height from the eye line down to the chin."
 floor = "A proportion with five characters or more behind it is given: its valid range runs from its lowest value to its highest. A proportion with fewer is too thin: the table says how many characters stand behind it and why the others do not give it, and states no number, because the values of one to four characters are those characters' own numbers. It has no range, and nothing is set against it. The floor is held proportion by proportion. In a view that has five characters, a proportion that hair or a mark of Jon's leaves with fewer is too thin all the same, because a range is backed only by the characters that show that feature. A view with fewer than five characters is reported as too thin and is not a table. The floor counts characters and not works; how many works stand behind a range is stated beside it, and is not a floor."
-age_bands = "Where the characters are of more than one age band, as their readings give it, each proportion also states each band's own count of characters and, where five or more of a band give it, that band's own lowest, middle and highest value, with whether the ranges of every two bands overlap. The table's own range is of every character, whatever its band. Ranges that overlap may still be of bands that differ, and ranges that do not overlap may rest on few characters of few works: this states what was measured, and tests nothing of whether the bands differ."
+age_bands = "Where the characters are of more than one age band, as their readings give it, each proportion also states each band's own count of characters and, where five or more of a band give it, that band's own lowest, middle and highest value, with whether the ranges of every two bands overlap. The table's own range is of every character, whatever its band. Where the ranges overlap, that proportion does not tell the bands apart on the characters measured, and where they do not, it does. Neither tests whether the bands differ beyond those characters: ranges that overlap may still be of bands that differ, and ranges that do not may rest on few characters of few works."
 conventions = "A convention is built by a stated rule and is never a measurement: it has no valid range, however many characters the rule could be run on, and the table states no number for it."
 separate_ranges = "Each range is separate. The table does not rule on which combinations of proportions go together: a head with every proportion inside its range may still be one that no reference shows."
 single_references = "A lowest value and a highest value are each one reference's number. The table does not tie them to a work."
@@ -1098,29 +1098,29 @@ bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 1 
 name = "ear_base_outer_rise"
 kind = "measured"
 dimension = "height"
-characters = 2
-works = 2
-most_from_one_work = 1
-standing = "too thin"
-not_given_by = [
-  "10 characters: neither view has a position for ear-left-base-outer and ear-right-base-outer, so its height is unknown",
-  "8 characters: the front view does not have a position for ear-left-base-outer and ear-right-base-outer, so its height is unknown",
-]
-bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 1 }]
-[[proportion]]
-name = "ear_base_outer_depth"
-kind = "measured"
-dimension = "depth"
 characters = 1
 works = 1
 most_from_one_work = 1
 standing = "too thin"
 not_given_by = [
-  "8 characters: the side view has no position for ear-left-base-outer and ear-right-base-outer, so their depth is unknown",
+  "11 characters: neither view has a position for ear-left-base-outer and ear-right-base-outer, so its height is unknown",
+  "8 characters: the front view does not have a position for ear-left-base-outer and ear-right-base-outer, so its height is unknown",
+]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 1 }]
+[[proportion]]
+name = "ear_base_outer_depth"
+kind = "measured"
+dimension = "depth"
+characters = 0
+works = 0
+most_from_one_work = 0
+standing = "no character"
+not_given_by = [
+  "9 characters: the side view has no position for ear-left-base-outer and ear-right-base-outer, so their depth is unknown",
   "9 characters: a front view shows no depth, and no three-quarter view or side view of the character was read with it",
   "2 characters: the three-quarter view has no position for ear-left-base-outer and ear-right-base-outer, so their depth is unknown",
 ]
-bands = [{ band = "adult", characters = 1 }, { band = "teenage", characters = 0 }]
+bands = [{ band = "adult", characters = 0 }, { band = "teenage", characters = 0 }]
 [[proportion]]
 name = "ear_base_inner_offset"
 kind = "measured"

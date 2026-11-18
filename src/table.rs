@@ -53,7 +53,7 @@ pub const RULES: &[(&str, &str)] = &[
     ),
     (
         "age_bands",
-        "Where the characters are of more than one age band, as their readings give it, each proportion also states each band's own count of characters and, where five or more of a band give it, that band's own lowest, middle and highest value, with whether the ranges of every two bands overlap. The table's own range is of every character, whatever its band. Ranges that overlap may still be of bands that differ, and ranges that do not overlap may rest on few characters of few works: this states what was measured, and tests nothing of whether the bands differ.",
+        "Where the characters are of more than one age band, as their readings give it, each proportion also states each band's own count of characters and, where five or more of a band give it, that band's own lowest, middle and highest value, with whether the ranges of every two bands overlap. The table's own range is of every character, whatever its band. Where the ranges overlap, that proportion does not tell the bands apart on the characters measured, and where they do not, it does. Neither tests whether the bands differ beyond those characters: ranges that overlap may still be of bands that differ, and ranges that do not may rest on few characters of few works.",
     ),
     (
         "conventions",
@@ -160,6 +160,22 @@ struct Value {
     band: String,
 }
 
+/// The lowest, the middle and the highest of some values, in order from the lowest, where
+/// they are enough to be a range: five or more of a measured proportion. None otherwise: the
+/// values of a few characters are those characters' own numbers.
+fn range(kind: Kind, numbers: &[f64]) -> Option<[f64; 3]> {
+    match (
+        Standing::of(kind, numbers.len()),
+        numbers.first(),
+        numbers.last(),
+    ) {
+        (Standing::Given, Some(lowest), Some(highest)) => {
+            Some([*lowest, median(numbers), *highest])
+        }
+        _ => None,
+    }
+}
+
 /// One proportion of a table.
 #[derive(Debug, Clone)]
 struct Line {
@@ -199,15 +215,7 @@ impl Line {
         bands
             .iter()
             .map(|band| {
-                let numbers = self.of_band(band);
-                match (
-                    Standing::of(self.kind, numbers.len()),
-                    numbers.first(),
-                    numbers.last(),
-                ) {
-                    (Standing::Given, Some(lowest), Some(highest)) => Some([*lowest, *highest]),
-                    _ => None,
-                }
+                range(self.kind, &self.of_band(band)).map(|[lowest, _, highest]| [lowest, highest])
             })
             .collect()
     }
@@ -417,14 +425,15 @@ fn of_view<'a>(character: &Gathered<'a>, view: View) -> Result<Vec<(String, &'a 
     Ok(found)
 }
 
-/// Fills `taken` with what `later` gives and it does not: the rule `read_again`.
-fn fill(taken: &mut Proportions, later: &Proportions) {
-    for (name, value) in &later.taken.values {
-        if !taken.taken.values.contains_key(name) {
-            taken.taken.values.insert(name.clone(), *value);
-            taken.taken.not_given.retain(|(given, _)| given != name);
-        }
-    }
+/// The proportions of the profile a drawing's readings were not asked for, by the revision
+/// of the reading instructions they follow: the rule `read_again`.
+fn not_asked(drawing: &Drawing) -> Vec<&'static str> {
+    let asked: Vec<String> =
+        readings::asked_under(drawing.view, drawing.faces, &drawing.instructions)
+            .into_iter()
+            .map(|asked| asked.name)
+            .collect();
+    crate::head_model::profile_not_asked(&asked)
 }
 
 /// The records a table is built from, as the table names them: which look each is of, and
@@ -513,15 +522,16 @@ pub fn build(reviews: &[Review]) -> Result<Table> {
         let first_beside = beside.and_then(|(_, drawings)| drawings.first());
         let mut taken = take(&(front_named.clone(), *front), first_beside)?;
         // A drawing read again under a later revision gives what the earlier readings of it
-        // were not asked for.
+        // were not asked for, and nothing else.
         for later in fronts.iter().skip(1) {
-            fill(&mut taken, &take(later, first_beside)?);
+            taken.add_what_is_missing(&take(later, first_beside)?, &not_asked(front));
         }
         if let Some((_, drawings)) = beside {
+            let earliest = drawings[0].1;
             for later in drawings.iter().skip(1) {
-                fill(
-                    &mut taken,
+                taken.add_what_is_missing(
                     &take(&(front_named.clone(), *front), Some(later))?,
+                    &not_asked(earliest),
                 );
             }
         }
@@ -711,13 +721,10 @@ impl Table {
             out.push_str(&format!("standing = {}\n", quoted(line.standing().word())));
             // Only a range is stated in numbers: the values of a few characters are those
             // characters' own numbers.
-            let numbers = line.numbers();
-            if let (Standing::Given, Some(lowest), Some(highest)) =
-                (line.standing(), numbers.first(), numbers.last())
-            {
-                out.push_str(&format!("lowest = {}\n", six(*lowest)));
-                out.push_str(&format!("middle = {}\n", six(median(&numbers))));
-                out.push_str(&format!("highest = {}\n", six(*highest)));
+            if let Some([lowest, middle, highest]) = range(line.kind, &line.numbers()) {
+                out.push_str(&format!("lowest = {}\n", six(lowest)));
+                out.push_str(&format!("middle = {}\n", six(middle)));
+                out.push_str(&format!("highest = {}\n", six(highest)));
             }
             if !line.not_given.is_empty() {
                 let reasons: Vec<String> = line
@@ -752,21 +759,17 @@ impl Table {
             .iter()
             .map(|band| {
                 let numbers = line.of_band(band);
-                let range = match (
-                    Standing::of(line.kind, numbers.len()),
-                    numbers.first(),
-                    numbers.last(),
-                ) {
-                    (Standing::Given, Some(lowest), Some(highest)) => format!(
+                let stated = match range(line.kind, &numbers) {
+                    Some([lowest, middle, highest]) => format!(
                         ", lowest = {}, middle = {}, highest = {}",
-                        six(*lowest),
-                        six(median(&numbers)),
-                        six(*highest)
+                        six(lowest),
+                        six(middle),
+                        six(highest)
                     ),
-                    _ => String::new(),
+                    None => String::new(),
                 };
                 format!(
-                    "{{ band = {}, characters = {}{range} }}",
+                    "{{ band = {}, characters = {}{stated} }}",
                     quoted(band),
                     numbers.len()
                 )
@@ -799,9 +802,10 @@ impl Table {
             .map(|(name, _)| *name)
             .collect();
         let apart_said = match apart.as_slice() {
-            [] => "overlap in every one.".to_string(),
+            [] => "overlap in every one: on these characters no proportion tells the bands apart."
+                .to_string(),
             names => format!(
-                "overlap in {}, and do not overlap in {}: {}.",
+                "overlap in {}, and do not overlap in {}: {}. Those are the proportions that tell the bands apart on these characters.",
                 compared.len() - names.len(),
                 names.len(),
                 names.join(", ")

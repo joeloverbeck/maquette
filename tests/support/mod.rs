@@ -15,6 +15,40 @@ pub fn repository() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
+/// The points of the profile, to add to the made-up set. Every number is made up, like the set.
+pub const MADE_UP_PROFILE: &str = "\
+forehead_depth = 0.2311
+bridge_depth = 0.2127
+jaw_angle_drop = 0.8873
+jaw_angle_depth = -0.4627
+neck_front_top_drop = 0.9631
+neck_front_top_depth = -0.1873
+neck_front_base_drop = 1.3127
+neck_front_base_depth = -0.2371
+neck_back_top_drop = 0.6373
+neck_back_top_depth = -1.2129
+neck_back_base_drop = 1.0871
+neck_back_base_depth = -1.3373
+";
+
+/// Writes the made-up set with the points of the profile and its tip of the nose at 0.3627
+/// below the eye line, above the nose mark's bottom at 0.4629, into a scratch folder of its
+/// own, with each of `also`'s lines of the set replaced, and returns its path.
+pub fn made_up_profile_set(name: &str, also: &[(&str, &str)]) -> PathBuf {
+    let set = scratch(&format!("{name}-set")).join("proportions.toml");
+    let mut made_up = text(&repository().join(MADE_UP))
+        .replace("nose_tip_drop = 0.4629", "nose_tip_drop = 0.3627");
+    for (line, with) in also {
+        assert!(
+            made_up.contains(line),
+            "the made-up set has no line `{line}`"
+        );
+        made_up = made_up.replace(line, with);
+    }
+    std::fs::write(&set, format!("{made_up}{MADE_UP_PROFILE}")).expect("the set is written");
+    set
+}
+
 /// Runs the program from the repository's root.
 pub fn maquette(arguments: &[&str]) -> Output {
     maquette_with_path(arguments, None)

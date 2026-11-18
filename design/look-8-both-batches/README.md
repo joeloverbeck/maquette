@@ -41,11 +41,11 @@ A diagnostic, which accepts nothing.
 | Saffi's accepted armature | `armatures/saffi/front.svg`, `three-quarter.svg`, `side.svg` | `data/saffi/proportions.toml` |
 | Saffi against the ranges | What `maquette set-against-table --proportions data/saffi/proportions.toml --table tables/women-and-teenage-girls/table.toml` writes | The table |
 
-The program was built from commit `9b1f210` on `spec-3-first-table`. SHA-256 digests on 2026-11-18:
+The program was built from commit `9b1f210` on `spec-3-first-table`; the table and the head's set were written again after the review that followed, which changed two counts of thin proportions and drew the same head. SHA-256 digests on 2026-11-18:
 
 ```
-110511b36f037724e85edcd43d80b73a51cdcf659af18774209ff09b3f21c3f2  head-from-the-table.toml
-cfc9e3830e62c5ade99c7551fd88330998677e66b945c2b39c57195f65121726  tables/women-and-teenage-girls/table.toml
+254d30d2cce2e46ffa7173c785efff1a91956af4bad7e80938d4786affd67bec  head-from-the-table.toml
+86a39df07b216c19df56f7427e54aade0652f2dde30b56ca8d2de3acecebf474  tables/women-and-teenage-girls/table.toml
 165a68d5425bf7820bafcf9c8a4ea8c67ff0a627d871e96da93511466e47d6d9  front.svg
 1a1505cdb965fba0f6a8ecf8d7d4c44ba5d63f8fc1281c5669bf8a09cb408aa6  front.landmarks.toml
 deaf7977227ec9e596734aa64f8e9d73615d3a4168c8e3ab5effc417515a1511  three-quarter.svg

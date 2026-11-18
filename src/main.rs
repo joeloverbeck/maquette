@@ -295,13 +295,14 @@ turned or mirrored, by an EXIF orientation, is refused, and so is one whose EXIF
       Make a whole set of proportions for one head to be drawn, from the table the records
       of Jon's checks give: the table's middle value where a proportion has a range; the
       average of the characters where two to four give it, marked as thin; and for the rest the
-      number of the set named by --borrow, marked as borrowed. An ear and the neck are each taken whole: unless
-      the works give every one of a form's proportions, all are borrowed. A borrowed point that
-      hangs on a measured one keeps its offset from it: the jaw point is placed from this
-      set's own chin, as far from it as the borrowed set's stands from its chin. The set carries no
-      correction, and says what the list's rule would set back on its own depths. It says
-      of every proportion which of the three it is, and `maquette draw` reads it. The set
-      borrowed from is read from where it is named; the set made is no table.
+      number of the set named by --borrow, marked as borrowed. An ear and the neck are each
+      taken whole: unless the characters give every one of a form's proportions, all are
+      borrowed. A borrowed point that hangs on a measured one keeps its offset from it: the jaw
+      point is placed from this set's own chin, as far from it as the borrowed set's stands
+      from its chin. The set carries no correction, and says what the list's rule would set
+      back on its own depths. It says of every proportion which of the three it is, and
+      `maquette draw` reads it. The set borrowed from is read from where it is named; the set
+      made is no table.
 
 turn-from-readings, fit-of-views and proportions-from-readings take `--check <check>`, the
 record of Jon's check, which names its readings from the folder it is in. A record that is
@@ -579,38 +580,35 @@ fn proportions_from_landmarks(arguments: &[String]) -> Result<()> {
     )?;
     let front = armature::read_landmark_file(&read(required(&found, "--front")?)?)?;
     let three_quarter = armature::read_landmark_file(&read(required(&found, "--three-quarter")?)?)?;
-    let mut set = match found.get("--side") {
+    let (set, opening) = match found.get("--side") {
         Some(side) => {
+            // The side view's landmark file states what only it draws: the proportions of the
+            // profile, and any correction.
             let in_side = |error: Error| Error::new(format!("{side}: {error}"));
             let text = read(side)?;
             let named = armature::read_side_view_profile(&text).map_err(in_side)?;
             let side_view = armature::read_landmark_file(&text).map_err(in_side)?;
-            head_model::proportions_from_views_and_profile(
+            let mut set = head_model::proportions_from_views_and_profile(
                 &front,
                 &three_quarter,
                 &side_view,
                 &named,
             )
-            .map_err(in_side)?
-        }
-        None => head_model::proportions_from_views(&front, &three_quarter)?,
-    };
-    let opening = match found.get("--side") {
-        Some(side) => {
-            let in_side = |error: Error| Error::new(format!("{side}: {error}"));
-            let carried = armature::read_side_view_corrections(&read(side)?).map_err(in_side)?;
-            for (name, amounts) in carried {
+            .map_err(in_side)?;
+            for (name, amounts) in armature::read_side_view_corrections(&text).map_err(in_side)? {
                 set = set.with_correction(&name, amounts).map_err(in_side)?;
             }
-            "\
+            let opening = "\
 # A set of proportions taken back from the landmark files of an armature's three views,
 # by `maquette proportions-from-landmarks`: the proportions from the front view and the
 # three-quarter view, and from the side view any correction and the proportions of the profile
 # it is drawn with, which its landmark file is the one to state. `maquette list-proportions`
 # defines each proportion and each correction.
-"
+";
+            (set, opening)
         }
-        None => {
+        None => (
+            head_model::proportions_from_views(&front, &three_quarter)?,
             "\
 # A set of proportions taken back from two landmark files, a front view and a three-quarter view,
 # by `maquette proportions-from-landmarks`. `maquette list-proportions` defines each proportion.
@@ -618,8 +616,8 @@ fn proportions_from_landmarks(arguments: &[String]) -> Result<()> {
 # No side view was given, so a correction was not taken back: the side view's landmark file is
 # the one that states it. If the armature carries a correction, this is not the whole set it
 # was drawn from. Give the side view's landmark file with `--side` to take it back as well.
-"
-        }
+",
+        ),
     };
     deliver(&found, &set.write(opening)?)
 }

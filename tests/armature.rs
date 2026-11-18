@@ -1016,37 +1016,10 @@ fn outline_lowest(folder: &Path) -> f64 {
     lowest
 }
 
-/// The points of the profile, to add to the made-up set, and a tip of the nose that stands
-/// above the nose mark's bottom. Every number is made up, like the set.
-const MADE_UP_PROFILE: &str = "\
-forehead_depth = 0.2311
-bridge_depth = 0.2127
-jaw_angle_drop = 0.8873
-jaw_angle_depth = -0.4627
-neck_front_top_drop = 0.9631
-neck_front_top_depth = -0.1873
-neck_front_base_drop = 1.3127
-neck_front_base_depth = -0.2371
-neck_back_top_drop = 0.6373
-neck_back_top_depth = -1.2129
-neck_back_base_drop = 1.0871
-neck_back_base_depth = -1.3373
-";
-
-/// The made-up set with the points of the profile, and its tip of the nose at 0.3627 below
-/// the eye line, above the nose mark's bottom at 0.4629.
-fn made_up_profile_set(name: &str) -> PathBuf {
-    let set = scratch(&format!("{name}-set")).join("proportions.toml");
-    let made_up = text(&support::repository().join(MADE_UP))
-        .replace("nose_tip_drop = 0.4629", "nose_tip_drop = 0.3627");
-    std::fs::write(&set, format!("{made_up}{MADE_UP_PROFILE}")).expect("the set is written");
-    set
-}
-
 #[test]
 fn a_set_that_gives_the_points_of_the_profile_draws_the_side_views_forehead_bridge_jaw_and_neck_through_them()
  {
-    let set = made_up_profile_set("profile");
+    let set = support::made_up_profile_set("profile", &[]);
     let folder = draw("profile", path_text(&set), &[]);
     let side = landmark_file(&folder, "side");
     // As in the side view's own test: a point at a depth stands at x = 500 + 200 * (depth +
@@ -1621,10 +1594,10 @@ fn take_back(folder: &Path, with_side: bool) -> PathBuf {
 
 #[test]
 fn the_proportions_of_the_profile_are_taken_back_from_the_side_view_that_names_them() {
-    let set = made_up_profile_set("taken-back-profile");
+    let set = support::made_up_profile_set("taken-back-profile", &[]);
     let folder = draw("taken-back-profile", path_text(&set), &[]);
     let given = support::proportions(&set);
-    let profile: Vec<&str> = MADE_UP_PROFILE
+    let profile: Vec<&str> = support::MADE_UP_PROFILE
         .lines()
         .filter_map(|line| line.split(" = ").next())
         .collect();

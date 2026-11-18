@@ -23,7 +23,7 @@ use crate::toml_text::{quoted, tables, words};
 use crate::views::View;
 use crate::{Error, Result};
 
-/// How many works a view needs behind it to be a table: a view with fewer is too thin
+/// How many characters a view needs behind it to be a table: a view with fewer is too thin
 /// (`docs/foundation/04-evidence-and-references.md`, "Reference drawings", point 6).
 pub const CHARACTERS_FOR_A_TABLE: usize = 5;
 

@@ -44,10 +44,10 @@ fn the_table_states_a_number_only_where_five_characters_give_a_range() {
     let characters = table["character"]
         .as_array()
         .expect("the table lists its characters");
-    assert_eq!(
-        stated["characters"].as_integer(),
-        Some(characters.len() as i64)
-    );
+    // Jon accepted a front view of 20 characters across his two checks, as the record of look
+    // 7 on #18 counts them: 6 of the first batch and 14 of the second. Each gives the table.
+    assert_eq!(stated["characters"].as_integer(), Some(20));
+    assert_eq!(characters.len(), 20);
     let entries = entries(&table);
     let listed = maquette_ok(&["list-proportions"])
         .lines()

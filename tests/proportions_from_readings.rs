@@ -685,23 +685,6 @@ fn the_list_states_the_skull_rule_and_keeps_the_skull_a_convention() {
     assert!(skull.contains("hair"), "{skull}");
 }
 
-/// The points of the profile, added to the made-up set, and a tip of the nose that stands a
-/// tenth of a unit above the nose mark's bottom. Every number is made up, like the set.
-const MADE_UP_PROFILE_SET: &str = "\
-forehead_depth = 0.2311
-bridge_depth = 0.2127
-jaw_angle_drop = 0.8873
-jaw_angle_depth = -0.4627
-neck_front_top_drop = 0.9631
-neck_front_top_depth = -0.1873
-neck_front_base_drop = 1.3127
-neck_front_base_depth = -0.2371
-neck_back_top_drop = 0.6373
-neck_back_top_depth = -1.2129
-neck_back_base_drop = 1.0871
-neck_back_base_depth = -1.3373
-";
-
 /// A made-up reading of one view of a generated head, as a reader following the reading
 /// instructions places it: in a front view every landmark where the view draws it, and in a
 /// side view by the side view's own definitions, where several are other points of the drawing
@@ -757,13 +740,12 @@ fn a_made_up_head_with_a_real_nose_read_as_the_instructions_define_gives_itself_
  {
     // The made-up set, with the points of the profile and a tip of the nose apart from the
     // nose mark's bottom, as a published profile has: not flat-faced as an armature is.
-    let set = scratch("read-as-instructed-set").join("proportions.toml");
     // A side view gives the neck's depth as the midpoint of its two bases, so a set that gives
     // both gives it there: (-0.2371 - 1.3373) / 2 = -0.7872.
-    let made_up = text(&support::repository().join(MADE_UP))
-        .replace("nose_tip_drop = 0.4629", "nose_tip_drop = 0.3627")
-        .replace("neck_depth = -0.8879", "neck_depth = -0.7872");
-    std::fs::write(&set, format!("{made_up}{MADE_UP_PROFILE_SET}")).expect("written");
+    let set = support::made_up_profile_set(
+        "read-as-instructed",
+        &[("neck_depth = -0.8879", "neck_depth = -0.7872")],
+    );
     let put_in = proportions(&set);
     let first = draw("read-as-instructed-first", path_text(&set), &[]);
 

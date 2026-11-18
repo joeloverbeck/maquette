@@ -145,7 +145,7 @@ pub const BRIDGE: &str = "centre-line-at-eye-level";
 pub const PROFILE: &[(&str, &[&str])] = &[
     (FOREHEAD, &["forehead_depth"]),
     (BRIDGE, &["bridge_depth"]),
-    ("jaw-angle", &["jaw_angle_drop", "jaw_angle_depth"]),
+    (JAW_ANGLE, &["jaw_angle_drop", "jaw_angle_depth"]),
     (
         "neck-front-top",
         &["neck_front_top_drop", "neck_front_top_depth"],
@@ -164,9 +164,29 @@ pub const PROFILE: &[(&str, &[&str])] = &[
     ),
 ];
 
+/// The angle of the jaw, a pair: in [`PROFILE`], the point whose landmarks [`jaw_angle`] names.
+const JAW_ANGLE: &str = "jaw-<side>-angle";
+
 /// The name of one side's angle of the jaw.
 pub fn jaw_angle(side: &str) -> String {
     format!("jaw-{side}-angle")
+}
+
+/// The proportions of [`PROFILE`] whose point a reading was not asked for, given the names of
+/// the landmarks it was asked for: what a reading of the same drawing made under a later
+/// revision of the reading instructions, which asks for it, may add to it.
+pub fn profile_not_asked(asked: &[String]) -> Vec<&'static str> {
+    PROFILE
+        .iter()
+        .filter(|(point, _)| {
+            let names = match *point {
+                JAW_ANGLE => vec![jaw_angle("right"), jaw_angle("left")],
+                point => vec![point.to_string()],
+            };
+            !names.iter().any(|name| asked.contains(name))
+        })
+        .flat_map(|(_, proportions)| proportions.iter().copied())
+        .collect()
 }
 
 /// The nose mark's bottom: the base of the nose as a front view marks it, on the centre line.
@@ -405,7 +425,7 @@ pub fn head(set: &Set) -> Result<Head> {
                 drop: -set.get("brow_inner_end_rise"),
                 depth: *depth,
             }),
-            ("jaw-angle", [drop, depth]) => {
+            (JAW_ANGLE, [drop, depth]) => {
                 let offset = set.get("face_half_width_at_mouth_level");
                 for (side, offset) in [("right", -offset), ("left", offset)] {
                     landmarks.push(Landmark {
@@ -630,7 +650,7 @@ pub fn rests_on(landmark: &str, profile: &[String]) -> Option<[Vec<&'static str>
         BRIDGE if gives("bridge_depth") => {
             return Some([Vec::new(), Vec::new(), vec!["bridge_depth"]]);
         }
-        "jaw-left-angle" | "jaw-right-angle" => {
+        name if name == jaw_angle("left") || name == jaw_angle("right") => {
             return Some([
                 vec!["face_half_width_at_mouth_level"],
                 vec!["jaw_angle_drop"],

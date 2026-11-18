@@ -422,13 +422,6 @@ pub fn read_placement(text: &str) -> Result<Placed> {
     Ok(placed)
 }
 
-/// Reads the corrections a side view's landmark file says the view carries: for each, by
-/// name, every amount by name, in units. The file gives an amount in the SVG's own units, and
-/// its `[frame]` gives the unit. A file with no `[corrections]` table carries none.
-///
-/// A correction is drawn in the side view only, so this is the one file that states it, and a
-/// file of another view is refused. Whether the names are a correction's and its amounts' is
-/// for the list of proportions to say: [`Set::with_correction`] checks them.
 /// The proportions of the profile a side view's landmark file says the head is drawn with:
 /// its `profile` line. None where it has no such line, as a head drawn from a set that gives
 /// none has not.
@@ -448,6 +441,13 @@ pub fn read_side_view_profile(text: &str) -> Result<Vec<String>> {
         .ok_or_else(|| Error::new("the landmark file's `profile` is not a list of names"))
 }
 
+/// Reads the corrections a side view's landmark file says the view carries: for each, by
+/// name, every amount by name, in units. The file gives an amount in the SVG's own units, and
+/// its `[frame]` gives the unit. A file with no `[corrections]` table carries none.
+///
+/// A correction is drawn in the side view only, so this is the one file that states it, and a
+/// file of another view is refused. Whether the names are a correction's and its amounts' is
+/// for the list of proportions to say: [`Set::with_correction`] checks them.
 pub fn read_side_view_corrections(
     text: &str,
 ) -> Result<std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>> {

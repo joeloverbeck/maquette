@@ -49,6 +49,8 @@ struct Work {
     /// The revision of the reading instructions its side view was read under, where it is an
     /// earlier one, which asked for none of the points of the profile asked for since.
     side_read_under: Option<&'static str>,
+    /// The landmarks its side view's readers state as not seen.
+    side_unseen: Vec<&'static str>,
 }
 
 impl Work {
@@ -66,6 +68,7 @@ impl Work {
             front: true,
             side_points: Vec::new(),
             side_read_under: None,
+            side_unseen: Vec::new(),
         }
     }
 }
@@ -221,6 +224,9 @@ fn write_batch(folder: &Path, characters: &[(String, Work)], more: &dyn Fn(&Path
             }
             for (name, at) in &work.side_points {
                 points.insert(name.to_string(), *at);
+            }
+            for name in &work.side_unseen {
+                points.remove(*name);
             }
             let side = named("side");
             for (reader, path) in ["first", "second"].into_iter().zip(&side) {
@@ -572,6 +578,48 @@ fn a_drawing_read_again_under_a_later_revision_adds_what_its_first_readings_were
     let value = |name: &str| number(&set["proportions"][name]);
     assert_close(value("chin_depth"), 0.25, 1e-6, "the first readings' chins");
     assert_close(value("bridge_depth"), 0.35, 1e-6, "the bridge read again");
+}
+
+#[test]
+fn a_drawing_read_again_gives_nothing_its_first_readings_were_asked_for_and_did_not_see() {
+    // Made up: the first readings of works 1 and 2's side views were asked for the point
+    // under the tip of the nose and did not see it; the readings made again place it. What the
+    // first readings were asked for is theirs to give or not, and Jon checked them so: the
+    // tip of the nose is not taken from the later ones.
+    let folder = references("table-read-again-unseen");
+    let mut works = six_works();
+    for first in &mut works[..2] {
+        first.side_read_under = Some("2026-11-17.3");
+        first.side_unseen = vec!["nose-mark-bottom"];
+    }
+    write_batch(&folder.join("batch-a"), &labelled(&works, 1), &|_| {
+        String::new()
+    });
+    let again: Vec<Work> = works[..2]
+        .iter()
+        .map(|first| Work {
+            front: false,
+            side_points: vec![("centre-line-at-eye-level", [735.0, 300.0])],
+            side_read_under: None,
+            side_unseen: Vec::new(),
+            ..first.clone()
+        })
+        .collect();
+    write_batch(&folder.join("batch-b"), &labelled(&again, 1), &|_| {
+        String::new()
+    });
+    checked_at(&folder.join("batch-a"), "Look 4 of 8, made up", &[]);
+    checked_at(&folder.join("batch-b"), "Look 7 of 8, made up", &[]);
+    let (table, _) = built_from(&folder, &["batch-a/check.toml", "batch-b/check.toml"]);
+    for name in ["nose_mark_bottom_depth", "nose_tip_drop"] {
+        assert_eq!(
+            entry(&table, name)["characters"].as_integer(),
+            Some(0),
+            "{name}"
+        );
+    }
+    // The bridge, which the first readings were not asked for, still comes from the later.
+    assert_thin(&table, "bridge_depth", 2);
 }
 
 #[test]

@@ -1368,6 +1368,18 @@ pub fn proportions(
 }
 
 impl Proportions {
+    /// Gives each of `only` that `other` gives and these do not, from `other`: what a drawing
+    /// read again under a later revision adds to its earlier readings, which were not asked
+    /// for it.
+    pub fn add_what_is_missing(&mut self, other: &Proportions, only: &[&str]) {
+        for (name, value) in &other.taken.values {
+            if only.contains(&name.as_str()) && !self.taken.values.contains_key(name) {
+                self.taken.values.insert(name.clone(), *value);
+                self.taken.not_given.retain(|(given, _)| given != name);
+            }
+        }
+    }
+
     /// Leaves out the proportions Jon marked as off for the character: each is not given,
     /// and says so.
     pub fn leave_out(&mut self, marked: &[String]) {

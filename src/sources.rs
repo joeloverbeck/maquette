@@ -164,12 +164,12 @@ pub fn overlay(
     landmarks_text: &str,
 ) -> Result<Overlay> {
     let sources = sources_of(set_path, set_text)?;
-    // The proportions of the profile the set gives, as the head model draws from them.
-    let profile: Vec<String> = head_model::PROFILE
-        .iter()
-        .filter(|(_, names)| names.iter().all(|name| sources.contains_key(*name)))
-        .flat_map(|(_, names)| names.iter().map(|name| name.to_string()))
-        .collect();
+    // The proportions of the profile the head is drawn with, as the head model says them.
+    let set = proportions::Set::read(set_text)
+        .map_err(|error| Error::new(format!("{set_path}: {error}")))?;
+    let head =
+        head_model::head(&set).map_err(|error| Error::new(format!("{set_path}: {error}")))?;
+    let profile = head.profile();
     let in_file = |why: String| Error::new(format!("{landmarks_path}: {why}"));
     let file: toml::Table = landmarks_text
         .parse()
@@ -227,7 +227,7 @@ pub fn overlay(
                 .get("landmarks")
                 .and_then(toml::Value::as_table)
                 .is_some_and(|landmarks| landmarks.contains_key(name));
-            let (Some(at), Some(on)) = (placed.get(name), rests_on(name, is_landmark, &profile))
+            let (Some(at), Some(on)) = (placed.get(name), rests_on(name, is_landmark, profile))
             else {
                 continue;
             };
