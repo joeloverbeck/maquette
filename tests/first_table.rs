@@ -15,7 +15,7 @@ use support::{
 };
 
 const TABLE: &str = "tables/women-and-teenage-girls/table.toml";
-const HEAD: &str = "design/look-6-first-table/saffi-with-table-values.toml";
+const HEAD: &str = "design/look-8-both-batches/head-from-the-table.toml";
 const SAFFIS: &str = "data/saffi/proportions.toml";
 
 fn toml_of(path: &str) -> toml::Table {
@@ -198,6 +198,99 @@ fn saffis_numbers_are_at_no_end_of_a_range_of_the_table() {
             }
         }
     }
+}
+
+#[test]
+fn the_head_takes_the_tables_middles_and_borrows_saffis_numbers_as_it_says() {
+    let head = toml_of(HEAD);
+    let table = entries(&toml_of(TABLE));
+    let hers = proportions(&repository().join(SAFFIS));
+    let values = proportions(&repository().join(HEAD));
+    let sources = head["sources"]
+        .as_table()
+        .expect("the head says its sources");
+    assert_eq!(sources.len(), table.len());
+    let mut counted: BTreeMap<&str, i64> = BTreeMap::new();
+    for (name, said) in sources {
+        let said = said.as_str().expect("a source is text");
+        let entry = &table[name];
+        let behind = entry["characters"].as_integer().expect("a count");
+        let kind = said.split(':').next().expect("a kind");
+        *counted.entry(kind).or_default() += 1;
+        match kind {
+            "the table" => {
+                assert_eq!(entry["standing"].as_str(), Some("given"), "{name}");
+                assert_eq!(
+                    said,
+                    format!("the table: the middle of {behind} characters"),
+                    "{name}"
+                );
+                assert_close(values[name], number(&entry["middle"]), 1e-9, name);
+            }
+            "a thin average" => {
+                assert_eq!(entry["standing"].as_str(), Some("too thin"), "{name}");
+                assert!((2..=4).contains(&behind), "{name}: {behind} characters");
+                assert_eq!(
+                    said,
+                    format!("a thin average: of {behind} characters"),
+                    "{name}"
+                );
+            }
+            "borrowed" => {
+                // An ear is taken whole, so even a proportion of it that has a range is
+                // borrowed with the rest of it.
+                if !name.starts_with("ear_") {
+                    assert_ne!(entry["standing"].as_str(), Some("given"), "{name}");
+                }
+                if name.starts_with("jaw_") && !name.starts_with("jaw_line_") {
+                    // The jaw point hangs on the chin: its depth is her offset from her own
+                    // chin, placed from this head's chin.
+                    let expected = match name.as_str() {
+                        "jaw_depth" => {
+                            values["chin_depth"] + hers["jaw_depth"] - hers["chin_depth"]
+                        }
+                        _ => hers[name],
+                    };
+                    assert_close(values[name], expected, 1e-6, name);
+                } else {
+                    assert_close(values[name], hers[name], 1e-9, name);
+                }
+            }
+            "left out" => {
+                // A proportion a set may leave out, which too few characters give and her set
+                // does not have: the head is drawn without it.
+                assert!(!values.contains_key(name), "{name}");
+                assert!(!hers.contains_key(name), "{name}");
+                assert!(behind < 2, "{name}: {behind} characters");
+            }
+            other => panic!("{name}: an unknown source `{other}`"),
+        }
+    }
+    let stated = head["source"].as_table().expect("a [source]");
+    for (key, kind) in [
+        ("from_the_table", "the table"),
+        ("thin_averages", "a thin average"),
+        ("borrowed", "borrowed"),
+        ("left_out", "left out"),
+    ] {
+        assert_eq!(
+            stated[key].as_integer(),
+            Some(counted.get(kind).copied().unwrap_or(0)),
+            "{key}"
+        );
+    }
+    assert_eq!(stated["borrowed_from"].as_str(), Some(SAFFIS));
+    // An ear is taken whole, and the head carries no correction.
+    for (name, said) in sources {
+        if name.starts_with("ear_") {
+            assert!(
+                said.as_str()
+                    .is_some_and(|said| said.starts_with("borrowed")),
+                "{name}"
+            );
+        }
+    }
+    assert!(!head.contains_key("corrections"));
 }
 
 /// The drawn head's three landmark files.
